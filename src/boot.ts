@@ -1,0 +1,40 @@
+import type { FastifyInstance } from 'fastify';
+import { buildApp } from './app.js';
+import { moduleRegistrations } from './modules/index.js';
+import type { AppContext, Config } from './platform/app-context.js';
+import { AuthorizerRegistry, devAllowAllAuthorizer } from './platform/authz.js';
+import { applyMigrations, discoverMigrations } from './platform/db/migrate.js';
+import { openDatabase } from './platform/db/open.js';
+import { createPlatformRegistry } from './platform/entity-registry.js';
+import { EventBus } from './platform/events.js';
+import { getLocalIdentity } from './platform/identity.js';
+import { verifySyncedTables } from './platform/records.js';
+
+/**
+ * Composition root: open DB, migrate, register modules, then verify. Fails closed:
+ * without a real Authorizer (M02) startup is refused unless dev mode is explicit.
+ */
+export function boot(config: Config): { ctx: AppContext; app: FastifyInstance } {
+  const db = openDatabase(config.dbFile);
+  applyMigrations(db, discoverMigrations());
+
+  const authz = new AuthorizerRegistry();
+  if (config.devAuth) authz.register(devAllowAllAuthorizer);
+
+  const ctx: AppContext = {
+    db,
+    config,
+    entities: createPlatformRegistry(),
+    authz,
+    events: new EventBus(),
+    identity: getLocalIdentity(db),
+  };
+
+  const app = buildApp(ctx);
+  for (const m of moduleRegistrations) m.register(ctx, app);
+
+  if (!config.devAuth) authz.assertProductionReady();
+  const problems = [...ctx.entities.validate(), ...verifySyncedTables(db, ctx.entities)];
+  if (problems.length) throw new Error(`Schema/registry problems:\n  ${problems.join('\n  ')}`);
+  return { ctx, app };
+}

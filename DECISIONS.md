@@ -1,0 +1,52 @@
+# DECISIONS
+
+Format: **ID — decision.** Why. Consequence. Changing a decision means a new entry that supersedes it.
+
+**D01 — TypeScript (strict, ESM) on Node 22 LTS with Fastify 5, Zod 4, Vitest.** One language for API, shared contracts and UI; strong typing for contracts across 14 modules; all open source, no paid service. Consequence: every module is TypeScript; contracts are Zod schemas.
+
+**D02 — Modular monolith, one deployable per installation.** Ships and workshops need something one technician can install and back up. Module boundaries are enforced by `check-boundaries` instead of network boundaries. Consequence: no microservices unless a measured requirement appears.
+
+**D03 — Hub-and-spoke sync, same envelope over HTTPS or signed bundle file.** Simple topology, one place for reference data and number ranges, works for ships that are completely disconnected. Consequence: no direct replica↔replica sync in R1; a hub outage blocks only synchronization and range top-ups, not local work.
+
+**D04 — IDs are UUIDv7; readable tags and numbers are separate columns from hub-granted ranges.** Offline creation without collisions, permanent identity, time-ordered keys. Consequence: tag prefix/width are data (`sys_number_sequence`), initially `SLN-EQ` / 8 digits; ids are never displayed.
+
+**D05 — Single writer per record (ownership) plus append-only event ledgers; no generic merge.** Merging free-form edits across disconnected installations is unsafe for maintenance records; ownership makes conflicts rare and reviewable. Consequence: tables are designed so each has one writer (split dates, split custody, events for history); handover is explicit (SYNC_RULES §3).
+
+**D06 — State-based change log (full row snapshot per change), idempotent by `changeId`.** Simpler and safer to replay than deltas; payload hash detects divergence. Consequence: larger payloads; acceptable on LAN/USB, batches bounded.
+
+**D07 — No database foreign keys on synced tables.** Selective sync, tombstones and out-of-order delivery make FKs unreliable. Integrity comes from services, `requires` dependency closure and the M14 integrity checks. Local tables may use FKs.
+
+**D08 — Forward-only SQL migrations per module with checksums and sync macros.** Offline installations cannot run down-migrations reliably; macros make the sync contract impossible to forget; checksum blocks silent edits. Consequence: fixes are new migrations; backup precedes every upgrade.
+
+**D09 — Authorization by port.** Modules ask `Authorizer`/`ApprovalPort` supplied by M02 at startup, so M01 can ship before M02 and no module imports identity. Production refuses to start with the placeholder authorizer; `CMMS_DEV_AUTH=1` allows an allow-all authorizer for development only.
+
+**D10 — Four independent status axes** (progress, approval, return-to-service, closure) stored as events, current values derived. Matches the requirement that work, approval, return to service and administrative closure are different facts. No combined "status".
+
+**D11 — Offline authority = lease from last confirmed hub sync (default 30 days) with per-class policy `allow | provisional | deny`; late revocations flag, never rewrite history.** Keeps ships working at sea while bounding risk (SYNC_RULES §6). Defaults are proposals to be confirmed (see open questions).
+
+**D12 — Units and time.** UTC ISO-8601 ms for instants; local calendar dates for plans; display zone Asia/Colombo configurable; integers for quantity (milli), money (minor units) and run time (minutes).
+
+**D13 — SQLite `synchronous=FULL` + WAL.** Ships lose power; committed work must survive. Slightly slower writes, irrelevant at this scale.
+
+**D14 — SQLite, not PostgreSQL, per installation.** Zero administration, single file backup, enough for LAN department use with one writer process; embedded in the deployable. Revisit only if the hub outgrows it (measure first); the repository layer keeps SQL inside modules.
+
+**D15 — UI is a React + Vite SPA under `web/`; exact versions pinned when first installed in M01.** Avoids pinning speculative versions now. Bundled assets only (no CDN) so it runs offline.
+
+**D16 — Production run mode (compiled `dist` vs `tsx`) is decided in M14.** Sources are NodeNext-compatible with `.js` import specifiers so either works.
+
+**D17 — Encryption at rest deferred to M14.** Initial position: OS-level disk encryption on hubs and replicas; evaluate SQLCipher only if policy requires database-level encryption.
+
+**D18 — Workshops and commands without a replica are hub clients.** Avoids needless replicas; "independent replicas only where disconnected operation is required".
+
+**D19 — Derived state is never synchronized.** Stock balances, current installation, due lists, operating state are recomputed locally from events, so replicas cannot disagree about arithmetic.
+
+**D20 — Events are never rejected for state reasons, only flagged.** The physical world already happened (an item was issued, a reading taken); the system records it and raises an exception for review.
+
+## Open questions for the project owner (defaults used until answered)
+
+1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
+2. Offline lease length (assumed 30 days) and which gates must be `deny` or `provisional` after expiry.
+3. Which commands/workshops need their own replica versus using the hub.
+4. UI languages required (English assumed; keys allow Sinhala/Tamil later).
+5. Security classification and network policy (affects D17, hosting of the hub, bundle handling).
+6. Stale thresholds (assumed 7 days ships, 2 days workshops/commands).
