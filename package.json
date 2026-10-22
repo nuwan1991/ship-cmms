@@ -13,7 +13,12 @@
     "dev": "tsx src/main.ts",
     "check:boundaries": "tsx tools/check-boundaries.ts",
     "verify": "npm run typecheck && npm run check:boundaries && npm test",
-    "init-installation": "tsx src/platform/init-cli.ts"
+    "init-installation": "tsx src/platform/init-cli.ts",
+    "seed:demo-org": "tsx src/modules/m01-organization/seed-cli.ts",
+    "web:install": "npm ci --prefix web",
+    "web:dev": "npm run dev --prefix web",
+    "web:build": "npm run build --prefix web",
+    "verify:web": "npm run typecheck --prefix web && npm run test --prefix web && npm run build --prefix web"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",

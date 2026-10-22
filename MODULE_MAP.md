@@ -33,7 +33,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 
 | Module | Exports from `index.ts` (target) | Ports implemented | Ports/events consumed |
 |---|---|---|---|
-| M01 | `getShipCommandAt(shipId, date)`, `listShipsByCommand`, `getLocation`, org types, `PartyRef` resolvers | entity registrations | Authorizer |
+| M01 | `getShipCommandAt(db, shipId, at?)`, `listShipsByCommand(db, commandId, at?)`, `getLocation(db, id)`, `resolveParty` / `resolveParties` (PartyRef → live org unit or null), `ORG_PERMISSIONS`, `orgPermission`, `ORG_ENTITIES`, result types | entity registrations (`org.*`) | Authorizer (via `req.principal` set by M02) |
 | M02 | user/role lookups for M08 | `Authorizer`, `ApprovalPort` | audit, registry |
 | M03 | `getAsset`, `getPosition`, `currentInstallation(assetId)`, `resolveTag`, asset types | entity registrations, `ImportExportPort` | ranges, Authorizer |
 | M04 | label issue/assign API | `ImportExportPort` (labels) | ranges, M03 |

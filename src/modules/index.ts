@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../platform/app-context.js';
 import type { ModuleId } from '../platform/modules.js';
+import { register as m01 } from './m01-organization/index.js';
 
 /**
  * Composition root for modules. Each built module adds ONE line here:
@@ -15,5 +16,6 @@ export interface ModuleRegistration {
 }
 
 export const moduleRegistrations: readonly ModuleRegistration[] = [
-  // M00: none yet. Add in dependency order (see MODULE_MAP.md).
+  // Add in dependency order (see MODULE_MAP.md).
+  { id: 'M01', register: m01 },
 ];

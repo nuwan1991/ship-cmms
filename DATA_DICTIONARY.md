@@ -24,18 +24,22 @@ Classes: **H** hub_reference (hub writes) · **O** owner_mutable (owner installa
 | sys_setting | L | Installation settings (display zone, thresholds) |
 | sys_schema_migration | L | Applied migrations with checksums (created by the runner) |
 
-## M01 `org_` (planned)
+## M01 `org_` — implemented in migration `m01-organization/0001_organization`
 
-| Table | Class | Purpose |
-|---|---|---|
-| org_fleet | H | Fleet root (single row) |
-| org_command | H | Configurable commands (seven initially; count not hard-coded) |
-| org_ship | H | Ship master data (name, pennant/hull no., class, status) |
-| org_ship_command_assignment | H | Dated ship→command attachment, non-overlapping per ship |
-| org_department | H | Disciplines (Marine Eng., Electrical Eng., …) |
-| org_workshop | H | Command, specialist or onboard workshop; optional command; has replica flag |
-| org_external_provider | H | External repair organizations |
-| org_location | O (owner = ship/site installation) | Decks, compartments, spaces; tree per ship/site |
+All rows carry the standard sync columns (CONTRACTS §2). No foreign keys; services validate references. Codes are unique among live rows (a tombstoned code can be reused). Permissions: `org.<noun>.<view|create|update|remove>` for each noun below (`ORG_PERMISSIONS`).
+
+| Table | Class | Key columns | Rules |
+|---|---|---|---|
+| org_fleet | H | code, name | Single live row |
+| org_command | H | code, name, short_name, sort_order, status | Count is data (seven initially); cannot be deactivated or removed while it has current/future ship assignments or workshops |
+| org_ship | H | fleet_id, code, name, pennant_no, ship_class, ship_type, status (`active|laid_up|decommissioned`) | `fleet_id` defaults to the single fleet; cannot be removed while it has locations, an onboard workshop or current/future assignments |
+| org_ship_command_assignment | H | ship_id, command_id, effective_from, effective_to (NULL = open), reason | Half-open `[from, to)`; live rows of one ship never overlap (service check + DB trigger); inactive commands cannot receive ships |
+| org_department | H | code, name, sort_order, status | Disciplines; responsibility itself lives in M03 |
+| org_workshop | H | code, name, kind (`onboard|command|specialist`), command_id, ship_id, has_replica, status | onboard ⇒ ship_id only; command ⇒ command_id only; specialist ⇒ neither (serves any command by capability, M08) |
+| org_external_provider | H | code, name, contact_*, notes, status | Executing party only; no site |
+| org_location | O | site_kind (`ship|workshop`), home_scope_id (= site id), parent_id, code, name, kind, sort_order, status | Tree per site, depth ≤ `LOCATION_MAX_DEPTH`; parent in same site; no cycles; code unique per parent; owner = installation that entered it; ship/workshop installations enter only their own site |
+
+Published read model: **`org_v_ship_current_command`** (ship + command attached now). Service operation `reassignShip` closes the assignment in force and opens the next atomically; it changes no ship, location or asset owner.
 
 ## M02 `idn_` (planned)
 

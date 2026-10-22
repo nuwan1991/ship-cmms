@@ -23,23 +23,31 @@ MODULE_MAP rows finalized; BUILD_STATUS updated. Keep output minimal; do not res
 Stop when done and list the smallest file set needed for the next module.
 ```
 
-## M01 block (ready to paste)
+## M02 block (ready to paste)
 
 ```
-You are implementing module M01 — Organizations, ships, commands and locations (prefix org_, API /api/v1/org).
-Scope (R1): tables org_fleet, org_command, org_ship, org_ship_command_assignment (dated, non-overlapping per ship),
-org_department, org_workshop, org_external_provider (all hub_reference) and org_location (owner_mutable, tree per
-ship/site, owner = installation that holds the site). Command count is data, not code (seven initially, configurable).
-Provide: services with business rules (assignment overlap rejected; effective-dated lookup getShipCommandAt;
-reassigning a ship never changes record owners); routes; permissions org.<resource>.<action> registered; view
-org_v_ship_current_command; index.ts public surface per MODULE_MAP; PartyRef resolution helper; seed command for a
-demo dataset (not production data). Then scaffold web/ (React + Vite, versions pinned at install, bundled assets)
-with the shell, nav registry fed by NavItem, freshness banner placeholder, and org screens (list/create/edit/assign).
-No authentication logic: use the Authorizer port (CMMS_DEV_AUTH=1 in development).
+You are implementing module M02 — Identity, roles, permissions and offline authority (prefix idn_, API /api/v1/identity).
+M01 is done; do not modify it. M02 depends on M01 only through its index.ts.
+Scope (R1): tables idn_user, idn_credential (username + scrypt hash + credential version), idn_user_installation (lease expiry),
+idn_role, idn_role_permission, idn_role_assignment (dated, scoped, optional valid_until), idn_offline_grant, idn_gate_policy,
+idn_approval (event), idn_authority_revocation (event, effective_at vs received_at), idn_session (local).
+Provide: the real Authorizer and ApprovalPort registered at startup (replacing CMMS_DEV_AUTH); an authentication hook that sets
+req.principal; login/logout/session routes; effective-permission endpoint for the web shell; permission catalogue seeded from each
+module's exported permission list (ORG_PERMISSIONS today); gate policy modes mandatory_prior | review_pending_allowed | none with
+offline policy allow | provisional | deny; offline lease expiry and late-revocation handling exactly as SYNC_RULES §6 (flag, never
+rewrite history); approvals keyed by user_id with actor snapshot, actual decided_at and recorded_at, unaffected by username or
+password changes. Then replace web/src/platform/permissions.ts with the real call and add login and admin screens (users, roles,
+assignments) via web/src/modules.ts.
+Hash passwords with node:crypto scrypt (no new native dependency). Stay inside M02's directory, migrations and docs rows.
 ```
 
-## Smallest file set to attach for M01
+## Smallest file set to attach for M02
 
-Docs: `CHAT_STARTER.md`, `MODULE_MAP.md`, `CONTRACTS.md`, `DATA_DICTIONARY.md`, `BUILD_STATUS.md`.
-Code: `package.json`, `package-lock.json`, `tsconfig.json`, `src/main.ts`, `src/boot.ts`, `src/app.ts`, `src/modules/index.ts`, and `src/platform/` (`records.ts`, `entity-registry.ts`, `contracts.ts`, `authz.ts`, `ports.ts`, `errors.ts`, `ids.ts`, `time.ts`, `modules.ts`, `app-context.ts`, `identity.ts`, `canonical.ts`, `db/migrate.ts`, `db/open.ts`, `db/migrations/0001_core.sql`), plus `test/helpers.ts` and `tools/check-boundaries.ts`.
-If the repository itself is available in the chat, attach nothing else: the docs above are the only ones M01 must read.
+Docs: `CHAT_STARTER.md`, `MODULE_MAP.md`, `CONTRACTS.md`, `SYNC_RULES.md` (§6 offline authority), `DATA_DICTIONARY.md`, `BUILD_STATUS.md`, `DECISIONS.md` (D11, D21–D24).
+Server: `package.json`, `package-lock.json`, `tsconfig.json`, `src/main.ts`, `src/boot.ts`, `src/app.ts`, `src/modules/index.ts`, `src/platform/` (`authz.ts`, `ports.ts`, `contracts.ts`, `records.ts`, `entity-registry.ts`, `errors.ts`, `ids.ts`, `time.ts`, `canonical.ts`, `identity.ts`, `app-context.ts`, `modules.ts`, `config.ts`, `db/migrate.ts`, `db/open.ts`, `db/migrations/0001_core.sql`), M01 pattern and surface (`src/modules/m01-organization/index.ts`, `permissions.ts`, `actor.ts`, `entities.ts`), `test/helpers.ts`, `test/modules/org-helpers.ts`, `tools/check-boundaries.ts`.
+Web: `web/package.json`, `web/package-lock.json`, `web/src/modules.ts`, `web/src/App.tsx`, `web/src/platform/` (`permissions.ts`, `api.ts`, `nav.ts`, `system.tsx`, `i18n.ts`, `ui.tsx`, `form.tsx`, `useList.ts`), `web/src/modules/org/index.tsx` (pattern).
+If the repository itself is available in the chat, attach nothing else.
+
+## M01 (done)
+
+Delivered and recorded in BUILD_STATUS. Its prompt is kept in git history (commit "M01") rather than here.

@@ -42,6 +42,14 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D20 — Events are never rejected for state reasons, only flagged.** The physical world already happened (an item was issued, a reading taken); the system records it and raises an exception for review.
 
+**D21 — Ship-to-command attachment is a dated, hub-written interval; reassignment never moves record ownership.** Intervals are half-open `[from, to)`, non-overlapping per ship (service rule plus DB trigger). `reassignShip` closes and opens in one transaction. Record owners are installations, not commands, so a ship changing command changes no `owner_installation_id`.
+
+**D22 — Org reference data is hub-only; locations are owner-mutable per site.** Ships and workshops read reference data and enter locations only for the site their installation serves (`sys_installation.org_unit_id`); the hub may enter any. Changes to reference data from elsewhere are requests to the hub, not edits.
+
+**D23 — Codes are unique among live rows only; removal is a tombstone with a reason.** Lets a retired code be reused while history keeps the old row; HTTP exposes `POST …/:id/tombstone`, never DELETE.
+
+**D24 — Web UI is one Vite/React app in `web/`, composed in `web/src/modules.ts`.** Bundled assets only (no CDN or remote fonts), labels by key (`registerLabels`), nav filtered by `can()` (placeholder until M02), freshness banner on every synced list. Serving the built assets from the local server is an M14 deployment concern; development uses the Vite proxy to port 8080.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
