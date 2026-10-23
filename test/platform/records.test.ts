@@ -105,3 +105,19 @@ describe('write path', () => {
     expect(() => registry.register({ type: 'org.x', module: 'M03', table: 'org_x', recordClass: 'local', distribution: 'record' })).toThrow(/must start with/);
   });
 });
+
+describe('audit redaction', () => {
+  it('masks redacted columns in the audit envelope but not in the sync payload', () => {
+    const env = makeEnv();
+    env.registry.register({ type: 'ast.secret', module: 'M03', table: 'ast_secret', recordClass: 'owner_mutable', distribution: 'record', redact: ['token'] });
+    env.db.exec(`CREATE TABLE ast_secret ({{SYNC_COLUMNS}} token TEXT NOT NULL);`.replace('{{SYNC_COLUMNS}}', 'id TEXT PRIMARY KEY NOT NULL, version INTEGER NOT NULL DEFAULT 1, owner_installation_id TEXT NOT NULL, home_scope_id TEXT, created_at TEXT NOT NULL, created_by TEXT NOT NULL, created_installation_id TEXT NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL, deleted_at TEXT, deleted_by TEXT,'));
+    env.db.exec("CREATE TRIGGER ast_secret_no_delete BEFORE DELETE ON ast_secret BEGIN SELECT RAISE(ABORT, 'no'); END;");
+    const row = createRecord(env.ctx(), 'ast.secret', { token: 's3cret-1' });
+    updateRecord(env.ctx(), 'ast.secret', row.id as string, 1, { token: 's3cret-2' });
+    const audit = JSON.stringify(env.db.prepare("SELECT changes FROM sys_audit_event WHERE entity_type = 'ast.secret'").all());
+    expect(audit).toContain('[redacted]');
+    expect(audit).not.toContain('s3cret');
+    const payloads = JSON.stringify(env.db.prepare("SELECT payload FROM sys_change_log WHERE entity_type = 'ast.secret'").all());
+    expect(payloads).toContain('s3cret-2');
+  });
+});

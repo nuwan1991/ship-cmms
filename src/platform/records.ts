@@ -63,6 +63,9 @@ function checkColumns(db: Db, def: EntityDef, keys: string[], reserved: readonly
   }
 }
 
+/** Audit rows replicate to every installation, so secret columns are masked there (never in the sync payload). */
+const audited = (def: EntityDef, k: string, v: unknown): unknown => (def.redact?.includes(k) ? '[redacted]' : v);
+
 function schemaVersion(db: Db, module: string): number {
   const r = db.prepare("SELECT MAX(CAST(substr(id, 1, 4) AS INTEGER)) AS v FROM sys_schema_migration WHERE module = ?").get(module) as { v: number | null };
   return r.v ?? 0;
@@ -165,7 +168,7 @@ export function createRecord(ctx: WriteContext, entityType: string, values: Row)
     ctx.db.prepare(`INSERT INTO ${def.table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`).run(...cols.map((c) => bindable(row[c])));
     writeAudit(ctx, {
       action: 'create', entityType: def.type, entityId: row.id as string, entityVersion: 1,
-      changes: Object.fromEntries(keys.map((k) => [k, [null, row[k]] as [unknown, unknown]])),
+      changes: Object.fromEntries(keys.map((k) => [k, [null, audited(def, k, row[k])] as [unknown, unknown]])),
     });
     logChange(ctx, def, row, 'upsert', now);
     return row;
@@ -184,10 +187,10 @@ export function updateRecord(ctx: WriteContext, entityType: string, id: string, 
       throw new AppError('VERSION_CONFLICT', 'Record changed since it was read', { currentVersion: cur.version, expectedVersion });
     }
     const changes: Record<string, [unknown, unknown]> = {};
-    for (const k of keys) if (cur[k] !== bindable(patch[k])) changes[k] = [cur[k], bindable(patch[k])];
+    for (const k of keys) if (cur[k] !== bindable(patch[k])) changes[k] = [audited(def, k, cur[k]), audited(def, k, bindable(patch[k]))];
     if (Object.keys(changes).length === 0) return cur;
     const now = nowUtc();
-    const next: Row = { ...cur, ...Object.fromEntries(Object.keys(changes).map((k) => [k, changes[k]![1]])), version: expectedVersion + 1, updated_at: now, updated_by: ctx.actor.userId };
+    const next: Row = { ...cur, ...Object.fromEntries(Object.keys(changes).map((k) => [k, bindable(patch[k])])), version: expectedVersion + 1, updated_at: now, updated_by: ctx.actor.userId };
     const set = [...Object.keys(changes), 'version', 'updated_at', 'updated_by'];
     ctx.db.prepare(`UPDATE ${def.table} SET ${set.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`).run(...set.map((c) => next[c]), id);
     writeAudit(ctx, { action: 'update', entityType: def.type, entityId: id, entityVersion: next.version as number, changes });

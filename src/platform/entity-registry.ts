@@ -17,6 +17,8 @@ export interface EntityDef {
   requires?: readonly string[];
   /** 'fleet' = replicated to every installation (reference data); 'record' = follows home_scope_id. */
   distribution: 'fleet' | 'record';
+  /** Columns whose values must never appear in the (widely replicated) audit envelope, e.g. password hashes. The sync payload still carries them. */
+  redact?: readonly string[];
 }
 
 export class EntityRegistry {

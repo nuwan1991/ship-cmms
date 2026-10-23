@@ -52,6 +52,8 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D25 — Platform gets an `ApprovalPortRegistry` on `AppContext`; permissions are declared over the event bus.** M02 supplies the real `ApprovalPort` (consumers call `ctx.approvals.current()` at use time; a permissive stand-in is used until then). Modules that depend only on M01/M03.. cannot import M02, so they announce their permission codes by publishing `sys.permissions.declared` (`{codes: string[]}`) on `ctx.events`; M02 subscribes and merges them into its catalogue. Dedicated platform change made before M02 (MODULE_MAP rule 5).
 
+**D26 — Entity definitions may list `redact` columns; the audit envelope masks them.** Audit rows replicate to every installation, so secrets (password hashes) must never be copied into `changes`. The sync payload still carries the real value, because credentials replicate only to installations the user is provisioned to (M10 filters). Platform change made before M02 used it.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
