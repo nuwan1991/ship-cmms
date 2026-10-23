@@ -1,6 +1,16 @@
 /**
- * Placeholder until M02 exposes the signed-in user's effective permissions.
- * The server enforces every permission regardless (Authorizer port); this only decides what the UI hides.
- * TODO(M02): replace with a call to the identity API and cache per session.
+ * Effective permissions of the signed-in user, as returned by the identity API (/me). The server enforces every
+ * permission regardless (Authorizer port); this only decides what the UI shows. Roles may hold `*` or `<prefix>.*`.
  */
-export const can = (_permission: string): boolean => true;
+let granted: readonly string[] = [];
+
+export function setPermissions(list: readonly string[] | null): void {
+  granted = list ?? [];
+}
+
+export function permissionMatches(grant: string, wanted: string): boolean {
+  if (grant === '*' || grant === wanted) return true;
+  return grant.endsWith('.*') && wanted.startsWith(grant.slice(0, -1));
+}
+
+export const can = (permission: string): boolean => granted.some((g) => permissionMatches(g, permission));

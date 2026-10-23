@@ -4,6 +4,7 @@
  */
 import type { ReactElement } from 'react';
 import type { NavItem } from './platform/nav';
+import { idnNav, idnRoutes } from './modules/idn';
 import { orgNav, orgRoutes } from './modules/org';
 
 export interface ModuleRoute {
@@ -11,5 +12,5 @@ export interface ModuleRoute {
   element: ReactElement;
 }
 
-export const NAV: readonly NavItem[] = [...orgNav];
-export const ROUTES: readonly ModuleRoute[] = [...orgRoutes];
+export const NAV: readonly NavItem[] = [...orgNav, ...idnNav];
+export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes];

@@ -41,20 +41,25 @@ All rows carry the standard sync columns (CONTRACTS §2). No foreign keys; servi
 
 Published read model: **`org_v_ship_current_command`** (ship + command attached now). Service operation `reassignShip` closes the assignment in force and opens the next atomically; it changes no ship, location or asset owner.
 
-## M02 `idn_` (planned)
+## M02 `idn_` — implemented in migration `m02-identity/0001_identity`
 
-| Table | Class | Purpose |
-|---|---|---|
-| idn_user | H | Person identity (`user_id`, name, rank, service no., status); no credentials |
-| idn_credential | H | Username + scrypt hash + credential version; replicated only to installations the user is provisioned to |
-| idn_user_installation | H | Which users are provisioned where, with lease expiry |
-| idn_role / idn_role_permission | H | Roles and their permission codes |
-| idn_role_assignment | H | User↔role↔scope, dated, optional `valid_until` |
-| idn_offline_grant | H | Per-installation/per-role offline lease limits |
-| idn_gate_policy | H | Gate mode and offline policy per gate code |
-| idn_approval | E | Immutable approvals with actor snapshot, decided_at, authority basis, `confirmation_state` |
-| idn_authority_revocation | E | Revocations with `effective_at` vs `received_at` |
-| idn_session | L | Local login sessions |
+Permissions: `idn.<noun>.<view|create|update|remove>` for user, credential, user_installation, role, role_permission, role_assignment, offline_grant, gate_policy, approval, revocation, plus `idn.credential.reset_local` and `idn.clock.reset`. Roles hold exact codes, `<prefix>.*` or `*`. Hub-written classes are changed at the hub only; revocations and approvals may be recorded at any installation.
+
+| Table | Class | Key columns | Rules |
+|---|---|---|---|
+| idn_user | H | display_name, rank, service_number, status | Person identity; no credentials. Approvals reference `user_id`, never the name |
+| idn_credential | H | user_id, username, password_hash (scrypt, redacted from audit), credential_version | One live credential per user; username unique; a new version ends that user's sessions and affects only future sign-in |
+| idn_user_installation | H | user_id, installation_id, lease_expires_at | Which users are provisioned where (credentials replicate only there, M10) |
+| idn_role / idn_role_permission | H | code, name, status / role_id, permission | Permission list replaced as a set (`PUT /roles/:id/permissions`) |
+| idn_role_assignment | H | user_id, role_id, scope_kind, scope_id, valid_from, valid_until | Scoped and dated; `valid_until` ends authority even offline |
+| idn_offline_grant | H | installation_id?, role_id?, lease_days (1–365) | Overrides the default 30-day lease (most specific wins) |
+| idn_gate_policy | H | gate_code, mode, offline_policy (`allow|provisional|deny`) | `mandatory_prior | review_pending_allowed | none`; row overrides the default offline policy for that code |
+| idn_approval | E | gate_code, subject_type/id, decision (`approved|rejected|ratified`), actor_user_id, actor_snapshot, authority_basis, confirmation_state, ratifies_approval_id | Immutable; `occurred_at` = actual decision time, `recorded_at` = entry time |
+| idn_authority_revocation | E | user_id, role_assignment_id?, kind (`revoke|reinstate`), effective_at, issued_at, reason | `effective_at` (when authority really ended) ≠ `issued_at`; history never rewritten |
+| idn_session | L | token_hash, user_id, expires_at, revoked_at | 12-hour sessions; only a hash of the token is stored |
+| idn_local_password | L | user_id, password_hash, set_by, set_at | Installation-scoped administrator reset; superseded by a newer hub credential |
+
+Published read model: **`idn_v_approval_status`** (per approval: `pending_confirmation`, `authority_disputed`, `needs_review`, `ratified`). A different authority clears a flag with a `ratified` approval event. Local settings keep the last hub sync time and a monotonic clock high-water mark.
 
 ## M03 `ast_` (planned)
 

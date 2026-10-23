@@ -9,8 +9,12 @@ describe('startup', () => {
     delete process.env.CMMS_DEV_AUTH;
   });
 
-  it('fails closed without an authorizer', () => {
-    expect(() => boot(base)).toThrow(/No Authorizer registered/);
+  it('production boot registers the identity authorizer and answers anonymous requests with 401', async () => {
+    const { app, ctx } = boot(base);
+    expect(ctx.authz.current().name).toBe('idn-authorizer');
+    const res = await app.inject('/api/v1/org/ships');
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.code).toBe('UNAUTHENTICATED');
   });
 
   it('starts in explicit dev mode and serves health', async () => {

@@ -7,7 +7,7 @@ import { localInputToUtcIso, utcIsoToLocalInput } from './time';
 export interface FieldDef {
   key: string;
   labelKey: string;
-  type: 'text' | 'number' | 'select' | 'checkbox' | 'datetime' | 'textarea';
+  type: 'text' | 'number' | 'select' | 'checkbox' | 'datetime' | 'textarea' | 'password';
   required?: boolean;
   /** Static options, or resolved at render time (e.g. from a loaded list). */
   options?: Array<{ value: string; label: string }> | ((values: Values) => Array<{ value: string; label: string }>);
@@ -152,6 +152,7 @@ export function FormModal(props: {
                   required={f.required}
                   maxLength={f.maxLength}
                   {...(f.type === 'number' ? { min: 0, step: 1 } : {})}
+                  {...(f.type === 'password' ? { autoComplete: 'new-password' } : {})}
                   onChange={(e) => set(f.key, e.target.value)}
                 />
               )}

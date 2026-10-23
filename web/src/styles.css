@@ -73,3 +73,11 @@ input, select, textarea { padding: 6px 8px; border: 1px solid var(--line); borde
 .modal header { display: flex; justify-content: space-between; align-items: center; }
 .modal h2 { margin: 0 0 8px; font-size: 18px; }
 .modal footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+.account { display: inline-flex; gap: 8px; align-items: center; }
+.center { display: grid; place-items: center; }
+.login { max-width: 360px; margin: 10vh auto; padding: 16px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; flex: none; }
+.login h1 { margin-top: 0; font-size: 20px; }
+fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; padding: 8px 12px; }
+legend { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 0 6px; }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; margin-top: 6px; font-size: 13px; }

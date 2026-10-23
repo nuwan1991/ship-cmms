@@ -54,6 +54,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D26 — Entity definitions may list `redact` columns; the audit envelope masks them.** Audit rows replicate to every installation, so secrets (password hashes) must never be copied into `changes`. The sync payload still carries the real value, because credentials replicate only to installations the user is provisioned to (M10 filters). Platform change made before M02 used it.
 
+**D27 — The generic list/edit screen lives in `web/src/platform/ResourceScreen.tsx`; each module binds it to its API base and permission prefix.** M02 needed the same screen M01 built. Moving it avoids copying it and avoids one module's UI importing another's. M01's `ResourceScreen` is now a thin binding; column renderers receive the loaded reference options.
+
+**D28 — Web sign-in uses a bearer token kept per browser tab (sessionStorage with an in-memory copy).** The server stores only a hash of the token (12-hour sessions). A 401 on a signed-in call returns the shell to the sign-in screen. Effective permissions come from `/identity/me` and only decide what the UI shows; the server enforces every action. With `CMMS_DEV_AUTH=1` and no session the dev user is used and no sign-in is shown.
+
+**D29 — Lockout counts failed sign-ins per username (5 in 10 minutes) from the audit trail.** Simple and offline-safe; it can lock a legitimate user out, so a hub administrator can reset the credential. Revisit with per-source throttling if abuse appears.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

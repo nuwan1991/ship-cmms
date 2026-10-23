@@ -1,4 +1,6 @@
 /** Thin fetch client for the CMMS API: shared error envelope, correlation ids, camelCase JSON (CONTRACTS §6, §9). */
+import { getToken, setToken } from './sessionStore';
+
 export interface ApiErrorBody {
   code: string;
   message: string;
@@ -43,12 +45,19 @@ export interface ListResponse<T = Rec> {
 const newCorrelationId = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export async function api<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> {
+/** Fired when the server rejects the session token, so the shell can return to the sign-in screen. */
+export const SIGNED_OUT_EVENT = 'cmms:signed-out';
+
+export async function api<T>(method: 'GET' | 'POST' | 'PATCH' | 'PUT', path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
       method,
-      headers: { 'x-correlation-id': newCorrelationId(), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+      headers: {
+        'x-correlation-id': newCorrelationId(),
+        ...(getToken() ? { authorization: `Bearer ${getToken()}` } : {}),
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
   } catch {
@@ -57,6 +66,10 @@ export async function api<T>(method: 'GET' | 'POST' | 'PATCH', path: string, bod
   }
   const text = await res.text();
   const data: unknown = text ? JSON.parse(text) : null;
+  if (res.status === 401 && getToken() && typeof window !== 'undefined') {
+    setToken(null);
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+  }
   if (!res.ok) {
     const e = (data as { error?: ApiErrorBody } | null)?.error;
     throw new ApiError(res.status, e ?? { code: 'INTERNAL', message: `Request failed (${res.status})`, correlationId: res.headers.get('x-correlation-id') ?? '-' });
