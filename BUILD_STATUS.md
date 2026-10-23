@@ -15,14 +15,14 @@ Updated by each module chat before it stops. Keep rows to one line.
 | M08 | Workshops, skills, resources | R2 | not started | |
 | M09 | Coordinated planning | R2 | not started | |
 | M10 | Provisioning and sync | R1 | not started | write path already emits change log (M00) |
-| M11 | Excel import/export | R1 | not started | |
+| M11 | Excel import/export | R1 | **done** | R1 templates: locations (M01), assets (M03), parts (M07); xlsx and CSV, blank template with instructions sheet, export in the same layout, rolled-back preview then all-or-nothing commit, error report, export log, web screen; 218 server tests, 31 web tests, files checked with LibreOffice and openpyxl |
 | M12 | Monitoring | R2 | not started | |
 | M13 | Reports and readiness | R1 | not started | |
 | M14 | Deployment, backup, recovery | R1 | not started | |
 
 ## Verification
 
-`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M05 and M07). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
+`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M05, M07 and M11). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
 
 Demo: `npm run init-installation -- --kind hub --code HQ --name "Fleet HQ"`, `npm run seed:demo-org`, then `CMMS_DEV_AUTH=1 npm run dev` and `npm run web:dev` (port 5173, proxies `/api` to 8080).
 

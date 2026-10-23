@@ -7,12 +7,14 @@ import type { AppContext } from '../../platform/app-context.js';
 import { nowUtc } from '../../platform/time.js';
 import { AST_ENTITIES } from './entities.js';
 import { AST_PERMISSIONS } from './permissions.js';
+import { assetsPort } from './import-export.js';
 import { mountAssetRoutes } from './routes.js';
 
 export function register(ctx: AppContext, app: FastifyInstance): void {
   for (const d of AST_ENTITIES) ctx.entities.register(d);
   // M02 cannot be imported here; it learns the permission codes from this announcement (D25).
   ctx.events.publish({ type: 'sys.permissions.declared', occurredAt: nowUtc(), payload: { codes: [...AST_PERMISSIONS] } });
+  ctx.importExport.register(assetsPort(ctx));
   mountAssetRoutes(ctx, app);
 }
 

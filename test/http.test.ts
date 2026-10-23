@@ -3,7 +3,7 @@ import { buildApp } from '../src/app.js';
 import type { AppContext } from '../src/platform/app-context.js';
 import { AuthorizerRegistry } from '../src/platform/authz.js';
 import { createPlatformRegistry } from '../src/platform/entity-registry.js';
-import { ApprovalPortRegistry } from '../src/platform/ports.js';
+import { ApprovalPortRegistry, ImportExportRegistry } from '../src/platform/ports.js';
 import { EventBus } from '../src/platform/events.js';
 import { setLocalIdentity } from '../src/platform/identity.js';
 import { makeEnv } from './helpers.js';
@@ -15,7 +15,7 @@ function ctxFor(initialized: boolean): AppContext {
     config: { dataDir: '', dbFile: ':memory:', host: '127.0.0.1', port: 0, displayTimeZone: 'Asia/Colombo', devAuth: false },
     entities: createPlatformRegistry(),
     authz: new AuthorizerRegistry(),
-    approvals: new ApprovalPortRegistry(),
+    approvals: new ApprovalPortRegistry(), importExport: new ImportExportRegistry(),
     events: new EventBus(),
     identity: initialized ? setLocalIdentity(db, { kind: 'hub', code: 'HQ', name: 'Fleet HQ' }) : null,
   };

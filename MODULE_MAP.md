@@ -43,7 +43,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M08 | capability/skill/capacity lookups | — | — |
 | M09 | window/plan API | — | read models |
 | M10 | sync status for UI | — | entity registry, schema versions |
-| M11 | — | — | `ImportExportPort` registry |
+| M11 | — | — | `ImportExportPort` registry (`ctx.importExport`), filled by M01 (`locations`), M03 (`assets`) and M07 (`parts`) in their `register()` |
 | M12 | latest-state lookup | event publisher | M03 |
 | M13 | — | read-model registry | `<prefix>_v_*` views |
 | M14 | — | — | — |

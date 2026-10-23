@@ -7,7 +7,7 @@ import { createPlatformRegistry } from '../../src/platform/entity-registry.js';
 import { EventBus } from '../../src/platform/events.js';
 import { setLocalIdentity, type LocalIdentity } from '../../src/platform/identity.js';
 import { uuidv7 } from '../../src/platform/ids.js';
-import { ApprovalPortRegistry } from '../../src/platform/ports.js';
+import { ApprovalPortRegistry, ImportExportRegistry } from '../../src/platform/ports.js';
 import { createRecord } from '../../src/platform/records.js';
 import { register as m01 } from '../../src/modules/m01-organization/index.js';
 import { register as m02 } from '../../src/modules/m02-identity/index.js';
@@ -41,7 +41,7 @@ export async function makeIdnEnv(): Promise<IdnEnv> {
   const ctx: AppContext = {
     db,
     config: { dataDir: '', dbFile: ':memory:', host: '127.0.0.1', port: 0, displayTimeZone: 'Asia/Colombo', devAuth: false },
-    entities: createPlatformRegistry(), authz: new AuthorizerRegistry(), approvals: new ApprovalPortRegistry(), events: new EventBus(), identity: hub,
+    entities: createPlatformRegistry(), authz: new AuthorizerRegistry(), approvals: new ApprovalPortRegistry(), importExport: new ImportExportRegistry(), events: new EventBus(), identity: hub,
   };
   const app = buildApp(ctx);
   m01(ctx, app);

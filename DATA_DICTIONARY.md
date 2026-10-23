@@ -145,9 +145,17 @@ Rules: stock is changed only by appending transactions; corrections are new `adj
 
 `syn_peer` L (peers, cursors) · `syn_subscription` H (scopes per installation) · `syn_session` L (history, health) · `syn_conflict` L · `syn_quarantine` L · `syn_ownership_transfer` E · `syn_bundle` L.
 
-## M11 `xls_` (planned)
+## M11 `xls_`
 
-`xls_template` H · `xls_import_job` L · `xls_import_row` L · `xls_export_log` E.
+| Table | Class | Key columns / rules |
+|---|---|---|
+| xls_import_job | L | template_code, file_name, file_kind (`xlsx`/`csv`), file_sha256, status (`previewed`/`committed`/`failed`), total/ok/error/create/update/skip row counts, ignored_columns, message, created_by, committed_at |
+| xls_import_row | L | job_id, row_no (the spreadsheet's own row number), data_json (cleaned cell values by column key), status (`ok`/`error`), action (`create`/`update`/`skip`), errors_json, duplicate_of, reference (for example a new asset tag) |
+| xls_export_log | E | template_code, format, row_count, scope_kind, scope_id: one event per data export so the hub can see what was taken out |
+
+`xls_template` from the plan does not exist: a template is the column list that the owning module declares on its `ImportExportPort` (D42). Templates in R1: `locations` (M01), `assets` (M03), `parts` (M07). Import jobs and rows are local working data and never synchronized.
+
+Rules: an upload saves nothing. The preview applies every row inside one transaction that is rolled back, so each row is judged by the owning module's real command service (permissions, workflow, duplicates) and later rows see earlier ones. Commit re-applies the stored rows in one transaction: any row error aborts everything unless `skipErrors` is chosen, in which case failing rows are left out. A job can be committed once. Limits: 5 MB upload (8 MB hard limit), 20,000 rows, 200 columns, 2,000 characters per cell; only the first (or "Data") sheet is read; headers match the label or the key in any case; unknown columns are ignored and reported; CSV may use `,` `;` or tab.
 
 ## M12 `mon_` (planned, R2)
 

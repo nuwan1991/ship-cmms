@@ -113,6 +113,6 @@ Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `s
 Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/wrk/` (`WorkOrdersScreen.tsx`, `DefectsScreen.tsx` as list patterns).
 If the repository itself is available in the chat, attach nothing else.
 
-## M01 to M05 and M07 (done)
+## M01 to M05, M07 and M11 (done)
 
 Delivered and recorded in BUILD_STATUS; their prompts are in git history.

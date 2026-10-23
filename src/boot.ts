@@ -8,7 +8,7 @@ import { openDatabase } from './platform/db/open.js';
 import { createPlatformRegistry } from './platform/entity-registry.js';
 import { EventBus } from './platform/events.js';
 import { getLocalIdentity } from './platform/identity.js';
-import { ApprovalPortRegistry } from './platform/ports.js';
+import { ApprovalPortRegistry, ImportExportRegistry } from './platform/ports.js';
 import { verifySyncedTables } from './platform/records.js';
 
 /**
@@ -27,7 +27,7 @@ export function boot(config: Config): { ctx: AppContext; app: FastifyInstance } 
     config,
     entities: createPlatformRegistry(),
     authz,
-    approvals: new ApprovalPortRegistry(),
+    approvals: new ApprovalPortRegistry(), importExport: new ImportExportRegistry(),
     events: new EventBus(),
     identity: getLocalIdentity(db),
   };

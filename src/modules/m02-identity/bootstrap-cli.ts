@@ -6,7 +6,7 @@ import { openDatabase } from '../../platform/db/open.js';
 import { createPlatformRegistry } from '../../platform/entity-registry.js';
 import { EventBus } from '../../platform/events.js';
 import { AuthorizerRegistry } from '../../platform/authz.js';
-import { ApprovalPortRegistry } from '../../platform/ports.js';
+import { ApprovalPortRegistry, ImportExportRegistry } from '../../platform/ports.js';
 import { getLocalIdentity } from '../../platform/identity.js';
 import { createFirstAdmin } from './bootstrap.js';
 import { IDN_ENTITIES } from './entities.js';
@@ -25,7 +25,7 @@ const registry = createPlatformRegistry();
 for (const d of IDN_ENTITIES) registry.register(d);
 const password = values.password ?? randomBytes(12).toString('base64url');
 try {
-  await createFirstAdmin({ db, config, entities: registry, authz: new AuthorizerRegistry(), approvals: new ApprovalPortRegistry(), events: new EventBus(), identity }, { username: values.username, password, displayName: values.name });
+  await createFirstAdmin({ db, config, entities: registry, authz: new AuthorizerRegistry(), approvals: new ApprovalPortRegistry(), importExport: new ImportExportRegistry(), events: new EventBus(), identity }, { username: values.username, password, displayName: values.name });
   console.log(`Created administrator "${values.username}".${values.password ? '' : ` Initial password (shown once, change it after signing in): ${password}`}`);
 } catch (e) {
   console.error((e as Error).message);

@@ -44,11 +44,32 @@ export class ApprovalPortRegistry {
   }
 }
 
-/** Registered by each module that supports Excel round-trips; consumed by M11. M11 never writes tables directly. */
+/** One column of an Excel/CSV template. `key` is the stable machine name; `label` is the header people see (both are accepted on import). */
+export interface ImportColumn {
+  key: string;
+  label: string;
+  required?: boolean;
+  /** One short sentence for the instructions sheet. */
+  hint?: string;
+  example?: string;
+}
+
+/**
+ * Registered by each module that supports Excel round-trips; consumed by M11. M11 never writes tables directly.
+ * M11 runs a whole file inside one transaction and rolls it back for a preview (so later rows see earlier rows, as in a real run),
+ * so `importRow` simply applies the row through the owning module's command service (permissions, workflow and audit apply)
+ * and reports what happened; it must not swallow errors that leave partial writes. `opts.commit` tells the port which mode it is in.
+ */
 export interface ImportExportPort {
   entityType: string;
   templateCode: string;
-  /** Validates one row and, when commit=true, applies it through the owning module's command service (permissions + workflow apply). */
+  /** Module id, for display and grouping (e.g. `M07`). */
+  module: string;
+  title: string;
+  columns: readonly ImportColumn[];
+  /** Permission codes the owning module checks for these actions (shown to users; the services enforce them). */
+  importPermission: string;
+  exportPermission: string;
   importRow(row: Record<string, unknown>, principal: Principal, opts: { commit: boolean }): ImportRowResult;
   exportRows(scope: ScopeRef, principal: Principal): Array<Record<string, unknown>>;
 }
@@ -56,7 +77,27 @@ export interface ImportRowResult {
   ok: boolean;
   action?: 'create' | 'update' | 'skip';
   errors?: string[];
+  /** Readable id of an existing record this row duplicates. */
   duplicateOf?: string;
+  /** Readable id of the record created or updated (e.g. an asset tag). */
+  reference?: string;
+}
+
+/** Holds the templates modules offer to M11. Consumers read at use time, never at import time. */
+export class ImportExportRegistry {
+  private readonly ports = new Map<string, ImportExportPort>();
+  register(p: ImportExportPort): void {
+    if (this.ports.has(p.templateCode)) throw new Error(`Import/export template ${p.templateCode} is already registered`);
+    const keys = p.columns.map((c) => c.key);
+    if (new Set(keys).size !== keys.length) throw new Error(`Template ${p.templateCode} has duplicate column keys`);
+    this.ports.set(p.templateCode, p);
+  }
+  get(code: string): ImportExportPort | undefined {
+    return this.ports.get(code);
+  }
+  all(): ImportExportPort[] {
+    return [...this.ports.values()].sort((a, b) => a.templateCode.localeCompare(b.templateCode));
+  }
 }
 
 /** Published read model (SQL view named `<prefix>_v_*`). M13 reads views only, never base tables. */

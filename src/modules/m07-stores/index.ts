@@ -7,12 +7,14 @@ import type { AppContext } from '../../platform/app-context.js';
 import { nowUtc } from '../../platform/time.js';
 import { STK_ENTITIES } from './entities.js';
 import { STK_PERMISSIONS } from './permissions.js';
+import { partsPort } from './import-export.js';
 import { mountStoreRoutes } from './routes.js';
 
 export function register(ctx: AppContext, app: FastifyInstance): void {
   for (const d of STK_ENTITIES) ctx.entities.register(d);
   // M02 cannot be imported here; it learns the permission codes from this announcement (D25).
   ctx.events.publish({ type: 'sys.permissions.declared', occurredAt: nowUtc(), payload: { codes: [...STK_PERMISSIONS] } });
+  ctx.importExport.register(partsPort(ctx));
   mountStoreRoutes(ctx, app);
 }
 

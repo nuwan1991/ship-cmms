@@ -1,6 +1,6 @@
 import type { Db } from './db/open.js';
 import type { AuthorizerRegistry } from './authz.js';
-import type { ApprovalPortRegistry } from './ports.js';
+import type { ApprovalPortRegistry, ImportExportRegistry } from './ports.js';
 import type { EntityRegistry } from './entity-registry.js';
 import type { EventBus } from './events.js';
 import type { LocalIdentity } from './identity.js';
@@ -21,6 +21,7 @@ export interface AppContext {
   entities: EntityRegistry;
   authz: AuthorizerRegistry;
   approvals: ApprovalPortRegistry;
+  importExport: ImportExportRegistry;
   events: EventBus;
   identity: LocalIdentity | null;
 }

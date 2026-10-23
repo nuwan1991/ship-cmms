@@ -101,3 +101,5 @@ legend { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; colo
 .axis-name { color: var(--muted, #667); font-size: 12px; }
 ul.plain { list-style: none; padding-left: 0; margin: 4px 0 12px; }
 ul.plain li { padding: 2px 0; }
+
+.hint { color: var(--muted, #667); font-size: 13px; margin: 4px 0 10px; }

@@ -9,6 +9,7 @@ import { idnNav, idnRoutes } from './modules/idn';
 import { orgNav, orgRoutes } from './modules/org';
 import { qrNav, qrRoutes } from './modules/qr';
 import { stkNav, stkRoutes } from './modules/stk';
+import { xlsNav, xlsRoutes } from './modules/xls';
 import { wrkNav, wrkRoutes } from './modules/wrk';
 
 export interface ModuleRoute {
@@ -16,5 +17,5 @@ export interface ModuleRoute {
   element: ReactElement;
 }
 
-export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...stkNav];
-export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...stkRoutes];
+export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...stkNav, ...xlsNav];
+export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...stkRoutes, ...xlsRoutes];

@@ -83,3 +83,36 @@ export const qs = (params: Record<string, string | undefined>): string => {
   const s = p.toString();
   return s ? `?${s}` : '';
 };
+
+/** Download a file the API serves (templates, exports, reports). Sends the session token, returns the bytes and the server's file name. */
+export async function apiDownload(path: string): Promise<{ blob: Blob; fileName: string }> {
+  let res: Response;
+  try {
+    res = await fetch(path, { headers: { 'x-correlation-id': newCorrelationId(), ...(getToken() ? { authorization: `Bearer ${getToken()}` } : {}) } });
+  } catch {
+    throw new ApiError(0, { code: 'NETWORK', message: 'The local server cannot be reached.', correlationId: '-' });
+  }
+  if (res.status === 401 && getToken() && typeof window !== 'undefined') {
+    setToken(null);
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+  }
+  if (!res.ok) {
+    let e: ApiErrorBody | undefined;
+    try { e = ((await res.json()) as { error?: ApiErrorBody }).error; } catch { /* not JSON */ }
+    throw new ApiError(res.status, e ?? { code: 'INTERNAL', message: `Request failed (${res.status})`, correlationId: res.headers.get('x-correlation-id') ?? '-' });
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'download';
+  return { blob: await res.blob(), fileName: name };
+}
+
+/** Hand a downloaded blob to the browser as a file save. */
+export function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
