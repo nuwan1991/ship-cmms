@@ -49,6 +49,25 @@ Server: `package.json`, `package-lock.json`, `tsconfig.json`, `vitest.config.ts`
 Web: `web/package.json`, `web/package-lock.json`, `web/vite.config.ts`, `web/src/modules.ts`, `web/src/App.tsx`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`, `nav.ts`, `i18n.ts`, `time.ts`), `web/src/modules/org/` (`index.tsx`, `resources.tsx`, `ResourceScreen.tsx`, `LocationsScreen.tsx` as the tree-screen pattern).
 If the repository itself is available in the chat, attach nothing else.
 
-## M01 and M02 (done)
+## M04 block (ready to paste)
+
+```
+You are implementing module M04 — QR labels and compartment surveys (prefix qr_, API /api/v1/labels).
+M01, M02 and M03 are done; do not modify them. M04 depends on M01 and M03 only through their index.ts.
+Scope (R1): qr_label (O: label number from a platform range, optional asset link, state reserved/assigned/void), qr_label_print (E: print and
+reprint log for A4 sheets), qr_survey_template (H: simple compartment forms), qr_survey and qr_survey_item (O: a survey session and observed
+items, each either a scanned asset or a pending registration). Labels carry the asset tag, never replace it. Offline numbers only from granted
+ranges. Provide services, routes, permissions qr.<noun>.<action>, entity registrations, tests, DATA_DICTIONARY and MODULE_MAP rows, and web
+screens (label issue/assign/print, survey templates, run a survey and convert pending items to assets via M03) bound through web/src/modules.ts.
+```
+
+## Smallest file set to attach for M04
+
+Docs: `CHAT_STARTER.md`, `MODULE_MAP.md`, `CONTRACTS.md`, `SYNC_RULES.md` (§2–3), `DATA_DICTIONARY.md`, `BUILD_STATUS.md`, `DECISIONS.md`.
+Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `src/modules/m03-assets/index.ts`, `queries.ts`, `service.ts` (pattern), `test/modules/ast-helpers.ts`, `tools/check-boundaries.ts`.
+Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/ast/` (`binding.tsx`, `AssetsScreen.tsx`).
+If the repository itself is available in the chat, attach nothing else.
+
+## M01, M02 and M03 (done)
 
 Delivered and recorded in BUILD_STATUS; their prompts are in git history.

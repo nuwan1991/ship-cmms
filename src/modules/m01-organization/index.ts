@@ -12,7 +12,7 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   mountOrgRoutes(ctx, app);
 }
 
-export { getShipCommandAt, listShipsByCommand, getLocation, resolveParty, resolveParties } from './queries.js';
+export { getShipCommandAt, listShipsByCommand, getLocation, resolveParty, resolveParties, findPartyByCode } from './queries.js';
 export type { ShipCommandAt, ShipSummary, LocationInfo, ResolvedParty } from './queries.js';
 export { ORG_PERMISSIONS, ORG_NOUNS, perm as orgPermission } from './permissions.js';
 export type { OrgNoun, OrgAction } from './permissions.js';

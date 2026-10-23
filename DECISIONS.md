@@ -60,6 +60,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D29 — Lockout counts failed sign-ins per username (5 in 10 minutes) from the audit trail.** Simple and offline-safe; it can lock a legitimate user out, so a hub administrator can reset the credential. Revisit with per-source throttling if abuse appears.
 
+**D30 — Asset movements are events; "where is it now" is folded and rebuildable.** Install/remove/custody/status are appended to `ast_asset_movement`; `ast_asset_current` is folded in `(occurred_at, id)` order and never synced. Corrections are `void` events, never edits. A replicated install into an occupied position is accepted and shown in `ast_v_position_conflicts` (D20).
+
+**D31 — M01 gains `findPartyByCode(kind, code)` in its public surface** so M03's demo seed can reference parties without reaching into M01 tables. Tag-number ranges are managed with the `asset-tags` CLI (`setup`, `grant`); the hub grants, installations consume.
+
+**D32 — The tree helper moved to `web/src/platform/tree.ts`** (org re-exports it) so M03 reuses it without importing another module's UI.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

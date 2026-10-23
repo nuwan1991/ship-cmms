@@ -151,6 +151,14 @@ export function resolveParty(db: Db, ref: PartyRef): ResolvedParty | null {
   return r ? { kind: ref.kind, id: r.id, code: r.code, name: r.name, status: r.status ?? null } : null;
 }
 
+/** Find a live org unit by its unique code (e.g. a ship or department code); used by seeds, imports and scanners in other modules. */
+export function findPartyByCode(db: Db, kind: PartyRef['kind'], code: string): ResolvedParty | null {
+  const r = db.prepare(`SELECT id, code, name, status FROM ${PARTY_TABLE[kind]} WHERE code = ? AND deleted_at IS NULL`).get(code.trim().toUpperCase()) as
+    | { id: string; code: string; name: string; status: string | null }
+    | undefined;
+  return r ? { kind, id: r.id, code: r.code, name: r.name, status: r.status ?? null } : null;
+}
+
 export function resolveParties(db: Db, refs: readonly PartyRef[]): Array<ResolvedParty | null> {
   return refs.map((r) => resolveParty(db, r));
 }

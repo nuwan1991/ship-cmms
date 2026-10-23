@@ -61,16 +61,18 @@ Permissions: `idn.<noun>.<view|create|update|remove>` for user, credential, user
 
 Published read model: **`idn_v_approval_status`** (per approval: `pending_confirmation`, `authority_disputed`, `needs_review`, `ratified`). A different authority clears a flag with a `ratified` approval event. Local settings keep the last hub sync time and a monotonic clock high-water mark.
 
-## M03 `ast_` (planned)
+## M03 `ast_`
 
-| Table | Class | Purpose |
+| Table | Class | Key columns / rules |
 |---|---|---|
-| ast_classification | H | Equipment classes/types, maintainable-component types |
-| ast_position | O (owner = ship installation) | Functional tree node with `position_tag`, level, parent |
-| ast_position_responsibility | O | Dated responsible department per position |
-| ast_asset | O (owner = installation holding it) | Permanent `asset_tag`, `serial_number`, manufacturer, model, classification |
-| ast_asset_movement | E | Install, remove, custody transfer, status change; position, location, custody party, dated |
-| ast_asset_current | D | Folded current installation/custody/location per asset |
+| ast_classification | H | code (unique), name, kind (`equipment`/`component`), parent_id, description, status |
+| ast_position | O (owner = ship installation) | ship (home scope), position_tag (unique per ship), name, level (system → equipment_group → equipment → component), parent_id, classification_id, sort_order, status |
+| ast_position_responsibility | O | position_id, department_id, effective_from/to (half-open); a trigger rejects overlapping intervals for one position |
+| ast_asset | O (owner = installation that registered it) | asset_tag (permanent, `SLN-EQ-########` from range `equipment_tag`; a trigger blocks changes), serial_number, manufacturer, model (separate columns), classification_id, home ship (home scope), notes |
+| ast_asset_movement | E | asset_id, kind (`register`/`install`/`remove`/`custody_transfer`/`status_change`/`void`), position_id, location_id, custody party (kind+id), asset_status (`in_service`/`in_store`/`under_repair`/`out_of_service`/`condemned`), note, corrects_movement_id; occurred_at is when it happened |
+| ast_asset_current | D | folded by `(occurred_at, id)`, rebuildable (`rebuildAssetCurrent`): position, location, custody, status, installed_since |
+
+Views: **`ast_v_asset_overview`** (asset + current state + position + classification, for lists and M13) and **`ast_v_position_conflicts`** (positions holding more than one asset after replication; flagged, never rejected, D20). Corrections are `void` movements. Equipment tags come from locally consumed ranges and raise RANGE_EXHAUSTED when used up.
 
 ## M04 `qr_` (planned)
 

@@ -3,6 +3,7 @@ import type { AppContext } from '../platform/app-context.js';
 import type { ModuleId } from '../platform/modules.js';
 import { register as m01 } from './m01-organization/index.js';
 import { register as m02 } from './m02-identity/index.js';
+import { register as m03 } from './m03-assets/index.js';
 
 /**
  * Composition root for modules. Each built module adds ONE line here:
@@ -20,4 +21,5 @@ export const moduleRegistrations: readonly ModuleRegistration[] = [
   // Add in dependency order (see MODULE_MAP.md).
   { id: 'M01', register: m01 },
   { id: 'M02', register: m02 },
+  { id: 'M03', register: m03 },
 ];

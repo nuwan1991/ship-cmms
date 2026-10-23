@@ -3,7 +3,7 @@ import type { Rec } from './api';
 import { summarizeFreshness } from './freshness';
 import { groupByModule, visibleNav, type NavItem } from './nav';
 import { localInputToUtcIso, toLocalDisplay, utcIsoToLocalInput } from './time';
-import { buildTree, descendantIds } from '../modules/org/tree';
+import { buildTree, descendantIds } from './tree';
 
 const rec = (id: string, parentId: string | null, code: string, sortOrder = 0): Rec => ({ id, version: 1, updatedAt: '2026-01-01T00:00:00.000Z', parentId, code, sortOrder });
 
