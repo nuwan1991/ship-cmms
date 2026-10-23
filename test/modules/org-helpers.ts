@@ -3,6 +3,7 @@ import { AuthorizerRegistry, devAllowAllAuthorizer, type Authorizer } from '../.
 import { applyMigrations, discoverMigrations } from '../../src/platform/db/migrate.js';
 import { openDatabase } from '../../src/platform/db/open.js';
 import { createPlatformRegistry } from '../../src/platform/entity-registry.js';
+import { ApprovalPortRegistry } from '../../src/platform/ports.js';
 import { EventBus } from '../../src/platform/events.js';
 import { setLocalIdentity, type LocalIdentity } from '../../src/platform/identity.js';
 import { uuidv7 } from '../../src/platform/ids.js';
@@ -37,6 +38,7 @@ export function makeOrgEnv(opts: { devAuth?: boolean } = {}): OrgEnv {
     config: { dataDir: '', dbFile: ':memory:', host: '127.0.0.1', port: 0, displayTimeZone: 'Asia/Colombo', devAuth: opts.devAuth ?? false },
     entities: createPlatformRegistry(),
     authz: new AuthorizerRegistry(),
+    approvals: new ApprovalPortRegistry(),
     events: new EventBus(),
     identity: hub,
   };

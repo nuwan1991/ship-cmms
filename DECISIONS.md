@@ -50,6 +50,8 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D24 — Web UI is one Vite/React app in `web/`, composed in `web/src/modules.ts`.** Bundled assets only (no CDN or remote fonts), labels by key (`registerLabels`), nav filtered by `can()` (placeholder until M02), freshness banner on every synced list. Serving the built assets from the local server is an M14 deployment concern; development uses the Vite proxy to port 8080.
 
+**D25 — Platform gets an `ApprovalPortRegistry` on `AppContext`; permissions are declared over the event bus.** M02 supplies the real `ApprovalPort` (consumers call `ctx.approvals.current()` at use time; a permissive stand-in is used until then). Modules that depend only on M01/M03.. cannot import M02, so they announce their permission codes by publishing `sys.permissions.declared` (`{codes: string[]}`) on `ctx.events`; M02 subscribes and merges them into its catalogue. Dedicated platform change made before M02 (MODULE_MAP rule 5).
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
