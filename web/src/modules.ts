@@ -8,11 +8,12 @@ import { astNav, astRoutes } from './modules/ast';
 import { idnNav, idnRoutes } from './modules/idn';
 import { orgNav, orgRoutes } from './modules/org';
 import { qrNav, qrRoutes } from './modules/qr';
+import { wrkNav, wrkRoutes } from './modules/wrk';
 
 export interface ModuleRoute {
   path: string;
   element: ReactElement;
 }
 
-export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav];
-export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes];
+export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav];
+export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes];

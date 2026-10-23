@@ -19,6 +19,8 @@
     "seed:demo-assets": "tsx src/modules/m03-assets/seed-cli.ts --demo",
     "label-numbers": "tsx src/modules/m04-labels-survey/seed-cli.ts",
     "seed:demo-survey": "tsx src/modules/m04-labels-survey/seed-cli.ts --demo",
+    "work-numbers": "tsx src/modules/m05-work/seed-cli.ts",
+    "seed:demo-work": "tsx src/modules/m05-work/seed-cli.ts --demo",
     "create-admin": "tsx src/modules/m02-identity/bootstrap-cli.ts",
     "web:install": "npm ci --prefix web",
     "web:dev": "npm run dev --prefix web",

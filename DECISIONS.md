@@ -72,6 +72,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D35 — Survey conversion goes through M03, and M03 gains a small public surface.** M03 now exports `createAsset`, `findAssetByName` and the `AstActor` type; M01 exports `findLocationByCode`. Converting a pending survey item is one transaction: asset registration (tag from the asset range, registration movement), optional label assignment, item marked converted. If the range is exhausted nothing is written. Converted items and their surveys are kept.
 
+**D36 — Work order status is four event streams; commands validate transitions, replicated events are only ordered.** Each axis change is a `wrk_status_event`; the current value is the latest event by `occurred_at` (then id) in `wrk_v_status_current`. Commands refuse impossible moves (for example closing before work is complete), but an event that arrives from another installation is stored and simply sorts by time (D20). Repair cases use the same events (progress and closure only).
+
+**D37 — Gates go through the ApprovalPort; M05 never decides who may approve.** `wrk.work_order.approve` and `wrk.acceptance.accept` are both permission codes and gate codes. Starting work asks `evaluateGate`; deciding and accepting call `recordApproval`, which M02 checks against the user's authority (provisional after lease expiry) and records immutably. The status event only references the approval id and its provisional flag. With no gate policy (mode `none`) acceptance records no approval and needs only `wrk.acceptance.create`.
+
+**D38 — Hand-over changes who executes, not who owns the record.** `wrk_handover` offer/accept/decline/withdraw are events; an accepted offer makes the receiving party the executing party in `wrk_v_work_order_overview`, and the receiving installation records its own labour, findings, tests, acceptance and status as events on the order. Moving the record's `owner_installation_id` is the sync layer's job (M10, SYNC_RULES §3). Recurring-fault detection is the view `wrk_v_recurring_faults` instead of the planned `wrk_recurrence` table.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

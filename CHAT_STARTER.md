@@ -90,6 +90,29 @@ Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `s
 Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/qr/` (`SurveysScreen.tsx` as the list-plus-detail pattern).
 If the repository itself is available in the chat, attach nothing else.
 
-## M01 to M04 (done)
+## M06 block (ready to paste)
+
+```
+You are implementing module M06 — Planned maintenance, meters and calibration (prefix pm_, API /api/v1/pm).
+M01 to M05 are done; do not modify them (a small addition to a done module's index.ts needs a DECISIONS entry). M06 depends on M01, M03 and M05 only
+through their index.ts, and never imports M02 (use the Authorizer and ApprovalPort).
+Scope (R1): pm_task_template (H, standard PM tasks with checklist and estimated time), pm_plan (O, calendar and running-hour schedules per asset or position; condition-based is R2),
+pm_meter (O, running-hour or counter meter per asset), pm_meter_reading (E, reading with source time; readings from other installations are never rejected, D20),
+pm_calibration_record (E, result and next due date), pm_due (D, computed due list as a view pm_v_due for M13).
+Rules: generate preventive work orders only through M05's createWorkOrder (work_type preventive) and never write wrk_ tables; a plan keeps the last generated order so the same
+due date is not generated twice; running hours are derived from meter readings (latest by time, with rollover/replacement handled explicitly); offline generation uses the
+installation's own work-order range; every write goes through platform/records.ts. Provide services, routes, permissions pm.<noun>.<action>, entity registrations, public
+surface per MODULE_MAP, a view for M13, demo seed extension, tests, and web screens (plans, meters and readings, calibration, due list with Generate work order)
+bound through web/src/modules.ts.
+```
+
+## Smallest file set to attach for M06
+
+Docs: `CHAT_STARTER.md`, `MODULE_MAP.md`, `CONTRACTS.md`, `SYNC_RULES.md` (§2–3), `DATA_DICTIONARY.md`, `BUILD_STATUS.md`, `DECISIONS.md` (D07, D19–D25, D30–D38).
+Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `src/modules/m05-work/index.ts`, `queries.ts`, `service.ts` (createWorkOrder) and `schemas.ts`, `src/modules/m03-assets/index.ts`, `test/modules/wrk-helpers.ts`, `tools/check-boundaries.ts`.
+Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/wrk/` (`WorkOrdersScreen.tsx`, `DefectsScreen.tsx` as list patterns).
+If the repository itself is available in the chat, attach nothing else.
+
+## M01 to M05 (done)
 
 Delivered and recorded in BUILD_STATUS; their prompts are in git history.

@@ -94,3 +94,10 @@ legend { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; colo
   .print-area { position: absolute; inset: 0; }
   .sheet { page-break-after: always; border: 0; margin: 0; padding: 10mm; }
 }
+
+/* Work orders: the four status axes sit side by side, never merged. */
+.axes { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0; }
+.axis { display: inline-flex; align-items: center; gap: 6px; }
+.axis-name { color: var(--muted, #667); font-size: 12px; }
+ul.plain { list-style: none; padding-left: 0; margin: 4px 0 12px; }
+ul.plain li { padding: 2px 0; }

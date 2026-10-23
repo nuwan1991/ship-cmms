@@ -52,7 +52,11 @@ export function ConflictDialog({ currentVersion, onReload, onOverwrite, onCancel
   );
 }
 
-const CHIP: Record<string, string> = { active: 'ok', inactive: 'muted', laid_up: 'warn', decommissioned: 'muted' };
+const CHIP: Record<string, string> = {
+  active: 'ok', inactive: 'muted', laid_up: 'warn', decommissioned: 'muted',
+  in_progress: 'ok', work_complete: 'ok', approved: 'ok', cleared: 'ok', closed: 'muted',
+  on_hold: 'warn', pending_review: 'warn', restricted: 'warn', rejected: 'warn', withheld: 'warn', reopened: 'warn', urgent: 'warn', critical: 'warn',
+};
 export function StatusChip({ value, labelPrefix }: { value: string; labelPrefix: string }) {
   return <span className={`chip ${CHIP[value] ?? 'muted'}`}>{t(`${labelPrefix}.${value}`)}</span>;
 }

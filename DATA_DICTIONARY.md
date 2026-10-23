@@ -86,20 +86,25 @@ Views: **`ast_v_asset_overview`** (asset + current state + position + classifica
 
 View: **`qr_v_survey_summary`** (per survey: item, scanned, pending and converted counts; for lists and M13). The QR code carries the label number only; the equipment tag is shown beside it and is never replaced. A voided label keeps its number and still resolves, as `void`, so a stale sticker is recognised. Pending items are converted into assets through M03 (`createAsset`), in one transaction with the optional label assignment.
 
-## M05 `wrk_` (planned)
+## M05 `wrk_`
 
-| Table | Class | Purpose |
+| Table | Class | Key columns / rules |
 |---|---|---|
-| wrk_defect | O | Reported defect |
-| wrk_repair_case | O | Parent case; may span departments/providers |
-| wrk_work_order | O (owner moves via handover) | Departmental/provider work order with ownership/operating/executing parties |
-| wrk_job_card | O | Task instructions and checklist |
-| wrk_status_event | E | Transition on one of the four axes |
-| wrk_labour_entry / wrk_finding / wrk_test_record | E | Labour, findings, tests |
-| wrk_acceptance | E | Repair acceptance / return-to-service evidence |
-| wrk_handover | E | Ownership offer/accept for work orders |
-| wrk_advisory | H | Technical advisories |
-| wrk_recurrence | D | Recurring-fault detection |
+| wrk_defect | O | defect_no (`SLN-DF-########`, range `defect_no`), title, description, severity (`minor`/`major`/`critical`), asset_id, position_id, status (`open`/`converted`/`dismissed`), repair_case_id, reported_at, dismiss_reason; home scope = ship |
+| wrk_repair_case | O | case_no (`SLN-RC-…`), title, description, asset_id, position_id, priority, opened_at |
+| wrk_work_order | O | wo_no (`SLN-WO-…`), repair_case_id, title, work_type (`corrective`/`preventive`/`inspection`/`modification`), priority, asset_id, position_id, operating party (kind+id), executing party (kind+id), requested_due (local date). The owner is the installation that entered it |
+| wrk_job_card | O | work_order_id, seq, title, instructions, checklist_json (`[{text,done}]`), status (`draft`/`issued`/`completed`/`void`), completed_at |
+| wrk_status_event | E | subject_type (`repair_case`/`work_order`), subject_id, axis (`progress`/`approval`/`return_to_service`/`closure`), value, note, approval_id, provisional |
+| wrk_labour_entry | E | work_order_id, worker_name, trade, minutes (1–1440), note |
+| wrk_finding | E | work_order_id, kind (`observation`/`cause`/`recommendation`/`additional_defect`), text |
+| wrk_test_record | E | work_order_id, test_name, result (`pass`/`fail`/`not_applicable`), measured_value, note |
+| wrk_acceptance | E | work_order_id, decision (`accepted`/`rejected`), return_to_service, restrictions, remarks, approval_id, provisional |
+| wrk_handover | E | work_order_id, kind (`offer`/`accept`/`decline`/`withdraw`), offer_id, to party (kind+id), note |
+| wrk_advisory | H | code (unique), title, body, severity, classification_id, status, issued_at |
+
+Views (derived, never synchronized): **`wrk_v_status_current`** (latest value per subject and axis, ordered by `occurred_at` then id), **`wrk_v_handover_state`** (each offer: pending/accepted/declined/withdrawn), **`wrk_v_work_order_overview`** (one row per work order with the four axes, effective executing party, labour minutes, hand-over pending; for lists and M13) and **`wrk_v_recurring_faults`** (assets with 3 or more defects or standalone corrective orders in 90 days; `wrk_recurrence` from the plan is a view, so it cannot go stale).
+
+Axes and rules: progress `planned → in_progress ⇄ on_hold → work_complete`; approval `not_required → pending_review → approved/rejected`; return to service `not_assessed → restricted/cleared/withheld`; closure `open → closed ⇄ reopened`. Starting work is blocked by a `mandatory_prior` approval gate until approved; `review_pending_allowed` lets work start with the review pending. Closing needs work complete, no review pending or rejected, a return-to-service decision for corrective work (not withheld) and every job card completed or void. A rejected acceptance withholds return to service and sends the order back to `in_progress`. Gate codes: `wrk.work_order.approve` and `wrk.acceptance.accept` (permission codes too).
 
 ## M06 `pm_` (planned)
 

@@ -37,7 +37,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M02 | none for other modules (they use the ports); exports for the composition root, CLI and tests: `IDN_PERMISSIONS`, `PermissionCatalogue`, `checkAuthority`, `effectivePermissions`, `recordApproval`, `evaluateGate`, `ratifyApproval` | `Authorizer` (`idn-authorizer`), `ApprovalPort`; session hook sets `req.principal` | event `sys.permissions.declared`, M01 `ORG_PERMISSIONS` |
 | M03 | `getAsset`, `getPosition`, `currentInstallation(assetId)`, `assetAtPosition`, `getAssetState`, `positionChain`, `resolveTag`, `responsibilityAt`, `rebuildAssetCurrent`, `astPermission`, asset types | entity registrations, `ImportExportPort` | ranges, Authorizer |
 | M04 | `resolveLabel`, `labelForAsset`, `LABEL_SEQUENCE`, `qrPermission` | `ImportExportPort` (labels) | ranges, M03 (`createAsset`, `getAsset`, `resolveTag`) |
-| M05 | `WorkOrderRef`, `createWorkOrder` (command), status-axis helpers | gate codes registered with M02 | ApprovalPort |
+| M05 | `WorkOrderRef`, `getWorkOrder`, `resolveWorkOrderNo`, `openWorkOrdersForAsset`, `createWorkOrder` (command), `currentAxes`, `advisoriesForAsset`, number sequence codes, `GATE_APPROVE`, `GATE_ACCEPT` | gate codes `wrk.work_order.approve` and `wrk.acceptance.accept` (declared with the permissions, D25) | ApprovalPort, ranges, M03 (`getAsset`, `getPosition`), M01 (`resolveParty`) |
 | M06 | plan/meter API | PM generation via M05 commands | event `mon.condition.breached` |
 | M07 | `getBalance`, `issueToWorkOrder`, part lookup | views for M13 | — |
 | M08 | capability/skill/capacity lookups | — | — |
