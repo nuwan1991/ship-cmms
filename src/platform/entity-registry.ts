@@ -19,6 +19,12 @@ export interface EntityDef {
   distribution: 'fleet' | 'record';
   /** Columns whose values must never appear in the (widely replicated) audit envelope, e.g. password hashes. The sync payload still carries them. */
   redact?: readonly string[];
+  /**
+   * For 'record' entities that follow an installation instead of a ship or site (users provisioned to a ship, their credentials).
+   * Delivered to installation X when `installationColumn` equals X, or when a live row of `viaType` links `column` to X.
+   * Without a matching rule such a record reaches nobody, so a credential never leaves the hub by accident.
+   */
+  audience?: { installationColumn: string } | { column: string; viaType: string; viaColumn: string; viaInstallationColumn: string };
 }
 
 export class EntityRegistry {

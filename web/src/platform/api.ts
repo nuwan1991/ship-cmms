@@ -85,10 +85,10 @@ export const qs = (params: Record<string, string | undefined>): string => {
 };
 
 /** Download a file the API serves (templates, exports, reports). Sends the session token, returns the bytes and the server's file name. */
-export async function apiDownload(path: string): Promise<{ blob: Blob; fileName: string }> {
+export async function apiDownload(path: string, method: 'GET' | 'POST' = 'GET', body?: unknown): Promise<{ blob: Blob; fileName: string }> {
   let res: Response;
   try {
-    res = await fetch(path, { headers: { 'x-correlation-id': newCorrelationId(), ...(getToken() ? { authorization: `Bearer ${getToken()}` } : {}) } });
+    res = await fetch(path, { method, headers: { 'x-correlation-id': newCorrelationId(), ...(getToken() ? { authorization: `Bearer ${getToken()}` } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
   } catch {
     throw new ApiError(0, { code: 'NETWORK', message: 'The local server cannot be reached.', correlationId: '-' });
   }

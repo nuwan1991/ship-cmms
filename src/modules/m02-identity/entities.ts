@@ -7,8 +7,8 @@ import type { EntityDef } from '../../platform/entity-registry.js';
  */
 export const IDN_ENTITIES: readonly EntityDef[] = [
   { type: 'idn.user', module: 'M02', table: 'idn_user', recordClass: 'hub_reference', distribution: 'fleet' },
-  { type: 'idn.credential', module: 'M02', table: 'idn_credential', recordClass: 'hub_reference', requires: ['idn.user'], distribution: 'record', redact: ['password_hash'] },
-  { type: 'idn.user_installation', module: 'M02', table: 'idn_user_installation', recordClass: 'hub_reference', requires: ['idn.user', 'sys.installation'], distribution: 'record' },
+  { type: 'idn.credential', module: 'M02', table: 'idn_credential', recordClass: 'hub_reference', requires: ['idn.user'], distribution: 'record', redact: ['password_hash'], audience: { column: 'user_id', viaType: 'idn.user_installation', viaColumn: 'user_id', viaInstallationColumn: 'installation_id' } },
+  { type: 'idn.user_installation', module: 'M02', table: 'idn_user_installation', recordClass: 'hub_reference', requires: ['idn.user', 'sys.installation'], distribution: 'record', audience: { installationColumn: 'installation_id' } },
   { type: 'idn.role', module: 'M02', table: 'idn_role', recordClass: 'hub_reference', distribution: 'fleet' },
   { type: 'idn.role_permission', module: 'M02', table: 'idn_role_permission', recordClass: 'hub_reference', requires: ['idn.role'], distribution: 'fleet' },
   { type: 'idn.role_assignment', module: 'M02', table: 'idn_role_assignment', recordClass: 'hub_reference', requires: ['idn.user', 'idn.role'], distribution: 'fleet' },

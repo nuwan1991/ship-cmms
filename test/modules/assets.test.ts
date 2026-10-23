@@ -323,3 +323,13 @@ describe('setup', () => {
     expect(codeOf(() => env.grant(env.shipActor(env.shipId).wctx.installation.installationId, 0))).toBe('VALIDATION_FAILED');
   });
 });
+
+describe('M03 after synchronization', () => {
+  it('folds the current-state table again when sync reports applied movements', () => {
+    const env = makeAstEnv();
+    const before = env.ctx.db.prepare('SELECT COUNT(*) AS n FROM ast_asset_current').get() as { n: number };
+    env.ctx.events.publish({ type: 'sys.sync.applied', occurredAt: new Date().toISOString(), payload: { entityTypes: ['ast.asset_movement'] } });
+    expect(env.ctx.events.failures).toEqual([]);
+    expect((env.ctx.db.prepare('SELECT COUNT(*) AS n FROM ast_asset_current').get() as { n: number }).n).toBe(before.n);
+  });
+});

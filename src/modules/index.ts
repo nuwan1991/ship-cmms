@@ -8,7 +8,10 @@ import { register as m04 } from './m04-labels-survey/index.js';
 import { register as m05 } from './m05-work/index.js';
 import { register as m06 } from './m06-planned-maintenance/index.js';
 import { register as m07 } from './m07-stores/index.js';
+import { register as m10 } from './m10-sync/index.js';
 import { register as m11 } from './m11-excel/index.js';
+import { register as m13 } from './m13-reports/index.js';
+import { register as m14 } from './m14-operations/index.js';
 
 /**
  * Composition root for modules. Each built module adds ONE line here:
@@ -31,5 +34,8 @@ export const moduleRegistrations: readonly ModuleRegistration[] = [
   { id: 'M05', register: m05 },
   { id: 'M06', register: m06 },
   { id: 'M07', register: m07 },
+  { id: 'M10', register: m10 },
   { id: 'M11', register: m11 },
+  { id: 'M13', register: m13 },
+  { id: 'M14', register: m14 },
 ];

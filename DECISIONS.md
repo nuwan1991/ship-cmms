@@ -100,6 +100,31 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D49 — R1 limits.** Condition-based triggers are R2 (event `mon.condition.breached`). The task checklist is copied into the work order description because M05 job cards are not exposed to other modules.
 
+**D50 — Installations authenticate to each other with signed envelopes.** Each installation has an Ed25519 key pair (`syn_local_key`). A message carries sender, time, path and body, signed over their canonical JSON; the hub verifies it against the key it stored at enrolment, and the replica verifies the hub's reply. The same envelope fields travel in a network exchange and in a bundle file. Replays are harmless because every change is applied by `changeId`.
+
+**D51 — A replica joins with a one-time provisioning package.** The hub creates the installation record and a random secret (stored only as a hash). The package carries the installation id, the hub's public key, the scopes and the secret. At its first exchange the replica sends its own public key with the secret; the hub then activates it and forgets the secret. Provisioning packages are secrets: they are saved with owner-only permissions and shown to the person once.
+
+**D52 — Selective sync keys on `home_scope_id`, with a central-data rule.** A replica receives fleet reference data, records whose `home_scope_id` is a subscribed scope, and (by default) hub-owned mutable records that have no scope. Events with no scope are not forwarded. Most modules do not yet set `home_scope_id` on everything they write, so records written without a scope stay at the installation that wrote them and the hub, and reach others only if the hub owns them. Modules should stamp the ship or site on what they create; this does not change the protocol. Growing a subscription raises an epoch, and the replica re-pulls from the start. Shrinking keeps what was sent and stops updates.
+
+**D53 — Applying a change never throws for data reasons.** The outcome is applied, duplicate, rejected (wrong owner, bad hash, schema too old) or quarantined in `syn_conflict` (version fork, schema newer, unknown type, could not be saved). An older version arriving late is a duplicate. A hub-reference difference at the same version is overwritten by the hub copy and logged as resolved. The owner or hub resolves a fork by accepting the incoming version, keeping the local one, or dismissing it, and the decision is recorded. Quarantined changes that waited for an upgrade are retried on request.
+
+**D54 — After sync, derived data is rebuilt through an event.** M10 publishes `sys.sync.applied` with the entity types it applied. M03 subscribes and folds the asset current-state table again when movements arrived. Other modules with derived tables do the same. This is a small addition to M03's `register()`.
+
+**D55 — Not in this build of M10.** Ownership hand-over between installations (`syn_ownership_transfer`), ship re-homing, and the dependency closure that sends out-of-scope parents with a child. Records stay with the installation that created them. These are listed in BUILD_STATUS as the first things to add when a ship needs them.
+
+**D56 — M13 reads only published views and keeps its own notifications locally.** Reports and the dashboard run SQL over `<prefix>_v_*` views; a test fails if M13 touches any other table. Notifications are raised by each installation from its own data, so they need no synchronization and cannot conflict. "Data as of" comes from the sync health view: the hub is never stale, any other installation is stale after 7 days (ships) or 2 days.
+
+**D57 — Backups are consistent copies made while running, and are checked.** `VACUUM INTO` makes a consistent copy without stopping the application; the manifest holds the SHA-256; a verify step re-checks hash, SQLite integrity, identity and that the code knows every migration in it. Scheduled backups keep the newest 14 (configurable); manual, pre-upgrade and pre-restore backups are never removed automatically. Files are owner-readable only because they contain the signing key and password hashes. Encryption at rest stays with the operating system (D17).
+
+**D58 — Every upgrade is preceded by a backup; a restore is a stopped-application command.** Starting the application (and `npm run migrate`) takes a `pre_upgrade` backup when migrations are pending and the database already has data. Restore refuses while the database is in use, refuses a backup from a different installation unless told it is replacement hardware, refuses a backup made by a newer version, and keeps the replaced database as a `pre_restore` backup. After a restore the next sync reconciles with the hub (SYNC_RULES §8).
+
+**D59 — Production runs compiled code and serves the web app itself (resolves D16).** `npm run build:server` compiles to `dist/` and copies the SQL migrations beside it; `npm start` runs `node dist/main.js`. If `web/dist` exists the same process serves it (files inside that folder only, anything else falls back to the app page), so an installation is one program on one port with no CDN. `npm run ops -- check|setup|status|backup|verify|restore|integrity` is the installer and recovery tool.
+
+**D61 — Credentials follow the user's provisioning, not the ship scope.** `EntityDef.audience` (platform) says a record follows an installation: `idn.user_installation` goes to the installation it names, and `idn.credential` goes to the installations its user is linked to. Without such a rule a record that is not scoped reaches nobody, so a credential cannot leave the hub by accident. When a new link appears, the hub raises the peer's epoch and the replica pulls again from the start, so a credential written before the link still arrives. Users, roles and assignments are fleet reference data. Un-linking a user does not remove an already delivered credential; revoke the account at the hub (M02) instead. This is a small addition to the platform entity type and to M02's registrations.
+
+**D60 — M01 gains a view.** Migration `0002_assignment_overlap_view.sql` adds `org_v_assignment_overlap` for the M14 integrity checks (a ship attached to two commands at once, which replication could leave). No table or behaviour changed.
+
+
 
 ## Open questions for the project owner (defaults used until answered)
 

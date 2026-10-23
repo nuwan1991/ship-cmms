@@ -144,9 +144,21 @@ Rules: stock is changed only by appending transactions; corrections are new `adj
 
 `pln_requirement` O (requested dates, by submitter) · `pln_window` O (command/hub) · `pln_window_item` O · `pln_proposal` O (proposed dates) · `pln_authorization` E (authorized dates) · `pln_dependency` O · `pln_commitment` O · `pln_confirmation` E. Actual dates come from M05 events via view.
 
-## M10 `syn_` (planned)
+## M10 `syn_`
 
-`syn_peer` L (peers, cursors) · `syn_subscription` H (scopes per installation) · `syn_session` L (history, health) · `syn_conflict` L · `syn_quarantine` L · `syn_ownership_transfer` E · `syn_bundle` L.
+All M10 tables are local to one installation (never synchronized). The change log itself is the platform's `sys_change_log`.
+
+| Table | Class | Key columns / rules |
+|---|---|---|
+| syn_local_key | L | This installation's Ed25519 key pair (PEM). The private key never leaves the database, so backups must be kept as carefully as the machine |
+| syn_peer | L | At a replica one row (the hub); at the hub one row per replica. `role`, `kind`, `code`, `status` (`pending`/`active`/`decommissioned`), `public_key_pem`, `enrol_secret_hash` (hub) / `enrol_secret` (replica, until the first exchange), `url`, `push_cursor` (replica: last local change the hub acknowledged), `pull_cursor` (last hub change applied), `accepted_origin_seq` (hub: highest change accepted from that replica), `sub_epoch`, `include_unscoped_hub`, `last_sync_at`, `last_skew_ms` |
+| syn_subscription | L (at the hub) | `peer_installation_id`, `scope_kind`, `scope_id`: which ships, workshops or commands a replica receives |
+| syn_conflict | L | Changes received but not applied: `code` (`FORK`, `INTEGRITY`, `SCHEMA_NEWER`, `UNKNOWN_ENTITY`, `APPLY_FAILED`, `DEPENDENCY_MISSING`, `HUB_OVERWRITE`), `detail`, `entity_type`, `entity_id`, versions, `change_json` (the whole change), `status` open/resolved/dismissed, `resolution`. Nothing is deleted |
+| syn_session | L | History of exchanges: direction (`http`, `bundle_in`, `bundle_out`), counts, error |
+
+Views: `syn_v_outbound`, **`syn_v_peer_health`** (per peer: last exchange, clock difference, changes waiting to send) and **`syn_v_health`** (open conflicts, forks, change log size), for M13 and M14. The planned `syn_quarantine` is `syn_conflict`; `syn_bundle` is covered by `syn_session`; `syn_ownership_transfer` is not built (D55).
+
+Rules: one writer per record, events union by id, the higher version wins, an equal version with different content is a fork and is held for the owner (SYNC_RULES §2). Every message is an Ed25519-signed envelope; a bundle file carries the same changes as a network exchange, with one signature over the manifest and the changes.
 
 ## M11 `xls_`
 
@@ -164,10 +176,23 @@ Rules: an upload saves nothing. The preview applies every row inside one transac
 
 `mon_point` O · `mon_reading` E (value, unit, source timestamp, quality, source) · `mon_alarm_event` E · `mon_condition_rule` O · `mon_state` D (operating state, availability, alarm condition, data quality kept as four separate fields).
 
-## M13 `rpt_` (planned)
+## M13 `rpt_`
 
-`rpt_notification` L · `rpt_notification_rule` H · `rpt_readiness_snapshot` D. Reports read `<prefix>_v_*` views published by other modules.
+| Table | Class | Key columns / rules |
+|---|---|---|
+| rpt_notification | L | `dedupe_key` (unique), `kind`, `severity` info/warning/critical, `title`, `body`, `ref_type`, `ref_id`, `ship_id`, `first_raised_at`, `last_raised_at`, `resolved_at`, `acknowledged_at`, `acknowledged_by` |
 
-## M14 `ops_` (planned)
+`rpt_notification_rule` and `rpt_readiness_snapshot` from the plan are not built: R1 rules are fixed in code (overdue work orders, reviews waiting 3 days or more, maintenance overdue or due soon, stock below minimum, recurring faults, installations out of date, clock differences, open sync conflicts) and readiness is R2. A condition that stays true keeps one notification; when it clears the notification resolves itself; if it returns it is raised again as new and unacknowledged.
 
-`ops_backup_log` L · `ops_restore_log` L · `ops_integrity_check` L.
+Reports read only published views (`wrk_v_work_order_overview`, `pm_v_due`, `stk_v_stock`, `wrk_v_recurring_faults`, `idn_v_approval_status`, `syn_v_peer_health`, `syn_v_health`, `ast_v_asset_overview`, `org_v_ship_current_command`); a test fails if M13 reads anything else.
+
+## M14 `ops_`
+
+| Table | Class | Key columns / rules |
+|---|---|---|
+| ops_backup_log | L | `file_name`, `bytes`, `sha256`, `reason` (`manual`/`scheduled`/`pre_upgrade`/`pre_restore`), `schema_versions`, `created_at`, `created_by`, `verified_at`, `verify_ok`, `verify_detail`, `removed_at` |
+| ops_restore_log | L | `restored_from`, `restored_at`, `backup_created_at`, `source_installation_id`, `safety_backup`, `note` |
+| ops_integrity_check | L | `ran_at`, `ran_by`, `ok`, `problem_count`, `findings_json`, `duration_ms` |
+
+Each backup file `cmms-<code>-<time>-<reason>.sqlite` has a `.json` manifest beside it (SHA-256, size, installation, schema versions). Backups hold everything, including the signing key and password hashes: they are created readable by the owner only. Integrity checks: SQLite integrity and foreign keys, the synced-table contract, the entity registry, dangling references (driven by each entity's `requires`), overlapping number ranges and counters past their range, `org_v_assignment_overlap` (M01 migration 0002), `ast_v_position_conflicts`, negative stock and open sync conflicts. Findings are reported, never repaired automatically.
+

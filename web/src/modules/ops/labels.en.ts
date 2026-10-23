@@ -1,0 +1,18 @@
+export const opsLabelsEn: Record<string, string> = {
+  'nav.group.ops': 'Operations',
+  'ops.nav.status': 'System health', 'ops.nav.backups': 'Backups', 'ops.nav.integrity': 'Data checks',
+  'ops.title.status': 'System health', 'ops.title.backups': 'Backups', 'ops.title.integrity': 'Data checks',
+  'ops.field.installation': 'Installation', 'ops.field.mode': 'Run mode', 'ops.field.node': 'Node.js', 'ops.field.db': 'Database size', 'ops.field.free': 'Free disk space', 'ops.field.last_backup': 'Last backup', 'ops.field.last_verified': 'Last verified backup', 'ops.field.last_check': 'Last data check', 'ops.field.restore': 'Last restore',
+  'ops.none': 'None yet', 'ops.ok': 'Everything looks fine.', 'ops.unknown': 'Unknown',
+  'ops.warn.no_backup': 'No backup has been made yet.', 'ops.warn.backup_old': 'The last backup is old.', 'ops.warn.backup_unverified': 'No backup has ever been verified. Verify one to be sure it can be restored.',
+  'ops.warn.backup_bad': 'The last verified backup is damaged.', 'ops.warn.integrity': 'The last data check found errors.', 'ops.warn.disk_low': 'Free disk space is low.', 'ops.warn.migrations_pending': 'Some database changes are not applied. Restart the application.',
+  'ops.act.backup': 'Back up now', 'ops.act.verify': 'Verify', 'ops.act.check': 'Run data check',
+  'ops.backup.made': 'Backup made: {file}', 'ops.backup.ok': 'This backup can be restored.', 'ops.backup.bad': 'This backup cannot be used: {why}',
+  'ops.col.file': 'File', 'ops.col.when': 'When', 'ops.col.size': 'Size', 'ops.col.reason': 'Reason', 'ops.col.by': 'By', 'ops.col.verified': 'Verified', 'ops.empty': 'Nothing here yet.',
+  'ops.reason.manual': 'By hand', 'ops.reason.scheduled': 'Automatic', 'ops.reason.pre_upgrade': 'Before an upgrade', 'ops.reason.pre_restore': 'Before a restore',
+  'ops.verified.yes': 'Good', 'ops.verified.no': 'Damaged', 'ops.verified.never': 'Not yet',
+  'ops.restore.title': 'Restoring a backup', 'ops.restore.body': 'A restore replaces the whole database, so it is done with the application stopped, from the command line: npm run ops -- restore --file <backup file>. The current database is kept as a "before a restore" backup. After a restore, synchronize so the hub and this installation reconcile.',
+  'ops.check.ran': 'Data check finished.', 'ops.check.clean': 'No problems found.', 'ops.check.problems': '{count} problem(s) in {groups} group(s).',
+  'ops.sev.error': 'Error', 'ops.sev.warning': 'Warning', 'ops.check.when': 'Checked', 'ops.check.result': 'Result', 'ops.check.sample': 'Examples',
+  'ops.check.ok': 'No errors', 'ops.check.bad': 'Errors found',
+};

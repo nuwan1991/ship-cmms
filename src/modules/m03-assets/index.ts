@@ -8,6 +8,7 @@ import { nowUtc } from '../../platform/time.js';
 import { AST_ENTITIES } from './entities.js';
 import { AST_PERMISSIONS } from './permissions.js';
 import { assetsPort } from './import-export.js';
+import { rebuildAssetCurrent as rebuildCurrentAfterSync } from './movements.js';
 import { mountAssetRoutes } from './routes.js';
 
 export function register(ctx: AppContext, app: FastifyInstance): void {
@@ -15,6 +16,11 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   // M02 cannot be imported here; it learns the permission codes from this announcement (D25).
   ctx.events.publish({ type: 'sys.permissions.declared', occurredAt: nowUtc(), payload: { codes: [...AST_PERMISSIONS] } });
   ctx.importExport.register(assetsPort(ctx));
+  // After synchronization brings movement events from other installations, the derived "where is it now" table is folded again (SYNC_RULES §5).
+  ctx.events.subscribe('sys.sync.applied', (e) => {
+    const types = (e.payload as { entityTypes?: string[] } | null)?.entityTypes ?? [];
+    if (types.length === 0 || types.includes('ast.asset_movement')) rebuildCurrentAfterSync(ctx.db);
+  });
   mountAssetRoutes(ctx, app);
 }
 

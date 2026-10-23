@@ -7,9 +7,12 @@ import type { NavItem } from './platform/nav';
 import { astNav, astRoutes } from './modules/ast';
 import { idnNav, idnRoutes } from './modules/idn';
 import { orgNav, orgRoutes } from './modules/org';
+import { opsNav, opsRoutes } from './modules/ops';
 import { pmNav, pmRoutes } from './modules/pm';
 import { qrNav, qrRoutes } from './modules/qr';
+import { rptNav, rptRoutes } from './modules/rpt';
 import { stkNav, stkRoutes } from './modules/stk';
+import { synNav, synRoutes } from './modules/sync';
 import { xlsNav, xlsRoutes } from './modules/xls';
 import { wrkNav, wrkRoutes } from './modules/wrk';
 
@@ -18,5 +21,5 @@ export interface ModuleRoute {
   element: ReactElement;
 }
 
-export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...pmNav, ...stkNav, ...xlsNav];
-export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...pmRoutes, ...stkRoutes, ...xlsRoutes];
+export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...pmNav, ...stkNav, ...xlsNav, ...rptNav, ...synNav, ...opsNav];
+export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...pmRoutes, ...stkRoutes, ...xlsRoutes, ...rptRoutes, ...synRoutes, ...opsRoutes];

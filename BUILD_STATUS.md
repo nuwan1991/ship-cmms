@@ -14,15 +14,15 @@ Updated by each module chat before it stops. Keep rows to one line.
 | M07 | Parts, stores | R1 | **done** | 7 stk tables, 6 views, parts catalogue and compatibility, stock locations and minimum levels, receipts/issues/returns/adjustments as events, work-order reservations, transfers (dispatch, receive, call back), `store-numbers` CLI, demo stores, web stock/transfers/parts/locations; 197 server tests incl. HTTP, verify:web green (28 tests) |
 | M08 | Workshops, skills, resources | R2 | not started | |
 | M09 | Coordinated planning | R2 | not started | |
-| M10 | Provisioning and sync | R1 | not started | write path already emits change log (M00) |
+| M10 | Provisioning, selective sync, conflicts | R1 | **done** | 5 syn tables, 3 views; signed envelopes (Ed25519), provisioning package and enrolment, hello/push/pull with cursors, selective delivery by scope, quarantine and conflict decisions, signed bundle files both ways, emergency export, hub-restore detection, freshness and clock skew, `npm run sync`, web status/installations/conflicts/files; 17 tests incl. two-installation flows. User credentials are delivered only to provisioned installations (D61). Not built: ownership hand-over, re-homing, dependency closure (D55) |
 | M11 | Excel import/export | R1 | **done** | R1 templates: locations (M01), assets (M03), parts (M07); xlsx and CSV, blank template with instructions sheet, export in the same layout, rolled-back preview then all-or-nothing commit, error report, export log, web screen; 218 server tests, 31 web tests, files checked with LibreOffice and openpyxl |
 | M12 | Monitoring | R2 | not started | |
-| M13 | Reports and readiness | R1 | not started | |
-| M14 | Deployment, backup, recovery | R1 | not started | |
+| M13 | Reports, readiness, notifications | R1 | **done** | 6 reports (backlog, pending reviews, maintenance due, stock below minimum, recurring faults, sync health), dashboard, CSV, "data as of" on every report, in-app notifications with self-clearing rules; reads views only (tested); web overview/reports/notifications. Readiness and cost reports are R2 |
+| M14 | Deployment, backup, recovery | R1 | **done** | consistent backups with manifest and SHA-256, verify, scheduled backups with pruning, backup before every upgrade, restore (stopped application, safety copy), integrity query set, system health, compiled production run, web app served by the same process, `npm run ops` installer; web health/backups/data checks; see OPERATIONS.md |
 
 ## Verification
 
-`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M07 and M11). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
+`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M07 and M10–M14). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
 
 Demo: `npm run init-installation -- --kind hub --code HQ --name "Fleet HQ"`, `npm run seed:demo-org`, then `CMMS_DEV_AUTH=1 npm run dev` and `npm run web:dev` (port 5173, proxies `/api` to 8080).
 
@@ -36,5 +36,8 @@ Node 22 · fastify 5.12.7 · zod 4.6.7 · better-sqlite3 13.0.3 · typescript 7.
 - Production start registers the identity Authorizer and answers anonymous calls with 401. `CMMS_DEV_AUTH=1` (allow-all dev user, no sign-in) is for development only and is refused in production.
 - Bootstrap: `npm run create-admin -- --username admin --name "Fleet Administrator"` once at the hub (prints a one-time password if none given).
 - Role assignment scope ids are typed as ids in the UI; pickers for commands/ships/workshops need an org lookup that does not make M02 import M01's UI (M10/M13 era).
-- Freshness is a placeholder (hub authoritative, others stale/never) until M10 supplies sync state.
-- Production run mode and encryption at rest: M14.
+- Other modules' lists still use their own placeholder freshness banner; M10 provides the real values (`GET /api/v1/sync/freshness`, `freshness()`) and M13 reports already use them. Switching the other lists over is mechanical.
+- Many modules do not yet stamp `home_scope_id` on what they create, which limits what selective sync can deliver to other ships (D52).
+- Encryption at rest is left to the operating system (D17); backups are owner-readable only.
+- First additions when a ship needs them: ownership hand-over and ship re-homing, dependency closure (D55).
+- R2 modules not started: M08 workshops and skills, M09 coordinated planning, M12 monitoring; readiness and cost reports (M13).

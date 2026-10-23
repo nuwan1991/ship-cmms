@@ -42,11 +42,11 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M07 | `getPart`, `findPartByNo`, `getBalance`, `partsForAsset`, `onHandAtSite`, `partsIssuedTo`, `issueToWorkOrder`, `TRANSFER_SEQUENCE` | views `stk_v_*` for M13 | ranges, M05 (`getWorkOrder`), M03 (`getAsset`), M01 (`getLocation`, `resolveParty`) |
 | M08 | capability/skill/capacity lookups | — | — |
 | M09 | window/plan API | — | read models |
-| M10 | sync status for UI | — | entity registry, schema versions |
+| M10 | `syncOnce`, `syncStatus`, `freshness`, `provisionPeer`, `joinHub`, `exportBundle`, `importBundle`, `retryQuarantined`, event `sys.sync.applied`, `synPermission` | views `syn_v_*` for M13 and M14 | entity registry, schema versions, change log (`sys_change_log`) |
 | M11 | — | — | `ImportExportPort` registry (`ctx.importExport`), filled by M01 (`locations`), M03 (`assets`) and M07 (`parts`) in their `register()` |
 | M12 | latest-state lookup | event publisher | M03 |
-| M13 | — | read-model registry | `<prefix>_v_*` views |
-| M14 | — | — | — |
+| M13 | `runReport`, `dashboard`, `refreshNotifications`, `localFreshness`, `REPORTS` | — | `<prefix>_v_*` views of M01, M02, M03, M05, M06, M07, M10 |
+| M14 | `createBackup`, `verifyBackupFile`, `restoreBackup`, `upgradeWithBackup`, `runIntegrity`, `opsStatus`, `startBackupScheduler` | — | database file, entity registry, `org_v_assignment_overlap`, `ast_v_position_conflicts`, `stk_v_balance`, `syn_v_health` |
 
 ## API conventions per module
 

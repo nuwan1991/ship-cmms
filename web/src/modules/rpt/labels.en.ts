@@ -1,0 +1,17 @@
+export const rptLabelsEn: Record<string, string> = {
+  'nav.group.rpt': 'Reports',
+  'rpt.nav.dashboard': 'Overview', 'rpt.nav.reports': 'Reports', 'rpt.nav.notifications': 'Notifications',
+  'rpt.title.dashboard': 'Overview', 'rpt.title.reports': 'Reports', 'rpt.title.notifications': 'Notifications',
+  'rpt.count.openWorkOrders': 'Open work orders', 'rpt.count.overdueWorkOrders': 'Past requested date', 'rpt.count.urgentWorkOrders': 'Urgent',
+  'rpt.count.pendingReviews': 'Waiting for a decision', 'rpt.count.maintenanceOverdue': 'Maintenance overdue', 'rpt.count.maintenanceDueSoon': 'Maintenance due soon',
+  'rpt.count.stockBelowMinimum': 'Stock below minimum', 'rpt.count.recurringFaults': 'Recurring faults', 'rpt.count.openConflicts': 'Sync conflicts', 'rpt.count.staleInstallations': 'Installations out of date',
+  'rpt.by_ship': 'Open work by ship', 'rpt.col.ship': 'Ship', 'rpt.col.open': 'Open', 'rpt.col.overdue': 'Past date', 'rpt.col.urgent': 'High or urgent',
+  'rpt.report.backlog': 'Maintenance backlog', 'rpt.report.pending_reviews': 'Pending reviews and confirmations', 'rpt.report.maintenance_due': 'Planned maintenance and calibration due',
+  'rpt.report.stock_below_minimum': 'Stock below minimum', 'rpt.report.recurring_faults': 'Recurring faults', 'rpt.report.sync_health': 'Synchronization health',
+  'rpt.filter.ship': 'Ship', 'rpt.filter.any': 'Any', 'rpt.filter.olderThanDays': 'Older than (days)', 'rpt.filter.workType': 'Type', 'rpt.filter.priority': 'Priority', 'rpt.filter.source': 'Source',
+  'rpt.act.csv': 'Download CSV', 'rpt.act.refresh': 'Check now', 'rpt.act.ack': 'Acknowledge', 'rpt.rows': '{count} row(s)', 'rpt.empty': 'Nothing to show.', 'rpt.yes': 'Yes', 'rpt.no': 'No',
+  'rpt.asof': 'Data as of {when}', 'rpt.never': 'This installation has never synchronized: the data may be out of date.', 'rpt.stale_data': 'Data is out of date (last synchronized {when}).',
+  'rpt.n.status.open': 'New', 'rpt.n.status.acknowledged': 'Acknowledged', 'rpt.n.status.resolved': 'Cleared', 'rpt.n.empty': 'No notifications.',
+  'rpt.severity.info': 'Information', 'rpt.severity.warning': 'Warning', 'rpt.severity.critical': 'Critical',
+  'rpt.n.refreshed': '{raised} new, {resolved} cleared.',
+};
