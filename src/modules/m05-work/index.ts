@@ -16,7 +16,7 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   mountWorkRoutes(ctx, app);
 }
 
-export { getWorkOrder, resolveWorkOrderNo, openWorkOrdersForAsset, currentAxes } from './queries.js';
+export { getWorkOrder, resolveWorkOrderNo, openWorkOrdersForAsset, currentAxes, workOrderClosedAt } from './queries.js';
 export type { WorkOrderRef, AxesState, SubjectType, Axis } from './queries.js';
 export { createWorkOrder, advisoriesForAsset, WORK_ORDER_SEQUENCE, REPAIR_CASE_SEQUENCE, DEFECT_SEQUENCE } from './service.js';
 export { WRK_PERMISSIONS, GATE_APPROVE, GATE_ACCEPT, perm as wrkPermission } from './permissions.js';

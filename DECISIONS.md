@@ -90,6 +90,17 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D44 — Files are read and written with a small OOXML layer over `fflate`.** `fflate` 0.8.2 (zero dependencies) does only zip; the workbook reader and writer are our own (`m11-excel/xlsx.ts`) and are checked against LibreOffice and openpyxl. The reader takes values only (a formula yields its cached value), caps entry and total sizes, and rejects anything that is not a plain workbook (no macros, no `.xls`). Excel turns text such as `00123` into the number 123 when it re-saves a CSV, so import converts numbers back to text and part numbers should be formatted as Text in the sheet. CSV export neutralises cells that start with `=`, `+`, `-` or `@`.
 
+**D45 — Work-order generation is idempotent and never overlaps.** Each plan remembers `last_generated_key` (the due date, or the due hours rounded to 2 decimals). Running generation twice, or on the hub and a ship, cannot create the same cycle twice. A plan starts no new cycle while its previous order is open. Plans are created only through M05 `createWorkOrder`; M05 gained the read-only export `workOrderClosedAt`.
+
+**D46 — The next cycle counts from completion.** When the previous order is closed, the anchor moves to the closure time (hours plans: the current meter total), so late work does not cause a catch-up burst.
+
+**D47 — Meters keep a running total.** Each reading stores `cumulative`; replacing a dial adds a `replacement` event that carries the total on. Readings may not go backwards, back in time or into the future. An hours plan takes its baseline from the meter when it is created.
+
+**D48 — Calibration is event-based.** The latest record per asset decides the due date. A failed record with no next date leaves nothing due, since the item must be dealt with, not scheduled.
+
+**D49 — R1 limits.** Condition-based triggers are R2 (event `mon.condition.breached`). The task checklist is copied into the work order description because M05 job cards are not exposed to other modules.
+
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

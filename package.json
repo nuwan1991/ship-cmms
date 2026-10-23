@@ -21,6 +21,7 @@
     "seed:demo-survey": "tsx src/modules/m04-labels-survey/seed-cli.ts --demo",
     "work-numbers": "tsx src/modules/m05-work/seed-cli.ts",
     "seed:demo-work": "tsx src/modules/m05-work/seed-cli.ts --demo",
+    "seed:demo-pm": "tsx src/modules/m06-planned-maintenance/seed-cli.ts",
     "store-numbers": "tsx src/modules/m07-stores/seed-cli.ts",
     "seed:demo-stores": "tsx src/modules/m07-stores/seed-cli.ts --demo",
     "create-admin": "tsx src/modules/m02-identity/bootstrap-cli.ts",

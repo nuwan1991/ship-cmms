@@ -106,16 +106,19 @@ Views (derived, never synchronized): **`wrk_v_status_current`** (latest value pe
 
 Axes and rules: progress `planned → in_progress ⇄ on_hold → work_complete`; approval `not_required → pending_review → approved/rejected`; return to service `not_assessed → restricted/cleared/withheld`; closure `open → closed ⇄ reopened`. Starting work is blocked by a `mandatory_prior` approval gate until approved; `review_pending_allowed` lets work start with the review pending. Closing needs work complete, no review pending or rejected, a return-to-service decision for corrective work (not withheld) and every job card completed or void. A rejected acceptance withholds return to service and sends the order back to `in_progress`. Gate codes: `wrk.work_order.approve` and `wrk.acceptance.accept` (permission codes too).
 
-## M06 `pm_` (planned)
+## M06 `pm_`
 
-| Table | Class | Purpose |
+| Table | Class | Key columns / rules |
 |---|---|---|
-| pm_task_template | H | Standard PM tasks |
-| pm_plan | O | Calendar / running-hour / (R2) condition schedule per asset or position |
-| pm_meter | O | Running-hour or counter meter |
-| pm_meter_reading | E | Readings with source time |
-| pm_calibration_record | E | Calibration results and due dates |
-| pm_due | D | Computed due list |
+| pm_task_template | H | `code` (unique), `name`, `description`, `checklist_json` (array of steps), `estimated_minutes`, `classification_id`, `priority`, `status` |
+| pm_meter | O | `asset_id`, `name`, `kind` running_hours/counter, `unit`, `status` |
+| pm_meter_reading | E | `meter_id`, `kind` reading/replacement, `reading` (what the dial shows), `cumulative` (running total, survives dial replacement), `note`. Readings may not go backwards, back in time or into the future |
+| pm_plan | O | `code`, `title`, `template_id`, exactly one of `asset_id` / `position_id`, `trigger_kind` calendar/running_hours, `interval_days`, `interval_hours`, `meter_id`, `lead_days` (7), `lead_hours` (50), `priority`, `start_at`, anchor (`last_done_at`, `last_done_hours`), `last_generated_key`, `last_work_order_id`, `last_rolled_wo_id`, `status` active/suspended |
+| pm_calibration_record | E | `asset_id`, `result` pass/fail/adjusted, `next_due_on` (date), `certificate_no`, `calibrated_by`, `note` |
+
+Views (derived, never synchronized): `pm_v_meter_current` (latest cumulative per meter), `pm_v_plan_due` (per plan: `due_at` or `due_hours`, `remaining_hours`), `pm_v_calibration_due` (latest record per asset decides) and **`pm_v_due`** (the due list: `source` plan/calibration, `ref_id`, `ref_code`, `title`, `asset_id`, `position_id`, `ship_id`, `basis`, `priority`, `due_on`, `remaining_hours`, `overdue`, `due_soon`, `work_order_id`). This is the `pm_due` of the original plan. Due dates are UTC.
+
+Rules: a plan makes a work order only through M05 `createWorkOrder`, once its lead window opens, and not again while the previous order is open. When that order is closed the anchor moves to the closure time (hours plans: the current meter total). A failed calibration with no next date leaves nothing due.
 
 ## M07 `stk_`
 

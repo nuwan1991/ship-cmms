@@ -74,6 +74,11 @@ export function resolveWorkOrderNo(db: Db, woNo: string): WorkOrderRef | null {
   const r = db.prepare('SELECT * FROM wrk_work_order WHERE wo_no = ? AND deleted_at IS NULL').get(woNo.trim().toUpperCase()) as Row | undefined;
   return r ? toRef(r) : null;
 }
+/** When a work order was closed (latest closure event whose current value is `closed`), or null while it is open. */
+export function workOrderClosedAt(db: Db, id: string): string | null {
+  const r = db.prepare("SELECT occurred_at FROM wrk_v_status_current WHERE subject_type = 'work_order' AND subject_id = ? AND axis = 'closure' AND value = 'closed'").get(id) as { occurred_at: string } | undefined;
+  return r?.occurred_at ?? null;
+}
 /** Work orders of an asset that are not closed (for readiness views and for blocking decommissioning in other modules). */
 export function openWorkOrdersForAsset(db: Db, assetId: string): WorkOrderRef[] {
   const rows = db.prepare("SELECT w.* FROM wrk_work_order w JOIN wrk_v_work_order_overview o ON o.work_order_id = w.id WHERE w.asset_id = ? AND o.closure <> 'closed' ORDER BY w.id").all(assetId) as Row[];
