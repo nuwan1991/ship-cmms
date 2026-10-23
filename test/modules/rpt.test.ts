@@ -116,7 +116,8 @@ describe('M13 notifications', () => {
 
   it('only reads published views of other modules', async () => {
     const { readFileSync, readdirSync } = await import('node:fs');
-    const dir = new URL('../../src/modules/m13-reports/', import.meta.url).pathname;
+    const { fileURLToPath } = await import('node:url');
+    const dir = fileURLToPath(new URL('../../src/modules/m13-reports/', import.meta.url));
     const bad: string[] = [];
     for (const f of readdirSync(dir).filter((x) => x.endsWith('.ts'))) {
       const src = readFileSync(dir + f, 'utf8');

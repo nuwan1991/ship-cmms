@@ -1,9 +1,10 @@
 // The compiled server finds its migrations next to the compiled code (platform/db/migrations, modules/<dir>/migrations): copy the .sql files into dist.
 import { cpSync, existsSync, readdirSync, statSync, mkdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const src = new URL('../src/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const out = new URL('../dist/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const src = fileURLToPath(new URL('../src/', import.meta.url));
+const out = fileURLToPath(new URL('../dist/', import.meta.url));
 let n = 0;
 (function walk(dir) {
   for (const f of readdirSync(dir)) {
