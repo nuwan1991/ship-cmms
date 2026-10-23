@@ -16,9 +16,10 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   mountAssetRoutes(ctx, app);
 }
 
-export { getAsset, resolveTag, getPosition, currentInstallation, assetAtPosition, getAssetState, positionChain } from './queries.js';
+export { getAsset, findAssetByName, resolveTag, getPosition, currentInstallation, assetAtPosition, getAssetState, positionChain } from './queries.js';
 export type { AssetInfo, PositionInfo, AssetState, CurrentInstallation } from './queries.js';
-export { responsibilityAt, EQUIPMENT_TAG_SEQUENCE } from './service.js';
+export { responsibilityAt, EQUIPMENT_TAG_SEQUENCE, createAsset } from './service.js';
+export type { Actor as AstActor } from './actor.js';
 export { rebuildAssetCurrent, refoldAsset, foldMovements } from './movements.js';
 export { AST_PERMISSIONS, AST_NOUNS, perm as astPermission } from './permissions.js';
 export type { AstNoun, AstAction } from './permissions.js';

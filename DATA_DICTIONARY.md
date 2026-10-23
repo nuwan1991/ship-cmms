@@ -74,14 +74,17 @@ Published read model: **`idn_v_approval_status`** (per approval: `pending_confir
 
 Views: **`ast_v_asset_overview`** (asset + current state + position + classification, for lists and M13) and **`ast_v_position_conflicts`** (positions holding more than one asset after replication; flagged, never rejected, D20). Corrections are `void` movements. Equipment tags come from locally consumed ranges and raise RANGE_EXHAUSTED when used up.
 
-## M04 `qr_` (planned)
+## M04 `qr_`
 
-| Table | Class | Purpose |
+| Table | Class | Key columns / rules |
 |---|---|---|
-| qr_label | O | Reserved/assigned label number (from range), asset link, state |
-| qr_label_print | E | Print and reprint log (A4 sheets) |
-| qr_survey_template | H | Simple compartment survey forms |
-| qr_survey / qr_survey_item | O | Survey session and observed items (scanned asset or pending registration) |
+| qr_label | O | label_no (unique, never reused; `SLN-LB-########` from range `label_no`), state (`reserved`/`assigned`/`void`), asset_id, assigned_at, void_reason, note; one assigned label per asset (partial unique index); home scope = ship it was issued for, or none |
+| qr_label_print | E | label_id, print_job_id, reason (`first`/`reprint`), note; one row per label per print job |
+| qr_survey_template | H | code (unique), name, description, items_json (`[{key,label,kind: text/yesno/number}]`), status |
+| qr_survey | O | location_id (org_location compartment), template_id, status (`open`/`closed`), started_at, closed_at, note; home scope = the site; one open survey per compartment |
+| qr_survey_item | O | survey_id, kind (`scanned`/`pending`), asset_id, label_no, observed_status, description/manufacturer/model/serial_number (pending), answers_json, note, converted_asset_id, converted_at; one scanned row per asset per survey |
+
+View: **`qr_v_survey_summary`** (per survey: item, scanned, pending and converted counts; for lists and M13). The QR code carries the label number only; the equipment tag is shown beside it and is never replaced. A voided label keeps its number and still resolves, as `void`, so a stale sticker is recognised. Pending items are converted into assets through M03 (`createAsset`), in one transaction with the optional label assignment.
 
 ## M05 `wrk_` (planned)
 

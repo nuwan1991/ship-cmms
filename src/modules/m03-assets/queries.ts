@@ -49,6 +49,12 @@ export function resolveTag(db: Db, tag: string): AssetInfo | null {
   return r ? toAsset(r) : null;
 }
 
+/** First live asset with this exact name (demo seeds and lookups by name); null when none. */
+export function findAssetByName(db: Db, name: string): AssetInfo | null {
+  const r = db.prepare('SELECT * FROM ast_asset WHERE name = ? AND deleted_at IS NULL ORDER BY id LIMIT 1').get(name) as Row | undefined;
+  return r ? toAsset(r) : null;
+}
+
 export interface PositionInfo {
   id: string;
   shipId: string;

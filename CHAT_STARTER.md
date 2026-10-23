@@ -68,6 +68,28 @@ Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `s
 Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/ast/` (`binding.tsx`, `AssetsScreen.tsx`).
 If the repository itself is available in the chat, attach nothing else.
 
-## M01, M02 and M03 (done)
+## M05 block (ready to paste)
+
+```
+You are implementing module M05 — Defects, repair cases, work orders, job cards, reviews and repair acceptance (prefix wrk_, API /api/v1/work).
+M01, M02, M03 and M04 are done; do not modify them (small additions to a done module's index.ts need a DECISIONS entry). M05 depends on M01 and M03 only
+through their index.ts, and never imports M02 (use the Authorizer and ApprovalPort).
+Scope (R1): wrk_defect (O), wrk_repair_case (O, parent that may span departments/providers), wrk_work_order (O; ownership moves by handover; separate
+ownership/operating/executing PartyRefs), wrk_job_card (O), wrk_status_event (E, four independent status axes), wrk_labour_entry / wrk_finding /
+wrk_test_record (E), wrk_acceptance (E, return-to-service evidence), wrk_handover (E, offer/accept), wrk_advisory (H), wrk_recurrence (D).
+Rules: current status is derived from events; a work order is numbered from a platform range (works offline); acceptance and review gates are approvals via
+ctx.approvals; replicated events are never rejected (D20); every write goes through platform/records.ts. Provide services, routes, permissions
+wrk.<noun>.<action>, entity registrations, public surface per MODULE_MAP (WorkOrderRef, createWorkOrder), a view for M13, demo seed extension, tests, and web
+screens (defect list/report, work order list/detail with status axes, job card, handover, acceptance) bound through web/src/modules.ts.
+```
+
+## Smallest file set to attach for M05
+
+Docs: `CHAT_STARTER.md`, `MODULE_MAP.md`, `CONTRACTS.md`, `SYNC_RULES.md` (§2–3), `DATA_DICTIONARY.md`, `BUILD_STATUS.md`, `DECISIONS.md` (D07, D19–D25, D30–D35).
+Server: `package.json`, `src/modules/index.ts`, `src/platform/` (as for M03), `src/modules/m03-assets/index.ts` and `queries.ts`, the M04 `service.ts` and `routes.ts` as the newest pattern, `test/modules/qr-helpers.ts`, `tools/check-boundaries.ts`.
+Web: `web/src/modules.ts`, `web/src/platform/` (`ResourceScreen.tsx`, `form.tsx`, `useList.ts`, `ui.tsx`, `api.ts`, `permissions.ts`), `web/src/modules/qr/` (`SurveysScreen.tsx` as the list-plus-detail pattern).
+If the repository itself is available in the chat, attach nothing else.
+
+## M01 to M04 (done)
 
 Delivered and recorded in BUILD_STATUS; their prompts are in git history.

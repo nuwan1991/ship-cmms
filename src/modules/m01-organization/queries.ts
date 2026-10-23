@@ -162,3 +162,9 @@ export function findPartyByCode(db: Db, kind: PartyRef['kind'], code: string): R
 export function resolveParties(db: Db, refs: readonly PartyRef[]): Array<ResolvedParty | null> {
   return refs.map((r) => resolveParty(db, r));
 }
+
+/** Find a location of a site by its code (codes are unique per site among live rows). Used by demo seeds. */
+export function findLocationByCode(db: Db, siteId: string, code: string): { id: string; code: string; name: string } | null {
+  const r = db.prepare('SELECT id, code, name FROM org_location WHERE home_scope_id = ? AND code = ? AND deleted_at IS NULL').get(siteId, code) as { id: string; code: string; name: string } | undefined;
+  return r ?? null;
+}

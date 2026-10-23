@@ -66,6 +66,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D32 — The tree helper moved to `web/src/platform/tree.ts`** (org re-exports it) so M03 reuses it without importing another module's UI.
 
+**D33 — Labels carry the label number only; the equipment tag stays the identity.** `qr_label` links a label to an asset; replacing a damaged sticker voids the old label (reason required, number never reused) and assigns a new one. The QR payload is the label number, so reprinting can never change what a scan means. Label numbers use their own range (`label_no`, `SLN-LB`, 8 digits) and the `label-numbers` CLI, like asset tags (D31).
+
+**D34 — A4 sheet printing is a recorded job plus a browser print.** `POST /labels/print` appends one `qr_label_print` event per label (first print, then reprints), and returns the sheet grid with inline SVG QR codes (pinned `qrcode` library, rendered at the server so it works from any installation). The web preview uses the browser print dialog; no PDF library is added.
+
+**D35 — Survey conversion goes through M03, and M03 gains a small public surface.** M03 now exports `createAsset`, `findAssetByName` and the `AstActor` type; M01 exports `findLocationByCode`. Converting a pending survey item is one transaction: asset registration (tag from the asset range, registration movement), optional label assignment, item marked converted. If the range is exhausted nothing is written. Converted items and their surveys are kept.
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

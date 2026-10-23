@@ -81,3 +81,16 @@ input, select, textarea { padding: 6px 8px; border: 1px solid var(--line); borde
 fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; padding: 8px 12px; }
 legend { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 0 6px; }
 .perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; margin-top: 6px; font-size: 13px; }
+
+/* QR label sheets: on screen a preview, when printing only the sheets (A4, no chrome). */
+.sheet { display: grid; gap: 4px; padding: 8px; margin-bottom: 12px; border: 1px dashed var(--line); background: #fff; color: #000; }
+.sticker { margin: 0; padding: 6px; border: 1px solid #bbb; display: flex; gap: 6px; align-items: center; break-inside: avoid; }
+.sticker .qr { width: 72px; flex: none; }
+.sticker .qr svg { width: 100%; height: auto; display: block; }
+.sticker figcaption { display: flex; flex-direction: column; font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; inset: 0; }
+  .sheet { page-break-after: always; border: 0; margin: 0; padding: 10mm; }
+}

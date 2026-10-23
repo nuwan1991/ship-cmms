@@ -7,6 +7,8 @@ import { localInputToUtcIso, utcIsoToLocalInput } from './time';
 export interface FieldDef {
   key: string;
   labelKey: string;
+  /** Literal text for data-driven fields (e.g. survey questions); wins over labelKey. */
+  label?: string;
   type: 'text' | 'number' | 'select' | 'checkbox' | 'datetime' | 'textarea' | 'password';
   required?: boolean;
   /** Static options, or resolved at render time (e.g. from a loaded list). */
@@ -123,7 +125,7 @@ export function FormModal(props: {
           const v = values[f.key];
           const label = (
             <label htmlFor={id}>
-              {t(f.labelKey)}
+              {f.label ?? t(f.labelKey)}
               {f.required ? <span aria-hidden> *</span> : null}
             </label>
           );
@@ -132,7 +134,7 @@ export function FormModal(props: {
             <div className="field" key={f.key}>
               {f.type === 'checkbox' ? (
                 <label className="check">
-                  <input id={id} type="checkbox" checked={Boolean(v)} onChange={(e) => set(f.key, e.target.checked)} /> {t(f.labelKey)}
+                  <input id={id} type="checkbox" checked={Boolean(v)} onChange={(e) => set(f.key, e.target.checked)} /> {f.label ?? t(f.labelKey)}
                 </label>
               ) : (
                 label

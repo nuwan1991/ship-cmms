@@ -36,7 +36,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M01 | `getShipCommandAt(db, shipId, at?)`, `listShipsByCommand(db, commandId, at?)`, `getLocation(db, id)`, `resolveParty` / `resolveParties` (PartyRef → live org unit or null), `ORG_PERMISSIONS`, `orgPermission`, `ORG_ENTITIES`, result types | entity registrations (`org.*`) | Authorizer (via `req.principal` set by M02) |
 | M02 | none for other modules (they use the ports); exports for the composition root, CLI and tests: `IDN_PERMISSIONS`, `PermissionCatalogue`, `checkAuthority`, `effectivePermissions`, `recordApproval`, `evaluateGate`, `ratifyApproval` | `Authorizer` (`idn-authorizer`), `ApprovalPort`; session hook sets `req.principal` | event `sys.permissions.declared`, M01 `ORG_PERMISSIONS` |
 | M03 | `getAsset`, `getPosition`, `currentInstallation(assetId)`, `assetAtPosition`, `getAssetState`, `positionChain`, `resolveTag`, `responsibilityAt`, `rebuildAssetCurrent`, `astPermission`, asset types | entity registrations, `ImportExportPort` | ranges, Authorizer |
-| M04 | label issue/assign API | `ImportExportPort` (labels) | ranges, M03 |
+| M04 | `resolveLabel`, `labelForAsset`, `LABEL_SEQUENCE`, `qrPermission` | `ImportExportPort` (labels) | ranges, M03 (`createAsset`, `getAsset`, `resolveTag`) |
 | M05 | `WorkOrderRef`, `createWorkOrder` (command), status-axis helpers | gate codes registered with M02 | ApprovalPort |
 | M06 | plan/meter API | PM generation via M05 commands | event `mon.condition.breached` |
 | M07 | `getBalance`, `issueToWorkOrder`, part lookup | views for M13 | — |
