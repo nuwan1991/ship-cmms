@@ -35,8 +35,8 @@ async function main(): Promise<void> {
   if (cmd === 'check') {
     const problems: string[] = [];
     const major = Number(process.versions.node.split('.')[0]);
-    const [maj, min] = process.versions.node.split('.').map(Number) as [number, number];
-    if (maj !== 22 || min < 12) problems.push(`Node ${process.versions.node} is not supported; install Node 22.12 or a later 22.x`);
+    const [maj, min, patch] = process.versions.node.split('.').map(Number) as [number, number, number];
+    if (maj !== 22 || min < 23 || (min === 23 && patch < 4)) problems.push(`Node ${process.versions.node} is not supported; install Node 22.23.4 or a later 22.x`);
     try { mkdirSync(config.dataDir, { recursive: true }); accessSync(config.dataDir, constants.W_OK); say(`Data folder: ${config.dataDir} (writable)`); } catch { problems.push(`Data folder ${config.dataDir} is not writable`); }
     try { const s = statfsSync(config.dataDir); const free = Number(s.bavail) * Number(s.bsize); say(`Free disk space: ${(free / 1e9).toFixed(1)} GB`); if (free < 1e9) problems.push('Less than 1 GB of free disk space'); } catch { say('Free disk space: unknown on this system'); }
     const web = process.env.CMMS_WEB_DIR ?? join(process.cwd(), 'web', 'dist');

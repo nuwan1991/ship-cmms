@@ -4,7 +4,7 @@ How to install, run, back up, restore, upgrade and join installations. Written f
 
 ## 1. What you need
 
-- Node.js 22.12 or a later 22.x (not 23 or 24). `node -v` shows it.
+- Node.js 22.23.4 or a later 22.x (not 23 or 24). Older 22.x releases crash on Windows when the database opens. `node -v` shows it.
 - About 1 GB of free disk space and a folder for the data.
 - Nothing else: no database server, no internet after installation.
 
