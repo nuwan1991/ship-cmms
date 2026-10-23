@@ -10,7 +10,7 @@ Source of truth for the mechanical parts is `src/platform/modules.ts`; `test/bou
 | M04 | QR labels and compartment surveys | m04-labels-survey | `qr_` | /api/v1/labels | M01, M03 | R1 |
 | M05 | Defects, job cards, reviews, repair acceptance | m05-work | `wrk_` | /api/v1/work | M01, M03 | R1 |
 | M06 | Planned maintenance, meters, calibration | m06-planned-maintenance | `pm_` | /api/v1/pm | M01, M03, M05 | R1 (condition-based R2) |
-| M07 | Parts, stores, stock transactions | m07-stores | `stk_` | /api/v1/stores | M01, M03 | R1 |
+| M07 | Parts, stores, stock transactions | m07-stores | `stk_` | /api/v1/stores | M01, M03, M05 | R1 |
 | M08 | Workshops, skills, resources, external providers | m08-workshops | `res_` | /api/v1/workshops | M01, M02 | R2 |
 | M09 | Coordinated ship/fleet maintenance planning | m09-planning | `pln_` | /api/v1/planning | M01, M03, M05, M06, M07, M08 | R2 |
 | M10 | Provisioning, selective sync, conflict handling | m10-sync | `syn_` | /api/v1/sync | — (registry) | R1 |
@@ -39,7 +39,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M04 | `resolveLabel`, `labelForAsset`, `LABEL_SEQUENCE`, `qrPermission` | `ImportExportPort` (labels) | ranges, M03 (`createAsset`, `getAsset`, `resolveTag`) |
 | M05 | `WorkOrderRef`, `getWorkOrder`, `resolveWorkOrderNo`, `openWorkOrdersForAsset`, `createWorkOrder` (command), `currentAxes`, `advisoriesForAsset`, number sequence codes, `GATE_APPROVE`, `GATE_ACCEPT` | gate codes `wrk.work_order.approve` and `wrk.acceptance.accept` (declared with the permissions, D25) | ApprovalPort, ranges, M03 (`getAsset`, `getPosition`), M01 (`resolveParty`) |
 | M06 | plan/meter API | PM generation via M05 commands | event `mon.condition.breached` |
-| M07 | `getBalance`, `issueToWorkOrder`, part lookup | views for M13 | — |
+| M07 | `getPart`, `findPartByNo`, `getBalance`, `partsForAsset`, `onHandAtSite`, `partsIssuedTo`, `issueToWorkOrder`, `TRANSFER_SEQUENCE` | views `stk_v_*` for M13 | ranges, M05 (`getWorkOrder`), M03 (`getAsset`), M01 (`getLocation`, `resolveParty`) |
 | M08 | capability/skill/capacity lookups | — | — |
 | M09 | window/plan API | — | read models |
 | M10 | sync status for UI | — | entity registry, schema versions |

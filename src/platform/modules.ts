@@ -34,7 +34,7 @@ export const MODULES: readonly ModuleManifest[] = [
   { id: 'M04', dir: 'm04-labels-survey', tablePrefix: 'qr', apiPrefix: '/api/v1/labels', dependsOn: ['M01', 'M03'] },
   { id: 'M05', dir: 'm05-work', tablePrefix: 'wrk', apiPrefix: '/api/v1/work', dependsOn: ['M01', 'M03'] },
   { id: 'M06', dir: 'm06-planned-maintenance', tablePrefix: 'pm', apiPrefix: '/api/v1/pm', dependsOn: ['M01', 'M03', 'M05'] },
-  { id: 'M07', dir: 'm07-stores', tablePrefix: 'stk', apiPrefix: '/api/v1/stores', dependsOn: ['M01', 'M03'] },
+  { id: 'M07', dir: 'm07-stores', tablePrefix: 'stk', apiPrefix: '/api/v1/stores', dependsOn: ['M01', 'M03', 'M05'] },
   { id: 'M08', dir: 'm08-workshops', tablePrefix: 'res', apiPrefix: '/api/v1/workshops', dependsOn: ['M01', 'M02'] },
   { id: 'M09', dir: 'm09-planning', tablePrefix: 'pln', apiPrefix: '/api/v1/planning', dependsOn: ['M01', 'M03', 'M05', 'M06', 'M07', 'M08'] },
   { id: 'M10', dir: 'm10-sync', tablePrefix: 'syn', apiPrefix: '/api/v1/sync', dependsOn: [] },

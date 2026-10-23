@@ -78,6 +78,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D38 — Hand-over changes who executes, not who owns the record.** `wrk_handover` offer/accept/decline/withdraw are events; an accepted offer makes the receiving party the executing party in `wrk_v_work_order_overview`, and the receiving installation records its own labour, findings, tests, acceptance and status as events on the order. Moving the record's `owner_installation_id` is the sync layer's job (M10, SYNC_RULES §3). Recurring-fault detection is the view `wrk_v_recurring_faults` instead of the planned `wrk_recurrence` table.
 
+**D39 — Stock is a ledger of events and balances are a view.** `stk_transaction` and `stk_reservation` are append-only, signed by `qty_delta`; `stk_v_balance` sums them, so on-hand can never drift from history and two installations posting offline cannot overwrite each other (unlike a stored balance). Commands refuse to overdraw locally; replicated events are only flagged (D20). The planned `stk_balance` table is the view. Consequence: a stock-take is an `adjustment` event with a reason, never an edit.
+
+**D40 — M07 depends on M05 to issue parts against work orders.** The module map listed only M01 and M03. Issuing to a work order must check that the order exists, is not closed, and is on the same ship as the store; M05's public `getWorkOrder` does that, so M07 now depends on M01, M03 and M05 (still acyclic). M05 does not know about M07; screens that show a work order's parts read `GET /api/v1/stores/work-orders/:id/parts`. Issue cost is the latest receipt cost of the part, which is simple and explainable; weighted-average costing is a later option.
+
+**D41 — Transfers are a document plus events on both sides.** Dispatch writes the owner-mutable `stk_transfer` and `transfer_out` events; arrival is a `transfer_in` event written by whoever holds the destination, so the receiving installation never needs to edit a record it does not own. State (`in_transit`/`received`/`cancelled`) is a view over these. Only the dispatching installation can call a transfer back, and only while in transit. Lines are one document with several parts, all-or-nothing; the web form currently dispatches one part per transfer. Transfer numbers come from the installation's own `transfer_no` range (`npm run store-numbers -- setup`).
+
 ## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).

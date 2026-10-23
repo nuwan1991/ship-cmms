@@ -11,7 +11,7 @@ Updated by each module chat before it stops. Keep rows to one line.
 | M04 | QR labels and surveys | R1 | **done** | 5 qr tables, `qr_v_survey_summary`, label issue/assign/void/print (QR SVG, A4 grid), survey templates, surveys and item conversion via M03, `label-numbers` CLI, demo survey, web labels/surveys/forms screens; verify (150 server tests) and verify:web green |
 | M05 | Defects, job cards, reviews | R1 | **done** | 11 wrk tables, 4 views, defects → repair cases → work orders, four status axes, approval and acceptance gates via ApprovalPort, job cards, labour/findings/tests, hand-over, advisories, recurring faults, `work-numbers` CLI, demo work, web defects/cases/work orders/advisories; verify (179 server tests incl. real M02 gates) and verify:web green |
 | M06 | Planned maintenance, meters, calibration | R1 | not started | next |
-| M07 | Parts, stores | R1 | not started | |
+| M07 | Parts, stores | R1 | **done** | 7 stk tables, 6 views, parts catalogue and compatibility, stock locations and minimum levels, receipts/issues/returns/adjustments as events, work-order reservations, transfers (dispatch, receive, call back), `store-numbers` CLI, demo stores, web stock/transfers/parts/locations; 197 server tests incl. HTTP, verify:web green (28 tests) |
 | M08 | Workshops, skills, resources | R2 | not started | |
 | M09 | Coordinated planning | R2 | not started | |
 | M10 | Provisioning and sync | R1 | not started | write path already emits change log (M00) |
@@ -22,7 +22,7 @@ Updated by each module chat before it stops. Keep rows to one line.
 
 ## Verification
 
-`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M05). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
+`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M05 and M07). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
 
 Demo: `npm run init-installation -- --kind hub --code HQ --name "Fleet HQ"`, `npm run seed:demo-org`, then `CMMS_DEV_AUTH=1 npm run dev` and `npm run web:dev` (port 5173, proxies `/api` to 8080).
 

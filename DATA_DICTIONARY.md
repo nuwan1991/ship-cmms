@@ -117,17 +117,21 @@ Axes and rules: progress `planned → in_progress ⇄ on_hold → work_complete`
 | pm_calibration_record | E | Calibration results and due dates |
 | pm_due | D | Computed due list |
 
-## M07 `stk_` (planned)
+## M07 `stk_`
 
-| Table | Class | Purpose |
+| Table | Class | Key columns / rules |
 |---|---|---|
-| stk_part | H | Parts catalogue |
-| stk_part_compatibility | H | Part↔classification/asset compatibility |
-| stk_location | O | Stock location per installation |
-| stk_transaction | E | Receipt, issue, return, transfer out/in, adjustment; unit cost; work-order `EntityRef` |
-| stk_reservation | E | Reserve/release events |
-| stk_transfer | O | Inter-location/installation dispatch document |
-| stk_balance | D | On-hand and reserved per part/location |
+| stk_part | H | part_no (unique, upper case), name, description, unit (`each`, `m`, `kg`…), category, manufacturer, manufacturer_part_no, status |
+| stk_part_compatibility | H | part_id plus exactly one of classification_id or asset_id; unique per part and target |
+| stk_location | O | code (unique per site), name, kind (`store`/`locker`/`workshop`/`other`), org_location_id (physical compartment, optional), status; home_scope_id = ship or workshop, NULL = fleet/hub store |
+| stk_stock_level | O | part_id, location_id, min_level, reorder_qty; one per part and location (added to the plan so "below minimum" needs no guesswork) |
+| stk_transaction | E | part_id, location_id, kind (`receipt`/`issue`/`return`/`transfer_out`/`transfer_in`/`adjustment`), quantity (magnitude, 3 decimals), qty_delta (signed), unit_cost, currency, ref_type/ref_id (`wrk.work_order`), transfer_id, reference, note |
+| stk_reservation | E | part_id, location_id, kind (`reserve`/`release`), quantity, ref_type/ref_id (work order), note |
+| stk_transfer | O | transfer_no (`SLN-TR-########`, range `transfer_no`), from/to location, lines_json `[{partId,quantity}]`, status (`dispatched`/`cancelled`), dispatched_at, cancel_reason |
+
+Views (derived, never synchronized): **`stk_v_balance`** (on hand, reserved, available per part and location; this is the planned `stk_balance`), **`stk_v_stock`** (balance joined with part, location and minimum level, `below_minimum` flag, used by lists and M13), **`stk_v_last_cost`** (latest receipt cost per part, used as the issue cost), **`stk_v_issued_by_ref`** (net issued quantity and cost per work order and part), **`stk_v_reserved_by_ref`** (outstanding reservation per work order, part and location), **`stk_v_transfer_state`** (`in_transit`/`received`/`cancelled`).
+
+Rules: stock is changed only by appending transactions; corrections are new `adjustment` events with a mandatory reason. Local commands refuse to overdraw (available = on hand − reserved by other work orders), to return more than a work order drew, to issue against a closed or other-ship work order, and to receive into inactive parts or locations; events replicated from elsewhere are never rejected for these reasons (D20). A work order's own issue consumes its reservation. A transfer takes stock out of the source at dispatch (all lines or none); the receiving installation records `transfer_in` events (received), or the dispatching installation calls it back while still in transit (stock returns to the source). A part or location with any history cannot be removed, only made inactive.
 
 ## M08 `res_` (planned, R2)
 
