@@ -162,7 +162,9 @@ A ship installation can change only its own ship's locations; other ships' locat
 
 ### Positions: the ship's functional tree
 
-A **position** is a place in the ship where equipment is fitted, for example *Main engine room > Generator No. 1*. Choose a ship to see its tree. **New position** adds a top-level entry and **Add child** adds one below.
+A **position** is a slot in the ship's systems that a piece of equipment fills, for example *Electric plant > Main generating set No. 1 > Alternator*. It says **what job** the equipment does and in **which system**. It does not say where the equipment physically sits: that is its **location** (see below). When an item is replaced, the position stays and a different asset is installed in it, so maintenance and history attached to the position carry on.
+
+Choose a ship to see its tree. **New position** adds a top-level entry and **Add child** adds one below. Following the SWBS groups keeps positions consistent with the classifications, for example position `324.1` *Main switchboard* with classification `SWBS-324-MSB`.
 
 Each position has a **Level** (*System*, *Equipment group*, *Equipment* or *Component*) and an optional **Position tag**, the number shown on the ship's drawings (for example `2.1.3`).
 
@@ -179,7 +181,7 @@ An **asset** is a real item with a serial number. The position is where it goes;
 3. Optionally choose a **Position** to install it straight away.
 4. Save. The system gives it the next equipment **Tag**, for example `SLN-EQ-00000001`.
 
-Use the search box (tag, name, serial) and the ship and status filters to find assets. Open an asset to see its **Movement history** and record a movement:
+Use the search box (tag, name, serial) and the ship, status and location filters to find assets. Open an asset to see its **Movement history** and record a movement:
 
 | Movement | Use it when |
 |---|---|
@@ -187,7 +189,19 @@ Use the search box (tag, name, serial) and the ship and status filters to find a
 | **Remove** | It is taken out of its position |
 | **Transfer custody** | Someone else now holds it (a ship, department, workshop or external provider) |
 | **Change status** | It becomes *In service*, *In store*, *Under repair*, *Out of service* or *Condemned* |
+| **Move to another location** | It is physically moved, for example from the engine room to the electrical store. Status and position stay the same. |
 | **Void** | A movement was entered by mistake (a reason is required) |
+
+**Where is an item physically?** Each asset has four separate facts, all shown when you open it:
+
+| Question | Field | Changed by |
+|---|---|---|
+| What job does it do in which system? | **Position** | Install, Remove |
+| Where is it physically? | **Location** (deck, compartment or store, from *Organization > Locations*) | Any movement that gives a location, or **Move to another location** |
+| Who holds it? | **Held by** | Transfer custody |
+| What state is it in? | **Asset status** | Change status |
+
+To see everything in one compartment or store, choose it in the **All locations** filter. A location is kept until a later movement gives a new one, so record the location whenever an item is installed, removed, transferred or moved. The location list comes from *Organization > Locations*: add the ship's decks and compartments there first.
 
 An asset must be removed before another one can be installed in the same position. Movements must be entered in time order; to fix an old one, void the later movements first.
 

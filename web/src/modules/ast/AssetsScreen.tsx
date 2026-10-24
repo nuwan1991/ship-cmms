@@ -33,14 +33,33 @@ function useParties() {
   };
   const options = (kind: string) => opts(lists[kind as keyof typeof lists]?.items ?? []);
   const name = (kind: unknown, id: unknown) => { const r = lists[kind as keyof typeof lists]?.items.find((x) => x.id === id); return r ? optionLabel(r) : String(id ?? ''); };
-  return { options, name, ships: lists.ship.items };
+  return { options, name, ships: lists.ship.items, workshops: lists.workshop.items };
 }
 
-type MoveKind = 'install' | 'remove' | 'custody_transfer' | 'status_change' | 'void';
+/** Physical locations (decks, compartments, stores) of every ship and workshop, labelled "SITE · Deck 2 / Engine room". */
+function useLocations(parties: ReturnType<typeof useParties>) {
+  const list = useList(`${ORG}/locations`, { limit: '500' });
+  const byId = new Map(list.items.map((l) => [String(l.id), l]));
+  const site = (id: unknown) => [...parties.ships, ...parties.workshops].find((x) => x.id === id);
+  const name = (id: unknown): string => {
+    const parts: string[] = [];
+    for (let l = byId.get(String(id)), guard = 0; l && guard < 20; l = l.parentId ? byId.get(String(l.parentId)) : undefined, guard++) parts.unshift(String(l.name));
+    const first = byId.get(String(id));
+    if (!first) return id ? String(id) : '';
+    const s = site(first.homeScopeId);
+    return `${s ? `${String(s.code)} · ` : ''}${parts.join(' / ')}`;
+  };
+  const options = () => list.items.map((l) => ({ value: String(l.id), label: name(l.id) })).sort((a, b) => a.label.localeCompare(b.label));
+  return { name, options };
+}
+
+/** `relocate` is a status_change that keeps the current status and only records a new location. */
+type MoveKind = 'install' | 'remove' | 'custody_transfer' | 'status_change' | 'relocate' | 'void';
 
 function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose(): void; onChanged(): void }) {
   const { tz } = useSystem();
   const parties = useParties();
+  const locations = useLocations(parties);
   const [asset, setAsset] = useState<Rec | null>(null);
   const [err, setErr] = useState<Error | null>(null);
   const history = useList(`${AST}/assets/${assetId}/movements`, { limit: '100' });
@@ -58,7 +77,9 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
     { key: 'custodyKind', labelKey: 'ast.field.custodyKind', type: 'select', options: PARTY_KINDS.map((k) => ({ value: k, label: t(`ast.party.${k}`) })) },
     { key: 'custodyId', labelKey: 'ast.field.custodyParty', type: 'select', options: (v: Values) => parties.options(String(v.custodyKind ?? '')) },
   ];
+  const locationField: FieldDef = { key: 'locationId', labelKey: 'ast.field.location', type: 'select', hintKey: 'ast.hint.location', options: locations.options() };
   const common: FieldDef[] = [
+    locationField,
     { key: 'occurredAt', labelKey: 'ast.field.occurredAt', type: 'datetime', hintKey: 'ast.hint.occurredAt' },
     { key: 'note', labelKey: 'ast.field.note', type: 'textarea', maxLength: 500 },
   ];
@@ -68,6 +89,7 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
       case 'remove': return [{ key: 'assetStatus', labelKey: 'ast.field.assetStatus', type: 'select', options: statusOpts() }, ...custodyFields, ...common];
       case 'custody_transfer': return [...custodyFields.map((f) => ({ ...f, required: true })), ...common];
       case 'status_change': return [{ key: 'assetStatus', labelKey: 'ast.field.assetStatus', type: 'select', required: true, options: statusOpts() }, ...common];
+      case 'relocate': return [{ ...locationField, required: true, hintKey: 'ast.hint.relocate' }, ...common.slice(1)];
       default: return common;
     }
   };
@@ -79,6 +101,7 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
         <dl className="facts">
           <dt>{t('ast.field.assetStatus')}</dt><dd>{state?.assetStatus ? t(`ast.astatus.${String(state.assetStatus)}`) : '—'}</dd>
           <dt>{t('ast.field.position')}</dt><dd>{asset.installation ? posName((asset.installation as Rec).positionId) : t('ast.detail.not_installed')}</dd>
+          <dt>{t('ast.field.location')}</dt><dd>{asset.location ? locations.name((asset.location as Rec).id) : '—'}</dd>
           <dt>{t('ast.field.custodyParty')}</dt><dd>{state?.custody ? parties.name((state.custody as Rec).kind, (state.custody as Rec).id) : '—'}</dd>
           <dt>{t('ast.field.serialNumber')}</dt><dd>{String(asset.serialNumber ?? '')}</dd>
           <dt>{t('ast.field.manufacturer')}</dt><dd>{[asset.manufacturer, asset.model].filter(Boolean).join(' ')}</dd>
@@ -89,6 +112,7 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
           {asset?.installation ? <button onClick={() => setMove('remove')}>{t('ast.move.remove')}</button> : <button onClick={() => setMove('install')}>{t('ast.move.install')}</button>}
           <button onClick={() => setMove('custody_transfer')}>{t('ast.move.custody_transfer')}</button>
           <button onClick={() => setMove('status_change')}>{t('ast.move.status_change')}</button>
+          <button onClick={() => setMove('relocate')}>{t('ast.move.relocate')}</button>
         </div>
       ) : null}
       <h3>{t('ast.detail.history')}</h3>
@@ -100,7 +124,7 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
               <tr key={m.id} className={m.voided ? 'voided' : undefined}>
                 <td>{toLocalDisplay(String(m.occurredAt), tz)}</td>
                 <td>{t(`ast.move.${String(m.kind)}`)}{m.voided ? ` (${t('ast.move.voided')})` : ''}</td>
-                <td>{[m.positionId ? posName(m.positionId) : '', m.custodyPartyId ? parties.name(m.custodyPartyKind, m.custodyPartyId) : '', m.assetStatus ? t(`ast.astatus.${String(m.assetStatus)}`) : ''].filter(Boolean).join(' · ')}</td>
+                <td>{[m.positionId ? posName(m.positionId) : '', m.locationId ? locations.name(m.locationId) : '', m.custodyPartyId ? parties.name(m.custodyPartyKind, m.custodyPartyId) : '', m.assetStatus ? t(`ast.astatus.${String(m.assetStatus)}`) : ''].filter(Boolean).join(' · ')}</td>
                 <td>{String(m.note ?? '')}</td>
                 <td className="actions">{mayMove && !m.voided && m.kind !== 'void' && m.kind !== 'register' ? <button className="link-danger" onClick={() => setVoiding(m)}>{t('ast.move.void')}</button> : null}</td>
               </tr>
@@ -112,7 +136,11 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
       {move ? (
         <FormModal
           title={t(`ast.move.${move}`)} fields={fieldsFor(move)} record={null} tz={tz} submitKey="common.save" onClose={() => setMove(null)}
-          onSubmit={async (body) => { await api('POST', `${AST}/assets/${assetId}/movements`, buildMovementBody(move, body)); done(); }}
+          onSubmit={async (body) => {
+            const payload = move === 'relocate' ? buildMovementBody('status_change', { ...body, assetStatus: state?.assetStatus }) : buildMovementBody(move, body);
+            await api('POST', `${AST}/assets/${assetId}/movements`, payload);
+            done();
+          }}
         />
       ) : null}
       {voiding ? (
@@ -129,11 +157,13 @@ function AssetDetail({ assetId, onClose, onChanged }: { assetId: string; onClose
 export function AssetsScreen() {
   const { tz } = useSystem();
   const parties = useParties();
+  const locations = useLocations(parties);
   const classes = useList(`${AST}/classifications`);
   const [q, setQ] = useState('');
   const [shipId, setShipId] = useState('');
   const [status, setStatus] = useState('');
-  const list = useList(`${AST}/assets`, { q: q || undefined, homeShipId: shipId || undefined, status: status || undefined });
+  const [locationId, setLocationId] = useState('');
+  const list = useList(`${AST}/assets`, { q: q || undefined, homeShipId: shipId || undefined, status: status || undefined, locationId: locationId || undefined });
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -149,6 +179,7 @@ export function AssetsScreen() {
     { key: 'manufacturer', labelKey: 'ast.field.manufacturer', type: 'text', maxLength: 120 },
     { key: 'model', labelKey: 'ast.field.model', type: 'text', maxLength: 120 },
     { key: 'assetStatus', labelKey: 'ast.field.assetStatus', type: 'select', options: statusOpts() },
+    { key: 'locationId', labelKey: 'ast.field.location', type: 'select', hintKey: 'ast.hint.location', options: locations.options() },
     { key: 'positionId', labelKey: 'ast.field.position', type: 'select', hintKey: 'ast.hint.install_on_register', options: opts(positions.items.map((p) => ({ ...p, code: p.positionTag }))) },
     { key: 'notes', labelKey: 'ast.field.note', type: 'textarea', maxLength: 1000 },
   ];
@@ -167,6 +198,10 @@ export function AssetsScreen() {
             <option value="">{t('ast.filter.all_status')}</option>
             {statusOpts().map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          <select aria-label={t('ast.field.location')} value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <option value="">{t('ast.filter.all_locations')}</option>
+            {locations.options().map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
           {mayCreate ? <button className="primary" onClick={() => setCreating(true)}>{t('ast.new.asset')}</button> : null}
         </div>
       </div>
@@ -177,7 +212,7 @@ export function AssetsScreen() {
         <table>
           <thead><tr>
             <th scope="col">{t('ast.field.assetTag')}</th><th scope="col">{t('ast.field.name')}</th><th scope="col">{t('ast.field.classification')}</th>
-            <th scope="col">{t('ast.field.position')}</th><th scope="col">{t('ast.field.assetStatus')}</th><th scope="col">{t('ast.field.custodyParty')}</th>
+            <th scope="col">{t('ast.field.position')}</th><th scope="col">{t('ast.field.location')}</th><th scope="col">{t('ast.field.assetStatus')}</th><th scope="col">{t('ast.field.custodyParty')}</th>
           </tr></thead>
           <tbody>
             {list.items.map((r) => (
@@ -185,11 +220,12 @@ export function AssetsScreen() {
                 <td><button className="link" onClick={() => setOpen(String(r.assetId))}>{String(r.assetTag)}</button></td>
                 <td>{String(r.name)}</td><td>{String(r.classificationName ?? '')}</td>
                 <td>{r.positionTag ? `${String(r.positionTag)} – ${String(r.positionName)}` : t('ast.detail.not_installed')}</td>
+                <td>{r.locationId ? locations.name(r.locationId) : ''}</td>
                 <td>{r.assetStatus ? t(`ast.astatus.${String(r.assetStatus)}`) : ''}</td>
                 <td>{r.custodyPartyId ? parties.name(r.custodyPartyKind, r.custodyPartyId) : ''}</td>
               </tr>
             ))}
-            {!list.loading && list.items.length === 0 ? <tr><td colSpan={6} className="empty">{t('ast.assets.empty')}</td></tr> : null}
+            {!list.loading && list.items.length === 0 ? <tr><td colSpan={7} className="empty">{t('ast.assets.empty')}</td></tr> : null}
           </tbody>
         </table>
       </div>

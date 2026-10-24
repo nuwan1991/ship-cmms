@@ -39,7 +39,7 @@ const SEARCH: Record<Exclude<Crud, 'asset'>, string[]> = {
   position_responsibility: ['reason'],
 };
 const ASSET_FILTERS: Record<string, string> = {
-  homeShipId: 'home_ship_id', shipId: 'ship_id', status: 'asset_status', positionId: 'position_id', classificationCode: 'classification_code',
+  homeShipId: 'home_ship_id', shipId: 'ship_id', status: 'asset_status', positionId: 'position_id', locationId: 'location_id', classificationCode: 'classification_code',
 };
 
 /** Placeholder until M10 supplies real sync state: hub data is authoritative; anything else has never synchronized. */
