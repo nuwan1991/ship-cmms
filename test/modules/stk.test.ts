@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { applyRemap, loadStandardCatalogue } from '../../src/modules/m03-assets/classification-merge.js';
+import { getAsset } from '../../src/modules/m03-assets/index.js';
 import { createAsset, createEntity as createAstEntity } from '../../src/modules/m03-assets/service.js';
 import { changeProgress, closeWorkOrder } from '../../src/modules/m05-work/service.js';
 import { getBalance, onHandAtSite, partsForAsset, partsIssuedTo, STK_PERMISSIONS } from '../../src/modules/m07-stores/index.js';
@@ -66,6 +68,29 @@ describe('catalogue and locations', () => {
     expect(partsForAsset(env.ctx.db, id(other))).toEqual([]);
     expect(codeOf(() => addCompatibility(a, { partId: seal, classificationId: id(cls) }))).toBe('DUPLICATE');
     expect(codeOf(() => addCompatibility(a, { partId: none }))).toBe('VALIDATION_FAILED');
+  });
+
+  it('keeps parts linked to a legacy classification fitting an asset re-pointed to its standard class (D63)', () => {
+    const env = makeStkEnv();
+    const a = env.hubActor();
+    loadStandardCatalogue(a);
+    const std = (code: string) => sql(env, 'SELECT id FROM ast_classification WHERE code = ?', code)[0]!.id as string;
+    const alt = id(createAstEntity(a, 'classification', { code: 'ALTERNATOR', name: 'Alternator', kind: 'equipment' }));
+    const swbd = id(createAstEntity(a, 'classification', { code: 'SWITCHBOARD', name: 'Switchboard', kind: 'equipment' }));
+    createAstEntity(a, 'classification_map', { legacySystem: 'CMMS', legacyCode: 'ALTERNATOR', targetClassificationId: std('SWBS-311-ALT'), relation: 'exact' });
+    createAstEntity(a, 'classification_map', { legacySystem: 'CMMS', legacyCode: 'SWITCHBOARD', targetClassificationId: std('SWBS-324-MSB'), relation: 'narrower' });
+    const asset = id(createAsset(a, { name: 'No. 1 alternator', homeShipId: env.shipId, classificationId: alt }).asset);
+    const msb = id(createAsset(a, { name: 'Main switchboard', homeShipId: env.shipId, classificationId: std('SWBS-324-MSB') }).asset);
+    addCompatibility(a, { partId: env.part('AVR'), classificationId: alt });
+    addCompatibility(a, { partId: env.part('BRUSH'), classificationId: std('SWBS-311-ALT') });
+    addCompatibility(a, { partId: env.part('BUSBAR'), classificationId: swbd });
+    expect(partsForAsset(env.ctx.db, asset).map((p) => p.partNo)).toEqual(['AVR']);
+
+    expect(applyRemap(a).updated.map((u) => u.id)).toContain(asset);
+    expect(getAsset(env.ctx.db, asset)!.classificationId).toBe(std('SWBS-311-ALT'));
+    expect(partsForAsset(env.ctx.db, asset).map((p) => p.partNo)).toEqual(['AVR', 'BRUSH']);
+    // A split legacy class has no single standard equivalent, so its parts are not offered for either candidate.
+    expect(partsForAsset(env.ctx.db, msb)).toEqual([]);
   });
 });
 

@@ -16,7 +16,7 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   mountPmRoutes(ctx, app);
 }
 
-export { currentMeterValue, dueForAsset } from './queries.js';
+export { currentMeterValue, dueForAsset, templatesForAsset } from './queries.js';
 export type { MeterValue, DueItem } from './queries.js';
 export { generateDue } from './service.js';
 export type { GenerateResult } from './service.js';
