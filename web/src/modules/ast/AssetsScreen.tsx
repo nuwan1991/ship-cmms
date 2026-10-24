@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, type Rec } from '../../platform/api';
+import { ExcelButtons } from '../../platform/excel';
 import { FormModal, type FieldDef, type Values } from '../../platform/form';
 import { t } from '../../platform/i18n';
 import { can } from '../../platform/permissions';
@@ -202,6 +203,7 @@ export function AssetsScreen() {
             <option value="">{t('ast.filter.all_locations')}</option>
             {locations.options().map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          <ExcelButtons template="assets" shipId={shipId} />
           {mayCreate ? <button className="primary" onClick={() => setCreating(true)}>{t('ast.new.asset')}</button> : null}
         </div>
       </div>

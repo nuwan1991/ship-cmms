@@ -156,6 +156,8 @@ Choose a ship or workshop on the left to see its locations as a tree. **New loca
 
 A ship installation can change only its own ship's locations; other ships' locations are read-only.
 
+**Download (Excel)** saves the locations of the chosen ship (or of every site, when a workshop or nothing is chosen) as an Excel file. **Upload from Excel…** opens the Excel screen on the locations sheet to add or change many locations at once: see [section 13](#13-excel-import-and-export).
+
 ---
 
 ## 7. Assets
@@ -206,6 +208,10 @@ To see everything in one compartment or store, choose it in the **All locations*
 An asset must be removed before another one can be installed in the same position. Movements must be entered in time order; to fix an old one, void the later movements first.
 
 If the screen says *"Only … equipment tag numbers remain on this installation"*, ask the hub for another range before you run out.
+
+**Download (Excel)** saves the asset register as an Excel file: every item's tag, name, serial number, maker, model, classification, ship, **position tag**, **location code** and **status**. If a ship is chosen in the ship filter, only that ship's equipment is included.
+
+**Upload from Excel…** registers many items at once (see [section 13](#13-excel-import-and-export)). For new equipment, give the **Ship code** and, if you know them, the **Position tag** it is installed in, the **Location code** of the compartment or store it is in, and its **Status**; the item is registered and installed in one step. Leave the **Equipment tag** empty: tags are given by the system. To correct names, serial numbers or other details of registered equipment, download the register, edit it and upload it again. Position, location and status of registered equipment are not changed by upload: record a movement on the asset instead, so the history stays complete.
 
 ### Classifications
 
@@ -467,7 +473,9 @@ Changes *Sent by a newer version* wait until this installation is upgraded; then
 
 ## 13. Excel import and export
 
-Load locations, assets or parts in bulk from a spreadsheet, or export the current data.
+Load locations, assets or parts in bulk from a spreadsheet, or export the current data. The **Asset register** and **Locations** screens also have **Download (Excel)** and **Upload from Excel…** buttons that lead here with the right sheet chosen.
+
+For a new ship, load the **locations** first, then the **positions** (on the Positions screen), then the **assets**: the asset sheet refers to position tags and location codes that must already exist.
 
 1. Choose what to import under **Data**.
 2. **Download template (Excel)** or **(CSV)**. The **Columns** table explains what to enter in each column and which ones are required.

@@ -14,4 +14,8 @@ export const platformLabelsEn: Record<string, string> = {
   'shell.lease_until': 'Offline authority valid until {when}',
   'shell.clock_suspect': 'The system clock is behind the last recorded time. Approvals are blocked until an administrator resets the clock.',
   'shell.loading': 'Loading…',
+  'excel.download': 'Download (Excel)',
+  'excel.download_all_hint': 'Download the whole list as an Excel file',
+  'excel.download_ship_hint': 'Download the list for the chosen ship as an Excel file',
+  'excel.upload': 'Upload from Excel…',
 };

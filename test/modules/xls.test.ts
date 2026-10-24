@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAsset } from '../../src/modules/m03-assets/service.js';
+import { createAsset, createEntity as createAst } from '../../src/modules/m03-assets/service.js';
 import { createEntity as createOrg } from '../../src/modules/m01-organization/service.js';
 import { XLS_PERMISSIONS } from '../../src/modules/m11-excel/index.js';
 import { parseCsv, serializeCsv } from '../../src/modules/m11-excel/csv.js';
@@ -190,6 +190,35 @@ describe('assets import', () => {
     expect(upd).toMatchObject({ update_rows: 1, error_rows: 1 });
     commit(env, upd.id as string, true);
     expect(sql(env, "SELECT name, model FROM ast_asset WHERE asset_tag = 'SLN-EQ-00000001'")[0]).toEqual({ name: 'Pump A (renamed)', model: 'X9' });
+  });
+
+  it('registers new equipment into a position and location with a status, exports where it is, and refuses moves by import', () => {
+    const env = makeXlsEnv();
+    createAst(env.hubActor(), 'position', { shipId: env.shipId, positionTag: '2.1.3', name: 'Main alternator' });
+    createOrg(env.hubActor(), 'location', { siteKind: 'ship', siteId: env.shipId, code: 'ER-01', name: 'Engine room' });
+    createOrg(env.hubActor(), 'location', { siteKind: 'ship', siteId: env.shipId, code: 'STORE', name: 'Store' });
+    const head = ['Name', 'Ship code', 'Position tag', 'Location code', 'Status'];
+    const job = preview(env, 'assets', xlsxBase64(head, [
+      ['Alternator', 'SH1', '2.1.3', 'er-01', null], ['Spare motor', 'SH1', null, 'STORE', 'in_store'],
+      ['No ship', null, '2.1.3', null, null], ['Bad position', 'SH1', '9.9', null, null], ['Bad location', 'SH1', null, 'NOWHERE', null], ['Bad status', 'SH1', null, null, 'lost'],
+    ]));
+    expect(job).toMatchObject({ create_rows: 2, error_rows: 4 });
+    const errs = jobRows(env.hubActor(), job.id as string, { limit: 10 }).items.slice(2).map((r) => String((r.errors as string[])[0]));
+    expect(errs[0]).toMatch(/Give the ship code/);
+    expect(errs[1]).toMatch(/no position with the tag 9\.9/);
+    expect(errs[2]).toMatch(/no location with the code NOWHERE/);
+    expect(errs[3]).toMatch(/Status must be one of/);
+    commit(env, job.id as string, true);
+
+    const f = exportFile(env.hubActor(), env.ctx.importExport, 'assets', { kind: 'data', format: 'csv' });
+    const text = Buffer.from(f.bytes).toString('utf8');
+    expect(text).toMatch(/SLN-EQ-00000001,Alternator,.*,SH1,2\.1\.3,ER-01,in_service/);
+    expect(text).toMatch(/SLN-EQ-00000002,Spare motor,.*,SH1,,STORE,in_store/);
+    expect(preview(env, 'assets', Buffer.from(f.bytes).toString('base64'), 'assets.csv')).toMatchObject({ skip_rows: 2, error_rows: 0 });
+
+    const move = preview(env, 'assets', xlsxBase64(['Equipment tag', 'Location code'], [['SLN-EQ-00000001', 'STORE']]));
+    expect(move).toMatchObject({ error_rows: 1 });
+    expect(String((jobRows(env.hubActor(), move.id as string, { limit: 1 }).items[0]!.errors as string[])[0])).toMatch(/record a movement/);
   });
 
   it('stops cleanly when the tag range is exhausted, rolling the whole commit back', () => {
