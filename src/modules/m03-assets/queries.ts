@@ -7,6 +7,7 @@ export type Row = Record<string, unknown>;
 
 export const TABLES: Record<AstNoun, string> = {
   classification: 'ast_classification',
+  classification_map: 'ast_classification_map',
   position: 'ast_position',
   position_responsibility: 'ast_position_responsibility',
   asset: 'ast_asset',

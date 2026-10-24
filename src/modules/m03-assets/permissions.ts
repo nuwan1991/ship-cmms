@@ -1,5 +1,5 @@
 /** Permission codes `ast.<noun>.<action>` (CONTRACTS §7). Announced on the event bus at startup so M02 can offer them to roles (D25). */
-export const AST_NOUNS = ['classification', 'position', 'position_responsibility', 'asset', 'asset_movement'] as const;
+export const AST_NOUNS = ['classification', 'classification_map', 'position', 'position_responsibility', 'asset', 'asset_movement'] as const;
 export type AstNoun = (typeof AST_NOUNS)[number];
 
 export const AST_ACTIONS = ['view', 'create', 'update', 'remove'] as const;

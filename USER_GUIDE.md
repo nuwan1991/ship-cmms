@@ -70,7 +70,7 @@ If two people edit the same record, the second one to save sees *"This record wa
 |---|---|---|
 | **Reports** | Overview, Reports, Notifications | The working picture: open work, maintenance due, low stock |
 | **Organization** | Commands, Ships, Departments, Workshops, External providers, Locations, Fleet | Who and where: the fleet structure |
-| **Assets** | Asset register, Positions, Classifications | The equipment fitted in each ship |
+| **Assets** | Asset register, Positions, Classifications, Legacy mapping | The equipment fitted in each ship |
 | **Identity & authority** | Users, Roles, Role assignments, Approval gates, Offline authority, Users per installation, Pending confirmation, Revocations | Who may do what (administrators) |
 | **Labels and surveys** | QR labels, Compartment surveys, Survey forms | Sticking QR labels on equipment and checking compartments |
 | **Maintenance work** | Defects, Repair cases, Work orders, Advisories | Faults and the work to fix them |
@@ -156,13 +156,17 @@ Choose a ship or workshop on the left to see its locations as a tree. **New loca
 
 A ship installation can change only its own ship's locations; other ships' locations are read-only.
 
+**Download (Excel)** saves the locations of the chosen ship (or of every site, when a workshop or nothing is chosen) as an Excel file. **Upload from Excel…** opens the Excel screen on the locations sheet to add or change many locations at once: see [section 13](#13-excel-import-and-export).
+
 ---
 
 ## 7. Assets
 
 ### Positions: the ship's functional tree
 
-A **position** is a place in the ship where equipment is fitted, for example *Main engine room > Generator No. 1*. Choose a ship to see its tree. **New position** adds a top-level entry and **Add child** adds one below.
+A **position** is a slot in the ship's systems that a piece of equipment fills, for example *Electric plant > Main generating set No. 1 > Alternator*. It says **what job** the equipment does and in **which system**. It does not say where the equipment physically sits: that is its **location** (see below). When an item is replaced, the position stays and a different asset is installed in it, so maintenance and history attached to the position carry on.
+
+Choose a ship to see its tree. **New position** adds a top-level entry and **Add child** adds one below. Following the SWBS groups keeps positions consistent with the classifications, for example position `324.1` *Main switchboard* with classification `SWBS-324-MSB`.
 
 Each position has a **Level** (*System*, *Equipment group*, *Equipment* or *Component*) and an optional **Position tag**, the number shown on the ship's drawings (for example `2.1.3`).
 
@@ -179,7 +183,7 @@ An **asset** is a real item with a serial number. The position is where it goes;
 3. Optionally choose a **Position** to install it straight away.
 4. Save. The system gives it the next equipment **Tag**, for example `SLN-EQ-00000001`.
 
-Use the search box (tag, name, serial) and the ship and status filters to find assets. Open an asset to see its **Movement history** and record a movement:
+Use the search box (tag, name, serial) and the ship, status and location filters to find assets. Open an asset to see its **Movement history** and record a movement:
 
 | Movement | Use it when |
 |---|---|
@@ -187,15 +191,39 @@ Use the search box (tag, name, serial) and the ship and status filters to find a
 | **Remove** | It is taken out of its position |
 | **Transfer custody** | Someone else now holds it (a ship, department, workshop or external provider) |
 | **Change status** | It becomes *In service*, *In store*, *Under repair*, *Out of service* or *Condemned* |
+| **Move to another location** | It is physically moved, for example from the engine room to the electrical store. Status and position stay the same. |
 | **Void** | A movement was entered by mistake (a reason is required) |
+
+**Where is an item physically?** Each asset has four separate facts, all shown when you open it:
+
+| Question | Field | Changed by |
+|---|---|---|
+| What job does it do in which system? | **Position** | Install, Remove |
+| Where is it physically? | **Location** (deck, compartment or store, from *Organization > Locations*) | Any movement that gives a location, or **Move to another location** |
+| Who holds it? | **Held by** | Transfer custody |
+| What state is it in? | **Asset status** | Change status |
+
+To see everything in one compartment or store, choose it in the **All locations** filter. A location is kept until a later movement gives a new one, so record the location whenever an item is installed, removed, transferred or moved. The location list comes from *Organization > Locations*: add the ship's decks and compartments there first.
 
 An asset must be removed before another one can be installed in the same position. Movements must be entered in time order; to fix an old one, void the later movements first.
 
 If the screen says *"Only … equipment tag numbers remain on this installation"*, ask the hub for another range before you run out.
 
+**Download (Excel)** saves the asset register as an Excel file: every item's tag, name, serial number, maker, model, classification, ship, **position tag**, **location code** and **status**. If a ship is chosen in the ship filter, only that ship's equipment is included.
+
+**Upload from Excel…** registers many items at once (see [section 13](#13-excel-import-and-export)). For new equipment, give the **Ship code** and, if you know them, the **Position tag** it is installed in, the **Location code** of the compartment or store it is in, and its **Status**; the item is registered and installed in one step. Leave the **Equipment tag** empty: tags are given by the system. To correct names, serial numbers or other details of registered equipment, download the register, edit it and upload it again. Position, location and status of registered equipment are not changed by upload: record a movement on the asset instead, so the history stays complete.
+
 ### Classifications
 
 The kinds of equipment, optionally inside a **Parent class**. The parent cannot be changed later. Advisories (see [section 9](#9-maintenance-work)) are attached to classifications.
+
+The fleet uses a standard list based on the Ship Work Breakdown Structure (SWBS). Codes such as `SWBS-324-MSB` (*Main switchboard*) are equipment classes, and codes such as `CMP-EL-ACB` (*Air circuit breaker*) are component classes. Choose the most specific class that fits. Classes marked *Navy extension* in the description cover modern equipment, for example lithium-ion energy storage or DC switchboards.
+
+An *inactive* class is an old code that has been replaced by a standard class. Records that still use it remain valid, but use the standard class for new records.
+
+### Legacy mapping
+
+Hub only. Each row says which standard class replaces an old code: **Exact** or **Standard is broader** moves the equipment automatically; **Legacy is split** means a person chooses for each item. The administrator runs the move ship by ship; see CLASSIFICATION_MERGE.md. When you import equipment from Excel, mapped old codes are translated to the standard class.
 
 ---
 
@@ -445,7 +473,9 @@ Changes *Sent by a newer version* wait until this installation is upgraded; then
 
 ## 13. Excel import and export
 
-Load locations, assets or parts in bulk from a spreadsheet, or export the current data.
+Load locations, assets or parts in bulk from a spreadsheet, or export the current data. The **Asset register** and **Locations** screens also have **Download (Excel)** and **Upload from Excel…** buttons that lead here with the right sheet chosen.
+
+For a new ship, load the **locations** first, then the **positions** (on the Positions screen), then the **assets**: the asset sheet refers to position tags and location codes that must already exist.
 
 1. Choose what to import under **Data**.
 2. **Download template (Excel)** or **(CSV)**. The **Columns** table explains what to enter in each column and which ones are required.

@@ -17,6 +17,7 @@
     "seed:demo-org": "tsx src/modules/m01-organization/seed-cli.ts",
     "asset-tags": "tsx src/modules/m03-assets/seed-cli.ts",
     "seed:demo-assets": "tsx src/modules/m03-assets/seed-cli.ts --demo",
+    "classifications": "tsx src/modules/m03-assets/classification-cli.ts",
     "label-numbers": "tsx src/modules/m04-labels-survey/seed-cli.ts",
     "seed:demo-survey": "tsx src/modules/m04-labels-survey/seed-cli.ts --demo",
     "work-numbers": "tsx src/modules/m05-work/seed-cli.ts",

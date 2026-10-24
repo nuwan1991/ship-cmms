@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { api, type ApiError, type Rec } from '../../platform/api';
+import { ExcelButtons } from '../../platform/excel';
 import { FormModal, type FieldDef } from '../../platform/form';
 import { t } from '../../platform/i18n';
 import { can } from '../../platform/permissions';
@@ -64,6 +65,7 @@ export function LocationsScreen() {
               </optgroup>
             </select>
           </label>
+          <ExcelButtons template="locations" shipId={site?.kind === 'ship' ? site.id : undefined} />
           {site && mayWrite ? <button className="primary" onClick={() => setEditing({ rec: null })}>{t('org.new.location')}</button> : null}
         </div>
       </div>

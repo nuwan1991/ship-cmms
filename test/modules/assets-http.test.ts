@@ -125,4 +125,23 @@ describe('demo seed', () => {
     expect(currentInstallation(env.ctx.db, alt)?.positionTag).toBe('2.1.2');
     expect(() => seedDemoAssets(env.shipActor(null))).toThrow(/hub only/);
   });
+
+  it('shows where an asset physically is and lists assets by location', async () => {
+    const env = makeAstEnv({ devAuth: true });
+    const deck = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, code: 'D2', name: 'Deck 2', kind: 'deck' });
+    const amr = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, parentId: deck.json.id, code: 'AMR', name: 'Auxiliary machinery room', kind: 'compartment' });
+    const store = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, parentId: deck.json.id, code: 'ES', name: 'Electrical store', kind: 'room' });
+    const fitted = await call(env, 'POST', `${BASE}/assets`, { name: 'Alternator', homeShipId: env.shipId, locationId: amr.json.id });
+    const spare = await call(env, 'POST', `${BASE}/assets`, { name: 'Spare alternator', homeShipId: env.shipId, locationId: amr.json.id, assetStatus: 'in_store' });
+    const mv = await call(env, 'POST', `${BASE}/assets/${spare.json.id}/movements`, { kind: 'status_change', assetStatus: 'in_store', locationId: store.json.id });
+    expect(mv.status, JSON.stringify(mv.json)).toBe(201);
+
+    // Same status and same location is not a movement.
+    const again = await call(env, 'POST', `${BASE}/assets/${spare.json.id}/movements`, { kind: 'status_change', assetStatus: 'in_store', locationId: store.json.id });
+    expect(again.status).toBe(400);
+    expect((await call(env, 'GET', `${BASE}/assets/${fitted.json.id}`)).json.location).toMatchObject({ code: 'AMR', pathText: 'Deck 2 / Auxiliary machinery room' });
+    const inStore = await call(env, 'GET', `${BASE}/assets?locationId=${store.json.id}`);
+    expect(inStore.json.items.map((r: any) => r.name)).toEqual(['Spare alternator']);
+    expect((await call(env, 'GET', `${BASE}/assets?locationId=${amr.json.id}`)).json.items.map((r: any) => r.name)).toEqual(['Alternator']);
+  });
 });

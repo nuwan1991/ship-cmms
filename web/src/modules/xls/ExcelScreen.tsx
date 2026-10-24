@@ -16,7 +16,7 @@ interface Job extends Rec { fileName: string; templateCode: string; status: stri
 export function ExcelScreen() {
   const { tz } = useSystem();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(() => new URLSearchParams(window.location.search).get('template') ?? '');
   const [job, setJob] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -27,7 +27,7 @@ export function ExcelScreen() {
 
   useEffect(() => {
     let live = true;
-    api<{ items: Template[] }>('GET', `${XLS}/templates`).then((r) => { if (live) { setTemplates(r.items); setCode((c) => c || r.items[0]?.code || ''); } }, (e: Error) => live && setError(e));
+    api<{ items: Template[] }>('GET', `${XLS}/templates`).then((r) => { if (live) { setTemplates(r.items); setCode((c) => (r.items.some((x) => x.code === c) ? c : r.items[0]?.code || '')); } }, (e: Error) => live && setError(e));
     return () => { live = false; };
   }, []);
   const tpl = useMemo(() => templates.find((x) => x.code === code), [templates, code]);

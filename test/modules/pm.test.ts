@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { changeProgress, closeWorkOrder } from '../../src/modules/m05-work/service.js';
 import { getWorkOrder } from '../../src/modules/m05-work/index.js';
-import { currentMeterValue, dueForAsset, PM_PERMISSIONS } from '../../src/modules/m06-planned-maintenance/index.js';
+import { applyRemap, loadStandardCatalogue } from '../../src/modules/m03-assets/classification-merge.js';
+import { getAsset } from '../../src/modules/m03-assets/index.js';
+import { createAsset, createEntity as createAstEntity } from '../../src/modules/m03-assets/service.js';
+import { currentMeterValue, dueForAsset, PM_PERMISSIONS, templatesForAsset } from '../../src/modules/m06-planned-maintenance/index.js';
 import {
   createMeter, createPlan, createTemplate, generateDue, recordCalibration, recordCompletion, recordReading, replaceMeter, tombstoneMeter, tombstonePlan,
   tombstoneTemplate, updateMeter, updatePlan,
@@ -88,6 +91,36 @@ describe('plans: validation', () => {
     createPlan(a, { code: 'P1', title: 'Service', templateId: id(t), assetId: asset, triggerKind: 'running_hours', intervalHours: 100, meterId: m });
     expect(codeOf(() => tombstoneTemplate(a, id(t), { expectedVersion: 1, reason: 'x' }))).toBe('WORKFLOW_BLOCKED');
     expect(codeOf(() => tombstoneMeter(a, m, { expectedVersion: 1, reason: 'x' }))).toBe('WORKFLOW_BLOCKED');
+  });
+});
+
+describe('task templates matched by classification', () => {
+  it('keeps templates for a legacy classification matching an asset re-pointed to its standard class (D64)', async () => {
+    const env = makePmEnv({ devAuth: true });
+    const a = env.hubActor();
+    loadStandardCatalogue(a);
+    const std = (code: string) => sql(env, 'SELECT id FROM ast_classification WHERE code = ?', code)[0]!.id as string;
+    const alt = id(createAstEntity(a, 'classification', { code: 'ALTERNATOR', name: 'Alternator', kind: 'equipment' }));
+    const swbd = id(createAstEntity(a, 'classification', { code: 'SWITCHBOARD', name: 'Switchboard', kind: 'equipment' }));
+    createAstEntity(a, 'classification_map', { legacySystem: 'CMMS', legacyCode: 'ALTERNATOR', targetClassificationId: std('SWBS-311-ALT'), relation: 'exact' });
+    createAstEntity(a, 'classification_map', { legacySystem: 'CMMS', legacyCode: 'SWITCHBOARD', targetClassificationId: std('SWBS-324-MSB'), relation: 'narrower' });
+    const asset = id(createAsset(a, { name: 'No. 1 alternator', homeShipId: env.shipId, classificationId: alt }).asset);
+    const msb = id(createAsset(a, { name: 'Main switchboard', homeShipId: env.shipId, classificationId: std('SWBS-324-MSB') }).asset);
+    createTemplate(a, { code: 'PM-ALT-Q', name: 'Alternator quarterly', checklist: ['Insulation test'], classificationId: alt });
+    createTemplate(a, { code: 'PM-ALT-STD', name: 'Alternator annual', checklist: ['Bearings'], classificationId: std('SWBS-311-ALT') });
+    createTemplate(a, { code: 'PM-SWBD', name: 'Switchboard check', checklist: ['Torque'], classificationId: swbd });
+    createTemplate(a, { code: 'PM-ANY', name: 'General check', checklist: ['Look'] });
+    expect(templatesForAsset(env.ctx.db, asset).map((t) => t.code)).toEqual(['PM-ALT-Q']);
+
+    expect(applyRemap(a).updated.map((u) => u.id)).toContain(asset);
+    expect(getAsset(env.ctx.db, asset)!.classificationId).toBe(std('SWBS-311-ALT'));
+    expect(templatesForAsset(env.ctx.db, asset).map((t) => t.code)).toEqual(['PM-ALT-Q', 'PM-ALT-STD']);
+    // A split legacy class has no single standard equivalent, so its templates are not offered for either candidate.
+    expect(templatesForAsset(env.ctx.db, msb)).toEqual([]);
+    const r = await env.app.inject({ method: 'GET', url: `/api/v1/pm/assets/${asset}/task-templates` });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().items.map((t: { code: string }) => t.code)).toEqual(['PM-ALT-Q', 'PM-ALT-STD']);
+    expect((await env.app.inject({ method: 'GET', url: '/api/v1/pm/assets/019aaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa/task-templates' })).statusCode).toBe(404);
   });
 });
 

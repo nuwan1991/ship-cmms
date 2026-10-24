@@ -176,7 +176,8 @@ export function moveAsset(a: Actor, events: EventBus, assetId: string, input: un
       } else if (m.kind === 'custody_transfer') {
         if (state.custodyKind === m.custody.kind && state.custodyId === m.custody.id) throw new AppError('VALIDATION_FAILED', 'Asset is already in that custody');
       } else if (m.kind === 'status_change') {
-        if (state.status === m.assetStatus) throw new AppError('VALIDATION_FAILED', 'Asset already has that status');
+        // Same status with a new location records a physical move (e.g. engine room to store) without inventing a status change.
+        if (state.status === m.assetStatus && (!m.locationId || m.locationId === state.locationId)) throw new AppError('VALIDATION_FAILED', 'Asset already has that status and location');
       }
       values = {
         kind: m.kind, occurredAt, note: m.note ?? null, locationId: m.locationId ?? null, custody: m.custody ?? null, assetStatus: m.assetStatus ?? null,
