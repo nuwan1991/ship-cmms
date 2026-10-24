@@ -28,3 +28,28 @@ export const classificationConfig: AstConfig = {
     status,
   ],
 };
+
+const relations = ['exact', 'broader', 'narrower', 'related'];
+
+/** Crosswalk from legacy codes to standard classifications (hub reference data, DECISIONS D62). */
+export const classificationMapConfig: AstConfig = {
+  noun: 'classification_map', collection: 'classification-maps', titleKey: 'ast.title.classificationMaps', newKey: 'ast.new.classificationMap', hubOnly: true,
+  rowName: (r: Rec) => `${String(r.legacySystem)}:${String(r.legacyCode)}`,
+  refs: { classes: { apiBase: AST, collection: 'classifications', label: optionLabel } },
+  columns: [
+    { key: 'legacySystem', labelKey: 'ast.field.legacySystem' }, { key: 'legacyCode', labelKey: 'ast.field.legacyCode' },
+    { key: 'legacyName', labelKey: 'ast.field.legacyName' },
+    { key: 'targetClassificationId', labelKey: 'ast.field.target', render: (r, _tz, refs) => refs.classes?.find((o) => o.value === r.targetClassificationId)?.label ?? String(r.targetClassificationId) },
+    { key: 'relation', labelKey: 'ast.field.relation', render: (r) => t(`ast.relation.${String(r.relation)}`) },
+    { key: 'note', labelKey: 'ast.field.note' }, cStatus,
+  ],
+  fields: (refs) => [
+    { key: 'legacySystem', labelKey: 'ast.field.legacySystem', type: 'text', required: true, createOnly: true, maxLength: 32, hintKey: 'ast.hint.legacySystem' },
+    { key: 'legacyCode', labelKey: 'ast.field.legacyCode', type: 'text', required: true, createOnly: true, maxLength: 60 },
+    { key: 'legacyName', labelKey: 'ast.field.legacyName', type: 'text', maxLength: 120 },
+    { key: 'targetClassificationId', labelKey: 'ast.field.target', type: 'select', required: true, createOnly: true, options: refs.classes ?? [] },
+    { key: 'relation', labelKey: 'ast.field.relation', type: 'select', required: true, hintKey: 'ast.hint.relation', options: relations.map((v) => opt(v, `ast.relation.${v}`)) },
+    { key: 'note', labelKey: 'ast.field.note', type: 'textarea', maxLength: 500 },
+    status,
+  ],
+};

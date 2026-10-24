@@ -7,6 +7,7 @@ import { rangeRemaining } from '../../platform/ranges.js';
 import { isUtcIso, nowUtc } from '../../platform/time.js';
 import { getLocation, resolveParty } from '../m01-organization/index.js';
 import { actorFromRequest, authorize } from './actor.js';
+import { applyRemap, loadStandardCatalogue, remapPlan, retireLegacy } from './classification-merge.js';
 import { listMovements, moveAsset } from './movements.js';
 import { perm, type AstNoun } from './permissions.js';
 import { assetAtPosition, currentInstallation, getAssetState, getLive, getPosition, resolveTag, TABLES, toApi, type Row } from './queries.js';
@@ -18,6 +19,7 @@ export const AST_API_PREFIX = '/api/v1/assets';
 type Crud = Exclude<AstNoun, 'asset_movement'>;
 const COLLECTIONS: Record<Crud, string> = {
   classification: 'classifications',
+  classification_map: 'classification-maps',
   position: 'positions',
   position_responsibility: 'position-responsibilities',
   asset: 'assets',
@@ -26,11 +28,13 @@ const COLLECTIONS: Record<Crud, string> = {
 /** Equality filters per list endpoint (query param -> column). */
 const FILTERS: Record<Exclude<Crud, 'asset'>, Record<string, string>> = {
   classification: { kind: 'kind', status: 'status', parentId: 'parent_id' },
+  classification_map: { legacySystem: 'legacy_system', relation: 'relation', status: 'status', targetClassificationId: 'target_classification_id' },
   position: { shipId: 'home_scope_id', parentId: 'parent_id', level: 'level', status: 'status', classificationId: 'classification_id' },
   position_responsibility: { positionId: 'position_id', departmentId: 'department_id' },
 };
 const SEARCH: Record<Exclude<Crud, 'asset'>, string[]> = {
   classification: ['code', 'name'],
+  classification_map: ['legacy_code', 'legacy_name'],
   position: ['position_tag', 'name'],
   position_responsibility: ['reason'],
 };
@@ -109,7 +113,7 @@ export function mountAssetRoutes(ctx: AppContext, app: FastifyInstance): void {
   const base = AST_API_PREFIX;
 
   // ---- classifications, positions, responsibilities (generic CRUD)
-  for (const noun of ['classification', 'position', 'position_responsibility'] as const) {
+  for (const noun of ['classification', 'classification_map', 'position', 'position_responsibility'] as const) {
     const path = `${base}/${COLLECTIONS[noun]}`;
     app.get(path, async (req) => {
       const a = actorFromRequest(ctx, req);
@@ -127,6 +131,21 @@ export function mountAssetRoutes(ctx: AppContext, app: FastifyInstance): void {
     const row = getLive(ctx.db, 'classification', idParam(req));
     if (!row) throw new AppError('NOT_FOUND', 'classification not found');
     return toApi(row);
+  });
+
+  // ---- standard catalogue and legacy merge (DECISIONS D62)
+  const dryRun = (body: unknown): boolean => parse(z.strictObject({ dryRun: z.boolean().default(true) }), body ?? {}).dryRun;
+  app.post(`${base}/classifications/load-standard`, async (req) => loadStandardCatalogue(actorFromRequest(ctx, req)));
+  app.get(`${base}/classification-merge/plan`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    authorize(a, perm('classification_map', 'view'), { kind: 'fleet' });
+    return remapPlan(ctx.db, a.wctx.installation.installationId);
+  });
+  app.post(`${base}/classification-merge/remap`, async (req) => applyRemap(actorFromRequest(ctx, req), { dryRun: dryRun(req.body) }));
+  app.post(`${base}/classification-merge/retire`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    authorize(a, perm('classification', 'update'), { kind: 'fleet' });
+    return retireLegacy(a, { dryRun: dryRun(req.body) });
   });
 
   app.get(`${base}/positions/:id`, async (req) => {

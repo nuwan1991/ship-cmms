@@ -54,13 +54,13 @@ describe('csv', () => {
 });
 
 describe('registration', () => {
-  it('registers cleanly, offers the three templates, and has well-formed permission codes', () => {
+  it('registers cleanly, offers the R1 templates, and has well-formed permission codes', () => {
     const env = makeXlsEnv();
     expect(env.ctx.entities.validate()).toEqual([]);
     expect(verifySyncedTables(env.ctx.db, env.ctx.entities)).toEqual([]);
     expect(env.ctx.entities.get('xls.export_log').recordClass).toBe('event');
     for (const p of XLS_PERMISSIONS) expect(p).toMatch(PERMISSION_RE);
-    expect(listTemplates(env.hubActor(), env.ctx.importExport).map((t) => t.code)).toEqual(['assets', 'locations', 'parts']);
+    expect(listTemplates(env.hubActor(), env.ctx.importExport).map((t) => t.code)).toEqual(['assets', 'classification-map', 'classifications', 'locations', 'parts']);
   });
 });
 

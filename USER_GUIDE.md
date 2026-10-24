@@ -70,7 +70,7 @@ If two people edit the same record, the second one to save sees *"This record wa
 |---|---|---|
 | **Reports** | Overview, Reports, Notifications | The working picture: open work, maintenance due, low stock |
 | **Organization** | Commands, Ships, Departments, Workshops, External providers, Locations, Fleet | Who and where: the fleet structure |
-| **Assets** | Asset register, Positions, Classifications | The equipment fitted in each ship |
+| **Assets** | Asset register, Positions, Classifications, Legacy mapping | The equipment fitted in each ship |
 | **Identity & authority** | Users, Roles, Role assignments, Approval gates, Offline authority, Users per installation, Pending confirmation, Revocations | Who may do what (administrators) |
 | **Labels and surveys** | QR labels, Compartment surveys, Survey forms | Sticking QR labels on equipment and checking compartments |
 | **Maintenance work** | Defects, Repair cases, Work orders, Advisories | Faults and the work to fix them |
@@ -196,6 +196,14 @@ If the screen says *"Only … equipment tag numbers remain on this installation"
 ### Classifications
 
 The kinds of equipment, optionally inside a **Parent class**. The parent cannot be changed later. Advisories (see [section 9](#9-maintenance-work)) are attached to classifications.
+
+The fleet uses a standard list based on the Ship Work Breakdown Structure (SWBS). Codes such as `SWBS-324-MSB` (*Main switchboard*) are equipment classes, and codes such as `CMP-EL-ACB` (*Air circuit breaker*) are component classes. Choose the most specific class that fits. Classes marked *Navy extension* in the description cover modern equipment, for example lithium-ion energy storage or DC switchboards.
+
+An *inactive* class is an old code that has been replaced by a standard class. Records that still use it remain valid, but use the standard class for new records.
+
+### Legacy mapping
+
+Hub only. Each row says which standard class replaces an old code: **Exact** or **Standard is broader** moves the equipment automatically; **Legacy is split** means a person chooses for each item. The administrator runs the move ship by ship; see CLASSIFICATION_MERGE.md. When you import equipment from Excel, mapped old codes are translated to the standard class.
 
 ---
 

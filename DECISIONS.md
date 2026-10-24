@@ -125,8 +125,8 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 **D60 — M01 gains a view.** Migration `0002_assignment_overlap_view.sql` adds `org_v_assignment_overlap` for the M14 integrity checks (a ship attached to two commands at once, which replication could leave). No table or behaviour changed.
 
 
-
-## Open questions for the project owner (defaults used until answered)
+**D62 — Standard electrical classifications follow SWBS; legacy classifications are merged through a crosswalk, not rewritten.** M03 ships a standard catalogue (`catalogue/electrical.ts`) based on ESWBS (S9040) with IEC 60092 names, codes `SWBS-<group>[-<CLASS>]` and `CMP-EL-<CLASS>`, plus marked navy extensions for hybrid propulsion, energy storage, DC zonal power, HV shore connection, mission loads and unmanned systems. Codes are permanent; loading only adds. Legacy codes are related to standard classes in `ast_classification_map` (hub reference: `exact`/`broader` move records automatically, `narrower` needs a person, `related` is reference only). Each installation re-points only the positions and assets it owns, as audited updates; the hub then sets fully re-pointed legacy classes inactive, never removes them, so other modules' references stay valid. Imports translate mapped legacy codes. M03 schema version 2: every installation is upgraded before the mapping is used. Plan and phases: CLASSIFICATION_MERGE.md.
+ for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
 2. Offline lease length (assumed 30 days) and which gates must be `deny` or `provisional` after expiry.

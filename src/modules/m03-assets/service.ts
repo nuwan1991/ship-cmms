@@ -66,7 +66,8 @@ interface Def {
 const classificationInUse = (db: Db, id: unknown): boolean =>
   exists(db, 'SELECT 1 FROM ast_position WHERE classification_id = ? AND deleted_at IS NULL', id) ||
   exists(db, 'SELECT 1 FROM ast_asset WHERE classification_id = ? AND deleted_at IS NULL', id) ||
-  exists(db, 'SELECT 1 FROM ast_classification WHERE parent_id = ? AND deleted_at IS NULL', id);
+  exists(db, 'SELECT 1 FROM ast_classification WHERE parent_id = ? AND deleted_at IS NULL', id) ||
+  exists(db, 'SELECT 1 FROM ast_classification_map WHERE target_classification_id = ? AND deleted_at IS NULL', id);
 
 const shipScope = (shipId: unknown): ScopeRef => ({ kind: 'ship', ...(typeof shipId === 'string' ? { id: shipId } : {}) });
 
@@ -80,7 +81,23 @@ const DEFS: Record<CrudNoun, Def> = {
       const parent = requireLive(a.wctx.db, 'classification', next.parent_id, 'Parent classification');
       if (parent.kind !== next.kind) throw invalid('A classification and its parent must be of the same kind');
     },
-    beforeTombstone: (a, cur) => { if (classificationInUse(a.wctx.db, cur.id)) throw blocked('Classification is in use by positions, assets or child classifications'); },
+    beforeTombstone: (a, cur) => { if (classificationInUse(a.wctx.db, cur.id)) throw blocked('Classification is in use by positions, assets, child classifications or legacy mappings'); },
+  },
+  classification_map: {
+    noun: 'classification_map', type: 'ast.classification_map', create: S.ClassificationMapCreate, update: S.ClassificationMapUpdate, hubOnly: true,
+    scope: () => ({ kind: 'fleet' }),
+    unique: (v) => [{ legacy_system: v.legacy_system, legacy_code: v.legacy_code, target_classification_id: v.target_classification_id }],
+    validate: (a, next, cur) => {
+      if (cur) return;
+      const db = a.wctx.db;
+      const target = requireLive(db, 'classification', next.target_classification_id, 'Target classification');
+      if (next.legacy_system !== S.LOCAL_LEGACY_SYSTEM) return;
+      // A local legacy code must be an existing classification of the same kind, or re-pointing would mix equipment and components.
+      const legacy = db.prepare('SELECT id, kind FROM ast_classification WHERE code = ? AND deleted_at IS NULL').get(next.legacy_code) as Row | undefined;
+      if (!legacy) throw invalid(`No classification has the code ${String(next.legacy_code)}; use another legacy system name for codes from outside this CMMS`);
+      if (legacy.id === target.id) throw invalid('A classification cannot be mapped to itself');
+      if (legacy.kind !== target.kind) throw invalid('A legacy classification and its standard class must be of the same kind');
+    },
   },
   position: {
     noun: 'position', type: 'ast.position', create: S.PositionCreate, update: S.PositionUpdate,

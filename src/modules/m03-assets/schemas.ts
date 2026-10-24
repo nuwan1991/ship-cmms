@@ -29,6 +29,20 @@ export const Tombstone = z.strictObject({ expectedVersion: Version, reason: z.st
 export const ClassificationCreate = z.strictObject({ code: Code, name: Name, kind: z.enum(['equipment', 'component']), parentId: Uuid.nullable().optional(), description: Text(500), status: ActiveStatus.optional() });
 export const ClassificationUpdate = z.strictObject({ expectedVersion: Version, name: Name.optional(), description: Text(500), status: ActiveStatus.optional() });
 
+/** legacy_system value for codes that already exist as classifications in this CMMS. */
+export const LOCAL_LEGACY_SYSTEM = 'CMMS';
+export const MAP_RELATIONS = ['exact', 'broader', 'narrower', 'related'] as const;
+/** Legacy codes are kept as the old system wrote them (upper-cased), so they may hold spaces and slashes. */
+const LegacyCode = z.string().trim().toUpperCase().min(1).max(60);
+const LegacySystem = z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_.-]{0,31}$/, 'use A-Z, 0-9, _ . - (max 32 characters)');
+export const ClassificationMapCreate = z.strictObject({
+  legacySystem: LegacySystem, legacyCode: LegacyCode, legacyName: Text(120), targetClassificationId: Uuid,
+  relation: z.enum(MAP_RELATIONS), note: Text(500), status: ActiveStatus.optional(),
+});
+export const ClassificationMapUpdate = z.strictObject({
+  expectedVersion: Version, legacyName: Text(120), relation: z.enum(MAP_RELATIONS).optional(), note: Text(500), status: ActiveStatus.optional(),
+});
+
 export const PositionCreate = z.strictObject({
   shipId: Uuid, parentId: Uuid.nullable().optional(), positionTag: PositionTag, name: Name,
   classificationId: Uuid.nullable().optional(), sortOrder: SortOrder.optional(), status: ActiveStatus.optional(),

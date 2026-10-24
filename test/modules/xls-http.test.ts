@@ -12,8 +12,8 @@ describe('M11 HTTP API', () => {
   it('lists templates, serves files, previews, reports and commits', async () => {
     const env = makeXlsEnv({ devAuth: true });
     const tpl = await call(env, 'GET', `${BASE}/templates`);
-    expect(tpl.json.items.map((t: any) => t.code)).toEqual(['assets', 'locations', 'parts']);
-    expect(tpl.json.items[2].columns[0]).toMatchObject({ key: 'partNo', required: true });
+    expect(tpl.json.items.map((t: any) => t.code)).toEqual(['assets', 'classification-map', 'classifications', 'locations', 'parts']);
+    expect(tpl.json.items.find((t: any) => t.code === 'parts').columns[0]).toMatchObject({ key: 'partNo', required: true });
 
     const blank = await call(env, 'GET', `${BASE}/templates/parts/file?format=xlsx`);
     expect(blank.status).toBe(200);

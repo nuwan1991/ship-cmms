@@ -7,7 +7,7 @@ Updated by each module chat before it stops. Keep rows to one line.
 | M00 | Architecture, contracts, skeleton | R1 | **done** | 9 canonical docs; kernel (ids, time, units, errors, contracts, records/audit/change log, ranges, authz port, events, migrations, boundary checker); `npm run verify` green |
 | M01 | Organizations, ships, commands, locations | R1 | **done** | 8 org tables, `org_v_ship_current_command`, services, routes, permissions, PartyRef helpers, demo seed, `web/` shell and org screens; `npm run verify` and `npm run verify:web` green |
 | M02 | Identity, roles, permissions, offline authority | R1 | **done** | 11 idn tables, `idn_v_approval_status`, scrypt sign-in and sessions, Authorizer + ApprovalPort, offline lease/revocation/ratification, `create-admin` CLI, web sign-in, account and admin screens; verify and verify:web green |
-| M03 | Asset register | R1 | **done** | 6 ast tables, 2 views, movement folding, tag ranges + `asset-tags` CLI, demo seed, classification/position-tree/asset screens; verify (133 server tests) and verify:web green |
+| M03 | Asset register | R1 | **done** | 6 ast tables, 2 views, movement folding, tag ranges + `asset-tags` CLI, demo seed, classification/position-tree/asset screens; verify (133 server tests) and verify:web green. Added: standard SWBS electrical catalogue (146 classes incl. navy extensions), legacy crosswalk `ast_classification_map` with remap/retire (`npm run classifications`), Excel templates and Legacy mapping screen (D62, CLASSIFICATION_MERGE.md) |
 | M04 | QR labels and surveys | R1 | **done** | 5 qr tables, `qr_v_survey_summary`, label issue/assign/void/print (QR SVG, A4 grid), survey templates, surveys and item conversion via M03, `label-numbers` CLI, demo survey, web labels/surveys/forms screens; verify (150 server tests) and verify:web green |
 | M05 | Defects, job cards, reviews | R1 | **done** | 11 wrk tables, 4 views, defects → repair cases → work orders, four status axes, approval and acceptance gates via ApprovalPort, job cards, labour/findings/tests, hand-over, advisories, recurring faults, `work-numbers` CLI, demo work, web defects/cases/work orders/advisories; verify (179 server tests incl. real M02 gates) and verify:web green |
 | M06 | Planned maintenance, meters, calibration | R1 | **done** | 5 pm tables, 4 views, task templates, calendar and running-hour plans, meters with replacement, calibration records, idempotent work-order generation via M05, `seed:demo-pm`, web due list/plans/meters/calibration/templates; 232 server tests, 33 web tests (needs `npm run work-numbers -- setup` first) |
@@ -32,7 +32,7 @@ Node 22 · fastify 5.12.7 · zod 4.6.7 · better-sqlite3 13.0.3 · typescript 7.
 
 ## Open items carried forward
 
-- Owner answers to DECISIONS "open questions" (tag prefix, lease length, replica needs, languages, classification).
+- Owner answers to DECISIONS "open questions" (tag prefix, lease length, replica needs, languages, classification). Check the catalogue's SWBS numbers against the navy's controlled copy of S9040 before the pilot.
 - Production start registers the identity Authorizer and answers anonymous calls with 401. `CMMS_DEV_AUTH=1` (allow-all dev user, no sign-in) is for development only and is refused in production.
 - Bootstrap: `npm run create-admin -- --username admin --name "Fleet Administrator"` once at the hub (prints a one-time password if none given).
 - Role assignment scope ids are typed as ids in the UI; pickers for commands/ships/workshops need an org lookup that does not make M02 import M01's UI (M10/M13 era).
@@ -40,4 +40,5 @@ Node 22 · fastify 5.12.7 · zod 4.6.7 · better-sqlite3 13.0.3 · typescript 7.
 - Many modules do not yet stamp `home_scope_id` on what they create, which limits what selective sync can deliver to other ships (D52).
 - Encryption at rest is left to the operating system (D17); backups are owner-readable only.
 - First additions when a ship needs them: ownership hand-over and ship re-homing, dependency closure (D55).
+- Classification merge: M06/M07 to match on `standardEquivalent` so PM templates and part compatibility follow re-pointed assets; a web screen for the remap plan (CLASSIFICATION_MERGE.md §6).
 - R2 modules not started: M08 workshops and skills, M09 coordinated planning, M12 monitoring; readiness and cost reports (M13).
