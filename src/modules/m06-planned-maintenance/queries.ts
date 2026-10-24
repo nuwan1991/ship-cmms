@@ -1,6 +1,7 @@
 /** Read side + the public lookups other modules may use (re-exported from index.ts). SQL stays inside the module. */
 import { toCamel } from '../../platform/canonical.js';
 import type { Db } from '../../platform/db/open.js';
+import { getAsset, standardEquivalent } from '../m03-assets/index.js';
 import type { PmNoun } from './permissions.js';
 
 export type Row = Record<string, unknown>;
@@ -26,6 +27,22 @@ export function getLive(db: Db, noun: 'task_template' | 'plan' | 'meter', id: st
   return db.prepare(`SELECT * FROM ${TABLES[noun]} WHERE id = ? AND deleted_at IS NULL`).get(id) as Row | undefined;
 }
 export const exists = (db: Db, sql: string, ...params: unknown[]): boolean => db.prepare(sql).get(...params) !== undefined;
+
+/**
+ * Task templates that suit an asset: those for its classification, and those for a legacy classification that M03's crosswalk
+ * maps 1:1 to it, so templates keep matching assets re-pointed to the standard class (D64). API shape, ordered by code.
+ */
+export function templatesForAsset(db: Db, assetId: string): Row[] {
+  const cls = getAsset(db, assetId)?.classificationId;
+  if (!cls) return [];
+  const rows = db.prepare('SELECT * FROM pm_task_template WHERE classification_id IS NOT NULL AND deleted_at IS NULL ORDER BY code, id').all() as Row[];
+  const fits = new Map<string, boolean>([[cls, true]]);
+  const matches = (id: string): boolean => {
+    if (!fits.has(id)) fits.set(id, standardEquivalent(db, id) === cls);
+    return fits.get(id)!;
+  };
+  return rows.filter((r) => matches(r.classification_id as string)).map(toApi);
+}
 
 export interface MeterValue { meterId: string; cumulative: number; reading: number; readAt: string }
 /** Latest cumulative value of a meter (survives meter replacement), or null before the first reading. */

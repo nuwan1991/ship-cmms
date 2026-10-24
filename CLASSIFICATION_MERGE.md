@@ -67,6 +67,7 @@ The **legacy system** column says where a code comes from:
 **Lookups.**
 - A code typed or imported that has exactly one automatic mapping resolves to the standard class.
 - `resolveClassificationCode` and `standardEquivalent` are exported from M03 so other modules can do the same.
+- M07 `partsForAsset` and M06 `templatesForAsset` use `standardEquivalent`: a compatibility row or template on a legacy class also matches assets on its 1:1 standard class (D64). The match is one way: an asset still on a legacy class does not see rows linked only to the standard class until it is re-pointed.
 
 ## 3. Phases
 
@@ -75,8 +76,8 @@ The **legacy system** column says where a code comes from:
 | **0. Prepare** | All | System administrator | Upgrade **every** installation to this version first: M03 schema 2 adds the mapping table, and an older installation quarantines newer changes until it is upgraded (D53). Take a backup (`npm run ops -- backup`). Export the current `classifications` template and the old system's code list. | Every installation runs this version; backups verified |
 | **1. Load standard** | Hub | Fleet engineering authority | `npm run classifications -- load-standard` (or `POST /api/v1/assets/classifications/load-standard`). Review the reported differences. Synchronize. | Standard catalogue present at every installation |
 | **2. Build crosswalk** | Hub | EE department with the legacy system's owner | Fill the `classification-map` template: every legacy code gets at least one row, split codes get one `narrower` row per candidate. Import it through **Excel**, using preview before saving. Review it on **Legacy mapping** and sign it off. | Every legacy code in use is mapped; sign-off recorded |
-| **3. Re-link hub data of other modules** | Hub | PM planner, stores officer | Before ships move, point PM task templates (M06), part compatibility (M07) and advisories (M05) at the standard classes too (add the standard class next to the legacy one). Otherwise **parts and PM templates matched by class stop matching** once assets move. Done on those modules' screens for now (see section 6). | Each legacy class used by M05/M06/M07 also has its standard class linked |
-| **4. Pilot ship** | One ship (or the hub for its data) | Ship's EE officer | `npm run classifications -- plan`, then `remap` (a dry run), then `remap --apply`. Resolve the "needs a decision" list by editing each position or asset. Synchronize. Check that the part lookup and PM due lists are unchanged. | `plan` shows 0 automatic and 0 to decide; checks passed |
+| **3. Re-link advisories** | Hub | EE department | Part compatibility (M07) and PM task templates (M06) need no re-linking: a row on a legacy class also matches assets on its 1:1 standard class (D64). Only split (`narrower`) legacy classes need a standard class added on those screens. Before ships move, point M05 advisories at the standard classes too (add the standard class next to the legacy one), because advisories still match the exact class only (see section 6). | Each legacy class used by M05 advisories also has its standard class linked; split classes used by M06/M07 are linked |
+| **4. Pilot ship** | One ship (or the hub for its data) | Ship's EE officer | `npm run classifications -- plan`, then `remap` (a dry run), then `remap --apply`. Resolve the "needs a decision" list by editing each position or asset. Synchronize. Check that the part lookup, the task templates for an asset and the advisories are unchanged. | `plan` shows 0 automatic and 0 to decide; checks passed |
 | **5. Fleet rollout** | Each ship and workshop | EE officers | Repeat phase 4 ship by ship. A ship at sea does it when convenient: nothing breaks while it waits. | `plan` empty at every installation |
 | **6. Retire** | Hub | Fleet engineering authority | `npm run classifications -- retire` (a dry run lists what is still in use), then `retire --apply`. Legacy classes become **inactive**. Keep them for at least one refit cycle. | All 1:1 legacy classes are inactive |
 | **7. Run** | All | — | New imports with old codes are translated automatically. Catalogue changes follow the governance rules above. | — |
@@ -93,7 +94,7 @@ Without `--apply`, `remap` and `retire` change nothing, and the API endpoints de
 
 | Risk | Control |
 |---|---|
-| Parts or PM templates stop matching moved assets | Phase 3 before phase 4; check on the pilot ship |
+| Parts, PM templates or advisories stop matching moved assets | M06/M07 follow the crosswalk (D64); advisories and split classes re-linked in phase 3 before phase 4; check on the pilot ship |
 | Wrong mapping moves many records | Dry run first; pilot ship; sign-off in phase 2; every change audited and reversible |
 | Ship on an older version receives mapping rows | Phase 0 upgrades all installations first; quarantined changes are retried after upgrade (D53) |
 | Split legacy codes left unresolved | `plan` lists them per installation; `retire` skips any class still in use |
@@ -102,6 +103,7 @@ Without `--apply`, `remap` and `retire` change nothing, and the API endpoints de
 
 ## 6. Follow-ups (not in this change)
 
-- M06 and M07 could look up `standardEquivalent` so PM templates and part compatibility match on legacy and standard classes alike. That would make phase 3 unnecessary.
+- Done (D64): M06 and M07 match part compatibility and PM task templates through `standardEquivalent`.
+- M05 `advisoriesForAsset` could do the same; that would leave phase 3 with split classes only.
 - A web screen for the remap plan. The plan and remap are available through the CLI and `/api/v1/assets/classification-merge/*` today.
 - Further standard catalogues (mechanical SWBS 200/500, hull 100, weapons 700) in the same pattern.

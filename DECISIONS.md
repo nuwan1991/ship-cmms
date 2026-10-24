@@ -129,6 +129,8 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 **D63 — A physical move inside a site is a status change that keeps the status.** Location is recorded on movements (`location_id`) and kept until a later movement gives another. To record a move with no change of position, custody or status (engine room to store), a `status_change` may repeat the current status when it brings a new location; a status change that changes neither is still refused. No new movement kind, so no migration and no schema change for replicas. The web screen offers it as *Move to another location*; the asset list can be filtered by location.
 
+**D64 — Part compatibility and PM task templates follow the classification crosswalk.** M07 `partsForAsset` and M06 `templatesForAsset` (new export, also `GET /api/v1/pm/assets/:id/task-templates`) treat a compatibility row or template as matching an asset when its classification is the asset's class, or when M03 `standardEquivalent` (a 1:1 `exact`/`broader` mapping) of its classification is the asset's class. So rows linked to a legacy class keep matching assets re-pointed to the standard class, and the hand re-linking step of the merge is not needed. Both modules use only M03's `index.ts` (declared dependency); no table or other module changed. The match is one way and one step: a split (`narrower`) legacy class matches nothing new, and an asset still on a legacy class does not pick up rows linked to its standard class until it is re-pointed. M05 `advisoriesForAsset` still matches the exact class only, so advisories remain a hand re-link step (CLASSIFICATION_MERGE.md phase 3) until M05 does the same.
+
 
 
 ## Open questions for the project owner (defaults used until answered)

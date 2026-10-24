@@ -3,9 +3,10 @@ import { z } from 'zod';
 import type { AppContext } from '../../platform/app-context.js';
 import type { Freshness, ScopeRef } from '../../platform/contracts.js';
 import { AppError } from '../../platform/errors.js';
+import { getAsset } from '../m03-assets/index.js';
 import { actorFromRequest, authorize } from './actor.js';
 import { perm } from './permissions.js';
-import { currentMeterValue, getLive, TABLES, toApi, type Row } from './queries.js';
+import { currentMeterValue, getLive, TABLES, templatesForAsset, toApi, type Row } from './queries.js';
 import { parse } from './schemas.js';
 import {
   createMeter, createPlan, createTemplate, generateDue, recordCalibration, recordCompletion, recordReading, replaceMeter, tombstoneMeter, tombstonePlan,
@@ -58,6 +59,12 @@ export function mountPmRoutes(ctx: AppContext, app: FastifyInstance): void {
     const r = getLive(ctx.db, 'task_template', idParam(req));
     if (!r) throw new AppError('NOT_FOUND', 'Task template not found');
     return toApi(r);
+  });
+  app.get(`${base}/assets/:id/task-templates`, async (req) => {
+    authorize(actorFromRequest(ctx, req), perm('task_template', 'view'), fleet);
+    const id = idParam(req);
+    if (!getAsset(ctx.db, id)) throw new AppError('NOT_FOUND', `Asset ${id} not found`);
+    return { items: templatesForAsset(ctx.db, id), nextCursor: null, freshness: [freshnessFor(ctx, fleet)] };
   });
   app.post(T, async (req, reply) => created(reply, createTemplate(actorFromRequest(ctx, req), req.body)));
   app.patch(`${T}/:id`, async (req) => updateTemplate(actorFromRequest(ctx, req), idParam(req), req.body));

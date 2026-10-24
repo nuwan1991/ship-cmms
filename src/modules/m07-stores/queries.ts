@@ -1,7 +1,7 @@
 /** Read side + the public lookups other modules may use (re-exported from index.ts). SQL stays inside the module. */
 import { toCamel } from '../../platform/canonical.js';
 import type { Db } from '../../platform/db/open.js';
-import { getAsset } from '../m03-assets/index.js';
+import { getAsset, standardEquivalent } from '../m03-assets/index.js';
 import type { StkNoun } from './permissions.js';
 
 export type Row = Record<string, unknown>;
@@ -71,15 +71,25 @@ export function findPartByNo(db: Db, partNo: string): PartInfo | null {
   return r ? toPart(r) : null;
 }
 
-/** Parts that fit an asset: listed for the asset itself or for its classification. */
+/**
+ * Parts that fit an asset: listed for the asset itself or for its classification. A row linked to a legacy classification
+ * also matches when M03's crosswalk maps that class 1:1 to the asset's class, so parts keep fitting re-pointed assets (D64).
+ */
 export function partsForAsset(db: Db, assetId: string): PartInfo[] {
   const asset = getAsset(db, assetId);
   if (!asset) return [];
+  const classIds = asset.classificationId ? matchingClassifications(db, asset.classificationId) : [];
   const rows = db.prepare(
     `SELECT DISTINCT p.* FROM stk_part p JOIN stk_part_compatibility c ON c.part_id = p.id AND c.deleted_at IS NULL
-      WHERE p.deleted_at IS NULL AND (c.asset_id = ? OR (c.classification_id IS NOT NULL AND c.classification_id = ?)) ORDER BY p.part_no`,
-  ).all(assetId, asset.classificationId) as Row[];
+      WHERE p.deleted_at IS NULL AND (c.asset_id = ? OR c.classification_id IN (${classIds.map(() => '?').join(', ')})) ORDER BY p.part_no`,
+  ).all(assetId, ...classIds) as Row[];
   return rows.map(toPart);
+}
+
+/** The asset's class plus every class used in part compatibility whose standard equivalent is that class. */
+function matchingClassifications(db: Db, classificationId: string): string[] {
+  const used = db.prepare('SELECT DISTINCT classification_id AS id FROM stk_part_compatibility WHERE classification_id IS NOT NULL AND classification_id <> ? AND deleted_at IS NULL').all(classificationId) as Array<{ id: string }>;
+  return [classificationId, ...used.map((r) => r.id).filter((id) => standardEquivalent(db, id) === classificationId)];
 }
 
 /** Stock of a part held at a ship or workshop (all its locations). */
