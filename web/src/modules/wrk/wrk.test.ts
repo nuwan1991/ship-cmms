@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { availableActions, normalizeTag, PROGRESS_TARGET, type Axes } from './actions';
 import { wrkLabelsEn } from './labels.en';
@@ -31,7 +32,7 @@ describe('labels', () => {
     for (const n of wrkNav) { expect(wrkLabelsEn[n.labelKey]).toBeTruthy(); expect(n.requiredPermission).toMatch(/^wrk\./); }
   });
   it('defines every literal wrk.* label key used by the screens', () => {
-    const dir = new URL('.', import.meta.url).pathname;
+    const dir = fileURLToPath(new URL('.', import.meta.url));
     const used = new Set<string>();
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](wrk\.[a-z_]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);

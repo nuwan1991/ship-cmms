@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { stkLabelsEn } from './labels.en';
 import { stkNav } from './index';
@@ -8,7 +9,7 @@ describe('labels', () => {
     for (const n of stkNav) { expect(stkLabelsEn[n.labelKey]).toBeTruthy(); expect(n.requiredPermission).toMatch(/^stk\./); }
   });
   it('defines every literal stk.* label key used by the screens', () => {
-    const dir = new URL('.', import.meta.url).pathname;
+    const dir = fileURLToPath(new URL('.', import.meta.url));
     const used = new Set<string>();
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](stk\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
