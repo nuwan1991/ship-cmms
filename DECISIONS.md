@@ -126,7 +126,12 @@ Format: **ID — decision.** Why. Consequence. Changing a decision means a new e
 
 
 **D62 — Standard electrical classifications follow SWBS; legacy classifications are merged through a crosswalk, not rewritten.** M03 ships a standard catalogue (`catalogue/electrical.ts`) based on ESWBS (S9040) with IEC 60092 names, codes `SWBS-<group>[-<CLASS>]` and `CMP-EL-<CLASS>`, plus marked navy extensions for hybrid propulsion, energy storage, DC zonal power, HV shore connection, mission loads and unmanned systems. Codes are permanent; loading only adds. Legacy codes are related to standard classes in `ast_classification_map` (hub reference: `exact`/`broader` move records automatically, `narrower` needs a person, `related` is reference only). Each installation re-points only the positions and assets it owns, as audited updates; the hub then sets fully re-pointed legacy classes inactive, never removes them, so other modules' references stay valid. Imports translate mapped legacy codes. M03 schema version 2: every installation is upgraded before the mapping is used. Plan and phases: CLASSIFICATION_MERGE.md.
- for the project owner (defaults used until answered)
+
+**D63 — A physical move inside a site is a status change that keeps the status.** Location is recorded on movements (`location_id`) and kept until a later movement gives another. To record a move with no change of position, custody or status (engine room to store), a `status_change` may repeat the current status when it brings a new location; a status change that changes neither is still refused. No new movement kind, so no migration and no schema change for replicas. The web screen offers it as *Move to another location*; the asset list can be filtered by location.
+
+
+
+## Open questions for the project owner (defaults used until answered)
 
 1. Confirm `SLN-EQ` as the equipment tag prefix and 8-digit width (assumed).
 2. Offline lease length (assumed 30 days) and which gates must be `deny` or `provisional` after expiry.
