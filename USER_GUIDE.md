@@ -140,7 +140,7 @@ These lists describe the fleet. Each screen has a **New …** button, and **Edit
 
 - **Fleet**, **Commands**: the top of the structure.
 - **Ships**: each ship's **Code**, **Name**, **Pennant / hull no.**, **Class**, **Type** and **Status** (*Active*, *Inactive*, *Laid up*, *Decommissioned*). Tick **Has its own installation (works offline)** for a ship that will run its own copy.
-- **Departments**: belong to a ship.
+- **Departments**: one fleet-wide list of departments (for example *Electrical Engineering*), used on every ship. To give someone authority in one ship's department, assign their role with that ship as the scope (see [section 15](#15-identity--authority-administrators)).
 - **Workshops**: **Kind** is *Onboard* (belongs to a ship), *Command* (belongs to a command) or *Specialist* (supports ships of any command).
 - **External providers**: outside repair firms, with contact details.
 
