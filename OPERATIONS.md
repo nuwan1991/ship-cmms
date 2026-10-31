@@ -6,7 +6,7 @@ How to install, run, back up, restore, upgrade and join installations. Written f
 
 - Node.js 22.23.4 or a later 22.x (not 23 or 24). Older 22.x releases crash on Windows when the database opens. `node -v` shows it.
 - About 1 GB of free disk space and a folder for the data.
-- Nothing else: no database server, no internet after installation.
+- Nothing else: no database server, no internet after installation. For a machine that never has internet, prepare everything on one that does and carry it over: see section 11.
 
 Check the machine: `npm run ops -- check`.
 
@@ -93,3 +93,68 @@ Never provision a new machine for a ship that still has unsent changes: first cr
 - Disk encryption is left to the operating system (BitLocker, LUKS); enable it on every machine that holds data.
 - Provisioning packages and backups are secrets. Both are written readable by the owner only.
 - Bind to the loopback address (default) unless other computers must reach it; put the hub behind the network's usual protections.
+
+## 10. A hub and a ship on one computer (testing)
+
+For trying synchronization, offline work and USB files without a second machine. Both installations run from the same project folder; what makes them separate is the **data folder** and the **port**. Each has its own database, backups, users and signing key, so to each other they are as separate as two computers.
+
+| | Hub | Ship |
+|---|---|---|
+| Data folder (`CMMS_DATA_DIR`) | `data` (default) | `data-ship` |
+| Port (`CMMS_PORT`) | 8080 (default) | 8081 |
+| Screens | `http://localhost:8080` | `http://localhost:8081` |
+
+Folders named `data-…` are ignored by git, like `data`. Commands below are for Windows PowerShell; on Linux write `CMMS_DATA_DIR=data-ship npm run …` instead.
+
+1. Install and set up the hub as in sections 2 and 3, build the screens (`npm run web:build`) and start it (`npm start`, or `npm run dev`).
+2. At the hub: **Synchronization > Installations > Add installation**, kind *Ship*, the ship it serves (for example DEMO-101). Choose **Save package file**; it downloads as `provision-DEMO-101.json`. Move it into the project folder and rename it `ship-package.json`.
+3. At the hub: **Identity & authority > Users per installation**: link every user who will sign in at the ship (for a test, `admin`) to the new installation. Only linked users are sent to the ship; without this step nobody can sign in there. Linking a user later works too: it arrives at the ship's next synchronization.
+4. Join, in a second terminal (do **not** run `setup` for the ship):
+   ```
+   $env:CMMS_DATA_DIR = "data-ship"; npm run sync -- join --package ship-package.json --url http://localhost:8080
+   $env:CMMS_DATA_DIR = "data-ship"; npm run sync -- run
+   ```
+   The first run brings the fleet lists, the ship's records, its users and its number ranges. The hub address is remembered, so later runs need no `--url`. Delete the package file afterwards.
+5. Start the ship in its own terminal:
+   ```
+   $env:CMMS_DATA_DIR = "data-ship"; $env:CMMS_PORT = "8081"; npm run dev
+   ```
+   Open `http://localhost:8081` and sign in with a linked user. Use the ship's own address, not `http://localhost:5173`: the screen development server on 5173 talks only to the hub. Both servers show the built screens, so run `npm run web:build` again after changing them.
+6. Synchronize from the ship with **Synchronization > Sync status > Synchronize now** (hub address `http://localhost:8080`), or step 4's `sync -- run`.
+
+The browser keeps a separate sign-in for each address, so the hub and the ship can be open in two tabs. Records keep their owner: ship records entered at the hub arrive at the ship read-only; records entered at the ship belong to the ship. To try working cut off, stop the hub, keep working on the ship, then start the hub and synchronize; or exchange **Files (USB)** between the two. To start again, stop the ship, delete `data-ship`, and decommission it at the hub (**Synchronization > Installations > Decommission**).
+
+## 11. Move an installation to a machine without internet
+
+Prepare on a machine with internet, then carry the software and a backup across. It works for any installation: hub, ship, workshop or command.
+
+**The software.** Installing needs the internet only to download; the result runs anywhere of the same kind.
+
+1. On the internet machine, download the Node.js installer for the offline machine (version 22.23.4 or a later 22.x).
+2. In the project folder:
+   ```
+   npm ci
+   npm run web:install
+   npm run web:build
+   npm run build:server
+   ```
+   On Windows, if `npm ci` fails building `better-sqlite3` ("Windows SDK … was not found"), use `npm ci --ignore-scripts` and then `npm rebuild esbuild`: the package ships a ready-made Windows program, so nothing needs building.
+3. Copy the **whole project folder**, including `node_modules`, `dist` and `web/dist`, and the Node.js installer to the offline machine (USB drive). Leave out `data` and any `data-…` folders.
+4. On the offline machine, install Node.js and **do not run `npm ci` or `npm run web:install`** there: they need the internet. The copied folder already has everything.
+
+Both machines must be the same kind (for example 64-bit Windows on both). For a Linux offline machine, do step 2 on a Linux machine with internet.
+
+**The data.**
+
+1. On the internet machine: **Operations > Backups > Back up now** (or `npm run ops -- backup`), then **Verify** it.
+2. Stop the application there.
+3. Copy **both** files of that backup from `data/backups` to the USB drive: the `.sqlite` file and the `.sqlite.json` beside it.
+4. On the offline machine, **without running `setup`**:
+   ```
+   npm run ops -- verify  --file <backup file>
+   npm run ops -- restore --file <backup file>
+   ```
+   If `setup` was run there already, the restore refuses ("This backup belongs to a different installation"). Then add `--allow-other-installation`; the database that was there is kept as a "before a restore" backup.
+5. Start it (`npm start`) and sign in with the same users and passwords. Work continues from the moment of the backup. For ships and workshops to reach it over the local network, start it with `CMMS_HOST=0.0.0.0`; they then use `http://<its address>:8080`.
+
+**The installation moves; it is not copied.** The backup carries the installation's identity: its signing key, its number ranges and the records it owns. After the restore, the offline machine *is* that installation. Do not keep using the old copy: both would hand out the same equipment tag and work order numbers, and synchronization would report the clashes as conflicts. Rename or delete the old machine's `data` folder once the move is done.
