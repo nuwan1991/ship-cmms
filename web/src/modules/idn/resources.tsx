@@ -15,6 +15,10 @@ const when = (key: string): ColumnDef['render'] => (r, tz) => toLocalDisplay(r[k
 const USERS = { users: { apiBase: IDN, collection: 'users', label: (r: Rec) => String(r.displayName) } };
 const ROLES = { roles: { apiBase: IDN, collection: 'roles', label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` } };
 const SCOPES = ['fleet', 'command', 'ship', 'workshop', 'department'];
+const ORG = '/api/v1/org';
+const orgRef = (collection: string) => ({ apiBase: ORG, collection, label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` });
+/** Scoped targets, keyed by scope kind, so the scope is picked by name rather than typed as a raw id. */
+const SCOPE_REFS = { command: orgRef('commands'), ship: orgRef('ships'), workshop: orgRef('workshops'), department: orgRef('departments') };
 
 export const userConfig: IdnConfig = {
   noun: 'user', collection: 'users', titleKey: 'idn.title.users', newKey: 'idn.new.user',
@@ -42,12 +46,16 @@ export const roleConfig: IdnConfig = {
 
 export const assignmentConfig: IdnConfig = {
   noun: 'role_assignment', collection: 'role-assignments', titleKey: 'idn.title.assignments', newKey: 'idn.new.assignment',
-  refs: { ...USERS, ...ROLES },
+  refs: { ...USERS, ...ROLES, ...SCOPE_REFS },
   rowName: (r) => `${String(r.scopeKind)} ${String(r.id).slice(-6)}`,
   columns: [
     { key: 'userId', labelKey: 'idn.field.user', render: lookup('users', 'userId') },
     { key: 'roleId', labelKey: 'idn.field.role', render: lookup('roles', 'roleId') },
-    { key: 'scopeKind', labelKey: 'idn.field.scope', render: (r) => `${t(`idn.scope.${String(r.scopeKind)}`)}${r.scopeId ? ` ${String(r.scopeId).slice(-6)}` : ''}` },
+    { key: 'scopeKind', labelKey: 'idn.field.scope', render: (r, _tz, refs) => {
+      const kind = String(r.scopeKind);
+      const target = r.scopeId ? refs[kind]?.find((o) => o.value === r.scopeId)?.label ?? String(r.scopeId).slice(-6) : '';
+      return `${t(`idn.scope.${kind}`)}${target ? ` ${target}` : ''}`;
+    } },
     { key: 'validFrom', labelKey: 'idn.field.validFrom', render: when('validFrom') },
     { key: 'validUntil', labelKey: 'idn.field.validUntil', render: when('validUntil') },
   ],
@@ -55,7 +63,7 @@ export const assignmentConfig: IdnConfig = {
     { key: 'userId', labelKey: 'idn.field.user', type: 'select', required: true, createOnly: true, options: refs.users ?? [] },
     { key: 'roleId', labelKey: 'idn.field.role', type: 'select', required: true, createOnly: true, options: refs.roles ?? [] },
     { key: 'scopeKind', labelKey: 'idn.field.scope', type: 'select', required: true, createOnly: true, options: SCOPES.map((s) => opt(s, `idn.scope.${s}`)) },
-    { key: 'scopeId', labelKey: 'idn.field.scopeId', type: 'text', createOnly: true, hintKey: 'idn.hint.scopeId', showWhen: (v) => v.scopeKind !== '' && v.scopeKind !== 'fleet' },
+    { key: 'scopeId', labelKey: 'idn.field.scopeId', type: 'select', required: true, createOnly: true, hintKey: 'idn.hint.scopeId', options: (v) => refs[String(v.scopeKind)] ?? [], showWhen: (v) => v.scopeKind !== '' && v.scopeKind !== 'fleet' },
     { key: 'validFrom', labelKey: 'idn.field.validFrom', type: 'datetime' },
     { key: 'validUntil', labelKey: 'idn.field.validUntil', type: 'datetime', hintKey: 'idn.hint.validUntil' },
   ],

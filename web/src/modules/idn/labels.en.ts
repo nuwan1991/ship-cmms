@@ -37,7 +37,7 @@ export const idnLabelsEn: Record<string, string> = {
   'idn.field.user': 'User',
   'idn.field.role': 'Role',
   'idn.field.scope': 'Scope',
-  'idn.field.scopeId': 'Scope id',
+  'idn.field.scopeId': 'Scope target',
   'idn.field.validFrom': 'Valid from',
   'idn.field.validUntil': 'Valid until',
   'idn.field.gateCode': 'Gate code',
@@ -56,7 +56,7 @@ export const idnLabelsEn: Record<string, string> = {
   'idn.field.assignmentId': 'Assignment id',
   'idn.field.effectiveAt': 'Effective from',
 
-  'idn.hint.scopeId': 'Id of the command, ship, workshop or department.',
+  'idn.hint.scopeId': 'The command, ship, workshop or department this role applies to.',
   'idn.hint.validUntil': 'Leave empty for no end date.',
   'idn.hint.gateCode': 'For example wrk.job_card.approve.',
   'idn.hint.offlinePolicy': 'Leave empty to record approvals as pending confirmation.',
