@@ -47,7 +47,7 @@ Permissions: `idn.<noun>.<view|create|update|remove>` for user, credential, user
 
 | Table | Class | Key columns | Rules |
 |---|---|---|---|
-| idn_user | H | display_name, rank, service_number, status | Person identity; no credentials. Approvals reference `user_id`, never the name |
+| idn_user | H | display_name, rank, trade_branch, service_number (shown as *Off No*), personnel_category (`officer`/`sailor`), status | Person identity; no credentials. Approvals reference `user_id`, never the name |
 | idn_credential | H | user_id, username, password_hash (scrypt, redacted from audit), credential_version | One live credential per user; username unique; a new version ends that user's sessions and affects only future sign-in |
 | idn_user_installation | H | user_id, installation_id, lease_expires_at | Which users are provisioned where (credentials replicate only there, M10) |
 | idn_role / idn_role_permission | H | code, name, status / role_id, permission | Permission list replaced as a set (`PUT /roles/:id/permissions`) |
@@ -69,7 +69,7 @@ Published read model: **`idn_v_approval_status`** (per approval: `pending_confir
 | ast_classification_map | H | legacy_system (`CMMS` = a classification of this system), legacy_code (as the old system wrote it), legacy_name, target_classification_id, relation (`exact`/`broader`/`narrower`/`related`), note, status; unique per system, code and target (D62) |
 | ast_position | O (owner = ship installation) | ship (home scope), position_tag (unique per ship), name, level (system → equipment_group → equipment → component), parent_id, classification_id, sort_order, status |
 | ast_position_responsibility | O | position_id, department_id, effective_from/to (half-open); a trigger rejects overlapping intervals for one position |
-| ast_asset | O (owner = installation that registered it) | asset_tag (permanent, `SLN-EQ-########` from range `equipment_tag`; a trigger blocks changes), serial_number, manufacturer, model (separate columns), classification_id, home ship (home scope), notes |
+| ast_asset | O (owner = installation that registered it) | asset_tag (permanent, `SLN-EQ-########` from range `equipment_tag`; a trigger blocks changes), serial_number, manufacturer, model (separate columns), classification_id (required on registration: an active equipment class), home ship (home scope), notes |
 | ast_asset_movement | E | asset_id, kind (`register`/`install`/`remove`/`custody_transfer`/`status_change`/`void`), position_id, location_id, custody party (kind+id), asset_status (`in_service`/`in_store`/`under_repair`/`out_of_service`/`condemned`), note, corrects_movement_id; occurred_at is when it happened |
 | ast_asset_current | D | folded by `(occurred_at, id)`, rebuildable (`rebuildAssetCurrent`): position, location, custody, status, installed_since |
 

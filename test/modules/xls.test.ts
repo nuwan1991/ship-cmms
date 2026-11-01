@@ -177,13 +177,17 @@ describe('locations import', () => {
 describe('assets import', () => {
   it('registers new equipment (tags allocated), updates by tag, and refuses unknown tags, duplicates and ship changes', () => {
     const env = makeXlsEnv();
-    const head = ['Equipment tag', 'Name', 'Serial number', 'Manufacturer', 'Ship code'];
-    const job = preview(env, 'assets', xlsxBase64(head, [['', 'Pump A', 'S-1', 'Acme', 'SH1'], [null, 'Pump B', 'S-2', 'Acme', 'SH1'], [null, 'Pump A again', 'S-1', 'Acme', 'SH1'], ['SLN-EQ-00009999', 'Ghost', null, null, null]]));
-    expect(job).toMatchObject({ ok_rows: 2, error_rows: 2, create_rows: 2 });
+    const head = ['Equipment tag', 'Name', 'Serial number', 'Manufacturer', 'Ship code', 'Classification code'];
+    const job = preview(env, 'assets', xlsxBase64(head, [
+      ['', 'Pump A', 'S-1', 'Acme', 'SH1', 'TEST-EQ'], [null, 'Pump B', 'S-2', 'Acme', 'SH1', 'test-eq'], [null, 'Pump A again', 'S-1', 'Acme', 'SH1', 'TEST-EQ'],
+      ['SLN-EQ-00009999', 'Ghost', null, null, null, null], [null, 'Unclassified', 'S-3', 'Acme', 'SH1', null],
+    ]));
+    expect(job).toMatchObject({ ok_rows: 2, error_rows: 3, create_rows: 2 });
     const rows = jobRows(env.hubActor(), job.id as string, { limit: 10 }).items;
     expect(rows[0]).toMatchObject({ reference: 'SLN-EQ-00000001', action: 'create' });
     expect(rows[2]).toMatchObject({ status: 'error', duplicateOf: 'SLN-EQ-00000001' });
     expect(String((rows[3]!.errors as string[])[0])).toMatch(/No equipment has the tag/);
+    expect(String((rows[4]!.errors as string[])[0])).toMatch(/Classification code is required/);
     commit(env, job.id as string, true);
 
     const upd = preview(env, 'assets', xlsxBase64(['Equipment tag', 'Name', 'Model', 'Ship code'], [['sln-eq-00000001', 'Pump A (renamed)', 'X9', null], ['SLN-EQ-00000002', null, null, 'SH2']]));
@@ -197,11 +201,11 @@ describe('assets import', () => {
     createAst(env.hubActor(), 'position', { shipId: env.shipId, positionTag: '2.1.3', name: 'Main alternator' });
     createOrg(env.hubActor(), 'location', { siteKind: 'ship', siteId: env.shipId, code: 'ER-01', name: 'Engine room' });
     createOrg(env.hubActor(), 'location', { siteKind: 'ship', siteId: env.shipId, code: 'STORE', name: 'Store' });
-    const head = ['Name', 'Ship code', 'Position tag', 'Location code', 'Status'];
+    const head = ['Name', 'Ship code', 'Position tag', 'Location code', 'Status', 'Classification code'];
     const job = preview(env, 'assets', xlsxBase64(head, [
       ['Alternator', 'SH1', '2.1.3', 'er-01', null], ['Spare motor', 'SH1', null, 'STORE', 'in_store'],
       ['No ship', null, '2.1.3', null, null], ['Bad position', 'SH1', '9.9', null, null], ['Bad location', 'SH1', null, 'NOWHERE', null], ['Bad status', 'SH1', null, null, 'lost'],
-    ]));
+    ].map((r) => [...r, 'TEST-EQ'])));
     expect(job).toMatchObject({ create_rows: 2, error_rows: 4 });
     const errs = jobRows(env.hubActor(), job.id as string, { limit: 10 }).items.slice(2).map((r) => String((r.errors as string[])[0]));
     expect(errs[0]).toMatch(/Give the ship code/);
@@ -225,7 +229,7 @@ describe('assets import', () => {
     const env = makeXlsEnv();
     env.ctx.db.prepare('DELETE FROM sys_number_cursor').run();
     env.ctx.db.prepare("UPDATE sys_number_range SET range_end = range_start + 1 WHERE sequence_code = 'equipment_tag'").run();
-    const job = preview(env, 'assets', xlsxBase64(['Name'], [['A'], ['B'], ['C']]));
+    const job = preview(env, 'assets', xlsxBase64(['Name', 'Classification code'], [['A', 'TEST-EQ'], ['B', 'TEST-EQ'], ['C', 'TEST-EQ']]));
     expect(job).toMatchObject({ ok_rows: 2, error_rows: 1 });
     expect(codeOf(() => commit(env, job.id as string))).toBe('WORKFLOW_BLOCKED');
     expect(sql(env, 'SELECT COUNT(*) AS n FROM ast_asset')[0]?.n).toBe(0);
@@ -236,7 +240,7 @@ describe('export and templates', () => {
   it('exports in the import layout so an unchanged export re-imports as all skips, and logs the export', () => {
     const env = makeXlsEnv();
     commit(env, preview(env, 'parts', xlsxBase64(PART_HEAD, [['P1', 'One', 'each', 'A'], ['P2', 'Two', 'kg', null]])).id as string);
-    createAsset(env.hubActor(), { name: 'Pump', homeShipId: env.shipId, serialNumber: 'Z1', manufacturer: 'M' });
+    createAsset(env.hubActor(), { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId, serialNumber: 'Z1', manufacturer: 'M' });
     createOrg(env.hubActor(), 'location', { siteKind: 'ship', siteId: env.shipId, code: 'ER', name: 'Engine room' });
     for (const [code, n] of [['parts', 2], ['assets', 1], ['locations', 1]] as const) {
       for (const format of ['xlsx', 'csv'] as const) {

@@ -19,11 +19,18 @@ const SCOPES = ['fleet', 'command', 'ship', 'workshop', 'department'];
 export const userConfig: IdnConfig = {
   noun: 'user', collection: 'users', titleKey: 'idn.title.users', newKey: 'idn.new.user',
   rowName: (r) => String(r.displayName),
-  columns: [{ key: 'displayName', labelKey: 'idn.field.displayName' }, { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' }, cStatus],
+  columns: [
+    { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'tradeBranch', labelKey: 'idn.field.tradeBranch' },
+    { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' }, { key: 'displayName', labelKey: 'idn.field.displayName' },
+    { key: 'personnelCategory', labelKey: 'idn.field.personnelCategory', render: (r) => (r.personnelCategory ? t(`idn.personnelCategory.${String(r.personnelCategory)}`) : '') },
+    cStatus,
+  ],
   fields: () => [
-    { key: 'displayName', labelKey: 'idn.field.displayName', type: 'text', required: true, maxLength: 120 },
     { key: 'rank', labelKey: 'idn.field.rank', type: 'text', maxLength: 60 },
+    { key: 'tradeBranch', labelKey: 'idn.field.tradeBranch', type: 'text', maxLength: 60 },
     { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber', type: 'text', maxLength: 40 },
+    { key: 'displayName', labelKey: 'idn.field.displayName', type: 'text', required: true, maxLength: 120 },
+    { key: 'personnelCategory', labelKey: 'idn.field.personnelCategory', type: 'select', options: () => [opt('officer', 'idn.personnelCategory.officer'), opt('sailor', 'idn.personnelCategory.sailor')] },
     status,
   ],
 };

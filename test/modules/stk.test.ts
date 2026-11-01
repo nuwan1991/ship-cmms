@@ -60,7 +60,7 @@ describe('catalogue and locations', () => {
     const a = env.hubActor();
     const cls = createAstEntity(a, 'classification', { code: 'PUMP', name: 'Pump', kind: 'equipment' });
     const asset = createAsset(a, { name: 'Pump A', homeShipId: env.shipId, classificationId: id(cls) }).asset;
-    const other = createAsset(a, { name: 'Pump B', homeShipId: env.shipId }).asset;
+    const other = createAsset(a, { name: 'Pump B', classificationId: env.eqClassId, homeShipId: env.shipId }).asset;
     const seal = env.part('SEAL'), filter = env.part('FILT'), none = env.part('NONE');
     addCompatibility(a, { partId: seal, classificationId: id(cls) });
     addCompatibility(a, { partId: filter, assetId: id(asset) });

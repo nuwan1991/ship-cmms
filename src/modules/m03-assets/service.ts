@@ -155,8 +155,14 @@ const DEFS: Record<CrudNoun, Def> = {
     noun: 'asset', type: 'ast.asset', create: S.AssetCreate, update: S.AssetUpdate,
     scope: (_a, v) => (v.home_scope_id ? shipScope(v.home_scope_id) : { kind: 'fleet' }),
     unique: (v) => (v.manufacturer && v.serial_number ? [{ manufacturer: v.manufacturer, serial_number: v.serial_number }] : []),
-    validate: (a, next) => {
-      if (next.classification_id) requireLive(a.wctx.db, 'classification', next.classification_id, 'Classification');
+    validate: (a, next, cur) => {
+      // Every registered item carries an equipment classification. Existing records are checked only when the class changes,
+      // so equipment left on a legacy class that has since been made inactive can still be edited.
+      if (!next.classification_id) throw invalid('Choose the equipment classification');
+      const cls = requireLive(a.wctx.db, 'classification', next.classification_id, 'Classification');
+      if (cur && cur.classification_id === next.classification_id) return;
+      if (cls.kind !== 'equipment') throw invalid(`${String(cls.code)} is a component classification; choose an equipment classification`);
+      if (cls.status !== 'active') throw invalid(`${String(cls.code)} is inactive; choose an active equipment classification`);
     },
     beforeTombstone: (a, cur) => {
       if (getAssetState(a.wctx.db, cur.id as string)?.positionId) throw blocked('Asset is installed; remove it before removing the record');

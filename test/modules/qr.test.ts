@@ -17,7 +17,7 @@ const id = (r: Record<string, unknown>) => r.id as string;
 function room(env: QrEnv, code = 'GEN', shipId = env.shipId) {
   return id(createOrgEntity(env.hubActor(), 'location', { siteKind: 'ship', siteId: shipId, code, name: `Room ${code}`, kind: 'compartment' }));
 }
-const asset = (env: QrEnv, over: Record<string, unknown> = {}) => createAsset(env.hubActor(), { name: 'Pump', homeShipId: env.shipId, ...over }).asset;
+const asset = (env: QrEnv, over: Record<string, unknown> = {}) => createAsset(env.hubActor(), { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId, ...over }).asset;
 
 describe('registration', () => {
   it('registers cleanly, with well-formed permission codes', () => {
@@ -177,24 +177,24 @@ describe('compartment surveys', () => {
     const loc = room(env);
     const s = startSurvey(env.hubActor(), { locationId: loc });
     const item = addSurveyItem(env.hubActor(), id(s), { kind: 'pending', description: 'Bilge pump', manufacturer: 'Acme', model: 'BP-1', serialNumber: 'S-77', observedStatus: 'under_repair' });
-    const out = convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 1, labelId: id(label!) });
+    const out = convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 1, classificationId: env.eqClassId, labelId: id(label!) });
     expect(out.asset).toMatchObject({ name: 'Bilge pump', assetTag: 'SLN-EQ-00000001', serialNumber: 'S-77', homeScopeId: env.shipId });
     expect(out.item).toMatchObject({ convertedAssetId: out.asset.id, labelNo: 'SLN-LB-00000001' });
     expect(labelForAsset(env.ctx.db, out.asset.id as string)?.labelNo).toBe('SLN-LB-00000001');
     const state = sql(env, 'SELECT asset_status, location_id, custody_party_kind, custody_party_id FROM ast_asset_current WHERE asset_id = ?', out.asset.id)[0];
     expect(state).toEqual({ asset_status: 'under_repair', location_id: loc, custody_party_kind: 'ship', custody_party_id: env.shipId });
-    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 2 }))).toBe('WORKFLOW_BLOCKED');
+    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 2, classificationId: env.eqClassId }))).toBe('WORKFLOW_BLOCKED');
     expect(codeOf(() => updateSurveyItem(env.hubActor(), id(item), { expectedVersion: 2, note: 'x' }))).toBe('WORKFLOW_BLOCKED');
     expect(codeOf(() => tombstoneSurvey(env.hubActor(), id(s), { expectedVersion: 1, reason: 'oops' }))).toBe('WORKFLOW_BLOCKED');
     const scanned = addSurveyItem(env.hubActor(), id(s), { kind: 'scanned', assetId: out.asset.id as string });
-    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(scanned), { expectedVersion: 1 }))).toBe('WORKFLOW_BLOCKED');
+    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(scanned), { expectedVersion: 1, classificationId: env.eqClassId }))).toBe('WORKFLOW_BLOCKED');
   });
 
   it('rolls conversion back completely when the asset cannot be created (range exhausted)', () => {
     const env = makeQrEnv({ hubRange: 0 });
     const s = startSurvey(env.hubActor(), { locationId: room(env) });
     const item = addSurveyItem(env.hubActor(), id(s), { kind: 'pending', description: 'Mystery box' });
-    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 1 }))).toBe('RANGE_EXHAUSTED');
+    expect(codeOf(() => convertSurveyItem(env.hubActor(), id(item), { expectedVersion: 1, classificationId: env.eqClassId }))).toBe('RANGE_EXHAUSTED');
     expect(sql(env, 'SELECT converted_asset_id FROM qr_survey_item WHERE id = ?', id(item))[0]!.converted_asset_id).toBeNull();
     expect(sql(env, 'SELECT COUNT(*) n FROM ast_asset')[0]!.n).toBe(0);
   });

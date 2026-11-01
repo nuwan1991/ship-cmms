@@ -13,7 +13,7 @@ async function call(env: QrEnv, method: 'GET' | 'POST' | 'PATCH', url: string, p
 describe('M04 HTTP API', () => {
   it('issues, assigns, resolves, lists and prints labels', async () => {
     const env = makeQrEnv({ devAuth: true });
-    const asset = createAsset(env.hubActor(), { name: 'Pump', homeShipId: env.shipId }).asset;
+    const asset = createAsset(env.hubActor(), { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId }).asset;
 
     expect((await call(env, 'GET', `${BASE}/labels/remaining`)).json).toEqual({ sequence: 'label_no', remaining: 50 });
     const issued = await call(env, 'POST', `${BASE}/labels/issue`, { count: 3, shipId: env.shipId });
@@ -60,7 +60,7 @@ describe('M04 HTTP API', () => {
     const item = await call(env, 'POST', `${BASE}/surveys/${survey.json.id}/items`, { kind: 'pending', description: 'Fire pump', answers: { ok: true } });
     expect(item.status).toBe(201);
     const labels = (await call(env, 'POST', `${BASE}/labels/issue`, { count: 1, shipId: env.shipId })).json.items;
-    const conv = await call(env, 'POST', `${BASE}/survey-items/${item.json.id}/convert`, { expectedVersion: 1, labelId: labels[0].id });
+    const conv = await call(env, 'POST', `${BASE}/survey-items/${item.json.id}/convert`, { expectedVersion: 1, classificationId: env.eqClassId, labelId: labels[0].id });
     expect(conv.status).toBe(200);
     expect(conv.json.asset).toMatchObject({ name: 'Fire pump', assetTag: 'SLN-EQ-00000001' });
 

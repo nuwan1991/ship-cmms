@@ -7,11 +7,13 @@ import type { AppContext } from '../../platform/app-context.js';
 import { IDN_ENTITIES } from './entities.js';
 import { createApprovalPort } from './approvals.js';
 import { createIdentityAuthorizer } from './authority.js';
+import { usersPort } from './import-export.js';
 import { PermissionCatalogue } from './permissions.js';
 import { mountIdentityRoutes } from './routes.js';
 
 export function register(ctx: AppContext, app: FastifyInstance): void {
   for (const d of IDN_ENTITIES) ctx.entities.register(d);
+  ctx.importExport.register(usersPort(ctx));
   const catalogue = new PermissionCatalogue();
   // Modules that cannot import M02 announce their permission codes on the bus (D25).
   ctx.events.subscribe('sys.permissions.declared', (e) => catalogue.add((e.payload as { codes?: string[] }).codes ?? []));

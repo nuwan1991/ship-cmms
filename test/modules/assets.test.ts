@@ -19,7 +19,7 @@ function tree(env: AstEnv, shipId = env.shipId, a = env.hubActor()) {
   return { sys: id(sys), group: id(group), engine: id(engine), alt: id(alt), bearing: id(bearing) };
 }
 const newAsset = (env: AstEnv, over: Record<string, unknown> = {}, a = env.hubActor()) =>
-  createAsset(a, { name: 'Generator engine', homeShipId: env.shipId, ...over }).asset;
+  createAsset(a, { name: 'Generator engine', classificationId: env.eqClassId, homeShipId: env.shipId, ...over }).asset;
 
 describe('registration', () => {
   it('registers all entities with a clean registry and synced-table check', () => {
@@ -100,6 +100,23 @@ describe('permanent identity and equipment tags', () => {
     expect(codeOf(() => newAsset(env, { classificationId: missing }))).toBe('DEPENDENCY_MISSING');
     expect(codeOf(() => newAsset(env, { positionId: missing }))).toBe('DEPENDENCY_MISSING');
     expect(codeOf(() => newAsset(env, { locationId: missing }))).toBe('DEPENDENCY_MISSING');
+  });
+});
+
+describe('equipment classification', () => {
+  it('is required on registration and must be an active equipment class; legacy classes stay editable', () => {
+    const env = makeAstEnv();
+    const hub = env.hubActor();
+    expect(codeOf(() => createAsset(hub, { name: 'Unclassified', homeShipId: env.shipId }))).toBe('VALIDATION_FAILED');
+    const cmp = createEntity(hub, 'classification', { code: 'TEST-CMP', name: 'Bearing', kind: 'component' });
+    expect(codeOf(() => newAsset(env, { classificationId: id(cmp) }))).toBe('VALIDATION_FAILED');
+    const old = createEntity(hub, 'classification', { code: 'OLD-EQ', name: 'Old class', kind: 'equipment' });
+    const a = newAsset(env, { classificationId: id(old) });
+    updateEntity(hub, 'classification', id(old), { expectedVersion: 1, status: 'inactive' });
+    expect(codeOf(() => newAsset(env, { classificationId: id(old) }))).toBe('VALIDATION_FAILED');
+    expect(updateEntity(hub, 'asset', id(a), { expectedVersion: 1, name: 'Renamed' })).toMatchObject({ name: 'Renamed', classificationId: id(old) });
+    expect(codeOf(() => updateEntity(hub, 'asset', id(a), { expectedVersion: 2, classificationId: null }))).toBe('VALIDATION_FAILED');
+    expect(updateEntity(hub, 'asset', id(a), { expectedVersion: 2, classificationId: env.eqClassId })).toMatchObject({ classificationId: env.eqClassId });
   });
 });
 
@@ -295,7 +312,7 @@ describe('ownership, versions and permissions', () => {
     const t = tree(env);
     const a = newAsset(env, { positionId: t.engine });
     const denied = env.hubActor(denyOnly('ast.asset.create', 'ast.asset_movement.create', 'ast.asset_movement.void', 'ast.position.create'));
-    expect(codeOf(() => createAsset(denied, { name: 'No', homeShipId: env.shipId }))).toBe('FORBIDDEN');
+    expect(codeOf(() => createAsset(denied, { name: 'No', classificationId: env.eqClassId, homeShipId: env.shipId }))).toBe('FORBIDDEN');
     expect(codeOf(() => moveAsset(denied, env.ctx.events, id(a), { kind: 'remove' }))).toBe('FORBIDDEN');
     expect(codeOf(() => createEntity(denied, 'position', { shipId: env.shipId, positionTag: '9', name: 'No' }))).toBe('FORBIDDEN');
     expect(sql(env, 'SELECT COUNT(*) n FROM ast_asset')[0]!.n).toBe(1);
@@ -309,7 +326,7 @@ describe('ownership, versions and permissions', () => {
     const a = newAsset(env, { positionId: t.engine });
     moveAsset(env.hubActor(), env.ctx.events, id(a), { kind: 'remove' });
     const logged = sql(env, "SELECT DISTINCT entity_type t FROM sys_change_log WHERE entity_type LIKE 'ast.%' ORDER BY t").map((r) => r.t);
-    expect(logged).toEqual(['ast.asset', 'ast.asset_movement', 'ast.position']);
+    expect(logged).toEqual(['ast.asset', 'ast.asset_movement', 'ast.classification', 'ast.position']);
     expect(sql(env, "SELECT COUNT(*) n FROM sys_audit_event WHERE action IN ('asset.register','asset.install','asset.remove')")[0]!.n).toBe(3);
   });
 });

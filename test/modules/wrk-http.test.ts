@@ -13,7 +13,7 @@ async function call(env: WrkEnv, method: 'GET' | 'POST' | 'PATCH', url: string, 
 describe('M05 HTTP API', () => {
   it('takes a defect through repair case, work order, job card, labour, acceptance and closure', async () => {
     const env = makeWrkEnv({ devAuth: true });
-    const asset = createAsset(env.hubActor(), { name: 'Pump', homeShipId: env.shipId }).asset;
+    const asset = createAsset(env.hubActor(), { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId }).asset;
 
     expect((await call(env, 'GET', `${BASE}/numbers/remaining`)).json).toEqual({ defect: 50, repairCase: 50, workOrder: 50 });
     const defect = await call(env, 'POST', `${BASE}/defects`, { title: 'Pump leaking', assetId: asset.id, severity: 'major' });

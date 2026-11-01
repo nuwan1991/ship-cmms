@@ -57,13 +57,13 @@ export const ResponsibilityUpdate = z.strictObject({ expectedVersion: Version, d
 export const ResponsibilityReassign = z.strictObject({ positionId: Uuid, departmentId: Uuid, effectiveFrom: UtcTimestamp, reason: Text(500) });
 
 export const AssetCreate = z.strictObject({
-  name: Name, serialNumber: Text(80), manufacturer: Text(120), model: Text(120), classificationId: Uuid.nullable().optional(),
+  name: Name, serialNumber: Text(80), manufacturer: Text(120), model: Text(120), classificationId: Uuid,
   homeShipId: Uuid.nullable().optional(), notes: Text(1000),
   assetStatus: AssetStatus.optional(), custody: PartyRef.optional(), locationId: Uuid.optional(), positionId: Uuid.optional(),
 });
 export const AssetUpdate = z.strictObject({
   expectedVersion: Version, name: Name.optional(), serialNumber: Text(80), manufacturer: Text(120), model: Text(120),
-  classificationId: Uuid.nullable().optional(), notes: Text(1000),
+  classificationId: Uuid.optional(), notes: Text(1000),
 });
 
 const Common = { locationId: Uuid.optional(), custody: PartyRef.optional(), assetStatus: AssetStatus.optional(), occurredAt: UtcTimestamp.optional(), note: Text(500) };

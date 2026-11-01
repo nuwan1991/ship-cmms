@@ -23,7 +23,7 @@ export function assetsPort(ctx: AppContext): ImportExportPort {
       { key: 'serialNumber', label: 'Serial number', example: 'ALT-77831' },
       { key: 'manufacturer', label: 'Manufacturer', example: 'Stamford' },
       { key: 'model', label: 'Model', example: 'HCI544' },
-      { key: 'classificationCode', label: 'Classification code', hint: 'An equipment classification defined by the hub. A legacy code that the hub has mapped to one standard class is translated to it.', example: 'SWBS-311-ALT' },
+      { key: 'classificationCode', label: 'Classification code', hint: 'Required for new equipment. An active equipment classification defined by the hub, e.g. from the standard SWBS catalogue. A legacy code that the hub has mapped to one standard class is translated to it.', example: 'SWBS-311-ALT' },
       { key: 'homeShipCode', label: 'Ship code', hint: 'The ship the equipment belongs to. Cannot be changed by import once registered.', example: 'DEMO-101' },
       { key: 'positionTag', label: 'Position tag', hint: 'New equipment: the position of the ship it is installed in (needs the ship code). Registered equipment: must match where it is now; record a movement on the asset screen to move it.', example: '2.1.3' },
       { key: 'locationCode', label: 'Location code', hint: 'New equipment: the compartment or space of the ship it is in (needs the ship code). Registered equipment: must match where it is now.', example: 'ER-01' },
@@ -69,6 +69,7 @@ export function assetsPort(ctx: AppContext): ImportExportPort {
           return { ok: true, action: 'update', reference: tag };
         }
         if (!name) return rowFail('Name is required for new equipment');
+        if (!classificationId) return rowFail('Classification code is required for new equipment');
         if ((positionTag || locationCode) && !shipId) return rowFail('Give the ship code when giving a position tag or location code');
         let positionId: string | undefined, locationId: string | undefined;
         if (positionTag) {

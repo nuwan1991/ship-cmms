@@ -122,6 +122,37 @@ describe('reference data rules (hub only)', () => {
   });
 });
 
+describe('nominal list', () => {
+  it('keeps rank, trade/branch, official number and officer/sailor on the user', async () => {
+    const env = await makeIdnEnv();
+    const a = env.actor(env.adminId);
+    const u = createResource(a, 'user', { displayName: 'A B Perera', rank: 'LT', tradeBranch: 'Electrical', serviceNumber: '4521', personnelCategory: 'officer' });
+    expect(u).toMatchObject({ rank: 'LT', tradeBranch: 'Electrical', serviceNumber: '4521', personnelCategory: 'officer' });
+    expect(updateResource(a, env.ctx, 'user', u.id as string, { expectedVersion: 1, personnelCategory: 'sailor', tradeBranch: null })).toMatchObject({ personnelCategory: 'sailor', tradeBranch: null });
+    expect(await code(() => createResource(a, 'user', { displayName: 'X', personnelCategory: 'civilian' }))).toBe('VALIDATION_FAILED');
+  });
+
+  it('bulk uploads users by official number: creates, updates, skips unchanged rows, and never touches sign-ins', async () => {
+    const env = await makeIdnEnv();
+    const port = env.ctx.importExport.get('users')!;
+    const principal = env.actor(env.adminId).principal;
+    const run = (row: Record<string, unknown>) => port.importRow(row, principal, { commit: true });
+    expect(run({ listNumber: 1, rank: 'LT', tradeBranch: 'Electrical', serviceNumber: 4521, displayName: 'A B Perera', personnelCategory: 'Officer' })).toMatchObject({ ok: true, action: 'create', reference: '4521' });
+    expect(run({ listNumber: 2, rank: 'PO', tradeBranch: 'Engineering', serviceNumber: '88123', displayName: 'C D Silva', personnelCategory: 'sailor' })).toMatchObject({ ok: true, action: 'create' });
+    expect(run({ serviceNumber: '4521', rank: 'LCDR' })).toMatchObject({ ok: true, action: 'update' });
+    expect(run({ serviceNumber: '4521', rank: 'LCDR', displayName: 'A B Perera' })).toMatchObject({ ok: true, action: 'skip' });
+    expect(run({ displayName: 'No number' })).toMatchObject({ ok: false, errors: ['Off No is required'] });
+    expect(run({ serviceNumber: '999' })).toMatchObject({ ok: false, errors: ['Name is required for a new person'] });
+    expect(run({ serviceNumber: '998', displayName: 'X', personnelCategory: 'civilian' }).errors![0]).toMatch(/Officer\/Sailor must be one of/);
+    const rows = env.ctx.db.prepare("SELECT rank, trade_branch, personnel_category FROM idn_user WHERE service_number = '4521'").all();
+    expect(rows).toEqual([{ rank: 'LCDR', trade_branch: 'Electrical', personnel_category: 'officer' }]);
+    expect(env.ctx.db.prepare('SELECT COUNT(*) n FROM idn_credential').get()).toEqual({ n: 1 }); // the admin only
+    expect(port.exportRows({ kind: 'fleet' }, principal).find((r) => r.serviceNumber === '88123')).toMatchObject({ rank: 'PO', tradeBranch: 'Engineering', displayName: 'C D Silva', personnelCategory: 'sailor' });
+    env.becomeShip();
+    expect(run({ serviceNumber: '777', displayName: 'Ship entry' }).errors![0]).toMatch(/hub/);
+  });
+});
+
 describe('authorizer', () => {
   it('matches exact codes and prefix wildcards; viewing is allowed from any scope', async () => {
     const env = await makeIdnEnv();

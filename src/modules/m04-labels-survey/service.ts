@@ -326,7 +326,7 @@ export function convertSurveyItem(a: Actor, id: string, input: unknown): { item:
       }
       const created = createAsset(a as AstActor, {
         name: b.name ?? cur.description, manufacturer: cur.manufacturer ?? null, model: cur.model ?? null, serialNumber: cur.serial_number ?? null,
-        classificationId: b.classificationId ?? null, homeShipId: loc.siteKind === 'ship' ? loc.siteId : null, locationId: loc.id,
+        classificationId: b.classificationId, homeShipId: loc.siteKind === 'ship' ? loc.siteId : null, locationId: loc.id,
         custody: { kind: loc.siteKind, id: loc.siteId },
         ...(cur.observed_status ? { assetStatus: cur.observed_status } : {}), ...(b.positionId ? { positionId: b.positionId } : {}),
         notes: `Registered from compartment survey ${String(survey.id)}`,

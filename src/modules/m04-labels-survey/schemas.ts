@@ -59,5 +59,5 @@ export const ItemUpdate = z.strictObject({
   description: Name.optional(), manufacturer: Text(120), model: Text(120), serialNumber: Text(80),
 });
 export const ItemConvert = z.strictObject({
-  expectedVersion: Version, name: Name.optional(), classificationId: Uuid.nullable().optional(), positionId: Uuid.optional(), labelId: Uuid.optional(),
+  expectedVersion: Version, name: Name.optional(), classificationId: Uuid, positionId: Uuid.optional(), labelId: Uuid.optional(),
 });

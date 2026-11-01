@@ -67,7 +67,7 @@ function SurveyDetail({ surveyId, onClose, onChanged }: { surveyId: string; onCl
   ];
   const convertFields: FieldDef[] = [
     { key: 'name', labelKey: 'qr.field.name', type: 'text', maxLength: 120, hintKey: 'qr.hint.convert_name' },
-    { key: 'classificationId', labelKey: 'qr.field.classification', type: 'select', options: classes.items.filter((c) => c.kind === 'equipment').map((c) => ({ value: String(c.id), label: optionLabel(c) })) },
+    { key: 'classificationId', labelKey: 'qr.field.classification', type: 'select', required: true, options: classes.items.filter((c) => c.kind === 'equipment' && c.status === 'active').map((c) => ({ value: String(c.id), label: optionLabel(c) })) },
     { key: 'labelId', labelKey: 'qr.field.spareLabel', type: 'select', hintKey: 'qr.hint.convert_label', options: spare.items.map((l) => ({ value: String(l.id), label: String(l.labelNo) })) },
   ];
 

@@ -20,7 +20,7 @@ describe('M03 HTTP API', () => {
     expect(sys.status).toBe(201);
     expect(sys.json).toMatchObject({ level: 'system', version: 1, homeScopeId: env.shipId });
     const eq = await call(env, 'POST', `${BASE}/positions`, { shipId: env.shipId, parentId: sys.json.id, positionTag: '2.1', name: 'Generator' });
-    const asset = await call(env, 'POST', `${BASE}/assets`, { name: 'Generator engine', homeShipId: env.shipId, manufacturer: 'Acme', serialNumber: 'SN-9', positionId: eq.json.id });
+    const asset = await call(env, 'POST', `${BASE}/assets`, { name: 'Generator engine', classificationId: env.eqClassId, homeShipId: env.shipId, manufacturer: 'Acme', serialNumber: 'SN-9', positionId: eq.json.id });
     expect(asset.status).toBe(201);
     expect(asset.json).toMatchObject({ assetTag: 'SLN-EQ-00000001', serialNumber: 'SN-9', state: { positionId: eq.json.id, assetStatus: 'in_service' } });
 
@@ -38,7 +38,7 @@ describe('M03 HTTP API', () => {
     const env = makeAstEnv({ devAuth: true });
     const p = await call(env, 'POST', `${BASE}/positions`, { shipId: env.shipId, positionTag: '1', name: 'Propulsion' });
     for (const [n, positioned] of [['Pump', true], ['Valve', false], ['Fan', false]] as const) {
-      await call(env, 'POST', `${BASE}/assets`, { name: n, homeShipId: env.shipId, ...(positioned ? { positionId: p.json.id } : {}) });
+      await call(env, 'POST', `${BASE}/assets`, { name: n, classificationId: env.eqClassId, homeShipId: env.shipId, ...(positioned ? { positionId: p.json.id } : {}) });
     }
     const all = await call(env, 'GET', `${BASE}/assets?limit=2`);
     expect(all.json.items).toHaveLength(2);
@@ -57,7 +57,7 @@ describe('M03 HTTP API', () => {
   it('appends movements and lists history newest first, with corrections linked', async () => {
     const env = makeAstEnv({ devAuth: true });
     const p = await call(env, 'POST', `${BASE}/positions`, { shipId: env.shipId, positionTag: '1', name: 'Propulsion' });
-    const a = await call(env, 'POST', `${BASE}/assets`, { name: 'Pump', homeShipId: env.shipId, positionId: p.json.id });
+    const a = await call(env, 'POST', `${BASE}/assets`, { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId, positionId: p.json.id });
     const rem = await call(env, 'POST', `${BASE}/assets/${a.json.id}/movements`, { kind: 'remove', note: 'Landed' });
     expect(rem.status).toBe(201);
     expect(rem.json.current.positionId).toBeNull();
@@ -71,7 +71,7 @@ describe('M03 HTTP API', () => {
 
   it('answers errors with the shared envelope', async () => {
     const env = makeAstEnv({ devAuth: true });
-    const a = await call(env, 'POST', `${BASE}/assets`, { name: 'Pump', homeShipId: env.shipId });
+    const a = await call(env, 'POST', `${BASE}/assets`, { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId });
     const missing = '0190c0de-0000-7000-8000-000000000009';
     expect((await call(env, 'GET', `${BASE}/assets/${missing}`)).json.error.code).toBe('NOT_FOUND');
     expect((await call(env, 'GET', `${BASE}/assets/not-a-uuid`)).status).toBe(400);
@@ -131,8 +131,8 @@ describe('demo seed', () => {
     const deck = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, code: 'D2', name: 'Deck 2', kind: 'deck' });
     const amr = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, parentId: deck.json.id, code: 'AMR', name: 'Auxiliary machinery room', kind: 'compartment' });
     const store = await call(env, 'POST', '/api/v1/org/locations', { siteKind: 'ship', siteId: env.shipId, parentId: deck.json.id, code: 'ES', name: 'Electrical store', kind: 'room' });
-    const fitted = await call(env, 'POST', `${BASE}/assets`, { name: 'Alternator', homeShipId: env.shipId, locationId: amr.json.id });
-    const spare = await call(env, 'POST', `${BASE}/assets`, { name: 'Spare alternator', homeShipId: env.shipId, locationId: amr.json.id, assetStatus: 'in_store' });
+    const fitted = await call(env, 'POST', `${BASE}/assets`, { name: 'Alternator', classificationId: env.eqClassId, homeShipId: env.shipId, locationId: amr.json.id });
+    const spare = await call(env, 'POST', `${BASE}/assets`, { name: 'Spare alternator', classificationId: env.eqClassId, homeShipId: env.shipId, locationId: amr.json.id, assetStatus: 'in_store' });
     const mv = await call(env, 'POST', `${BASE}/assets/${spare.json.id}/movements`, { kind: 'status_change', assetStatus: 'in_store', locationId: store.json.id });
     expect(mv.status, JSON.stringify(mv.json)).toBe(201);
 

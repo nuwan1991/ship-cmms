@@ -1,4 +1,5 @@
 import { register } from '../../src/modules/m03-assets/index.js';
+import { createEntity as createAst } from '../../src/modules/m03-assets/service.js';
 import { ensureTagSequence, grantTagRange } from '../../src/modules/m03-assets/seed.js';
 import { createEntity as createOrg } from '../../src/modules/m01-organization/service.js';
 import { makeOrgEnv, type OrgEnv } from './org-helpers.js';
@@ -9,11 +10,13 @@ export interface AstEnv extends OrgEnv {
   ship2Id: string;
   meId: string;
   eeId: string;
+  /** An active equipment classification; every registered asset needs one. */
+  eqClassId: string;
   /** Give an installation (hub or ship) a block of equipment-tag numbers, as the hub does. */
   grant(installationId: string, size: number): void;
 }
 
-/** Org graph (fleet, two ships, ME and EE departments) with M03 registered and the equipment-tag sequence defined. */
+/** Org graph (fleet, two ships, ME and EE departments) with M03 registered, the equipment-tag sequence defined and one equipment classification. */
 export function makeAstEnv(opts: { devAuth?: boolean; hubRange?: number } = {}): AstEnv {
   const env = makeOrgEnv(opts);
   register(env.ctx, env.app);
@@ -24,9 +27,10 @@ export function makeAstEnv(opts: { devAuth?: boolean; hubRange?: number } = {}):
   const me = createOrg(a, 'department', { code: 'ME', name: 'Marine Engineering' });
   const ee = createOrg(a, 'department', { code: 'EE', name: 'Electrical Engineering' });
   ensureTagSequence(a.wctx);
+  const eqClass = createAst(a, 'classification', { code: 'TEST-EQ', name: 'Test equipment', kind: 'equipment' });
   const grant = (installationId: string, size: number) => void grantTagRange(env.hubActor().wctx, installationId, size);
   if (opts.hubRange !== 0) grant(env.hub.installationId, opts.hubRange ?? 50);
-  return { ...env, fleetId: fleet.id as string, shipId: ship.id as string, ship2Id: ship2.id as string, meId: me.id as string, eeId: ee.id as string, grant };
+  return { ...env, fleetId: fleet.id as string, shipId: ship.id as string, ship2Id: ship2.id as string, meId: me.id as string, eeId: ee.id as string, eqClassId: eqClass.id as string, grant };
 }
 
 export const iso = (offsetMs = 0): string => new Date(Date.now() + offsetMs).toISOString();

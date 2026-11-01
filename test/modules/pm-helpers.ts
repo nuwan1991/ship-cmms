@@ -17,7 +17,7 @@ export function makePmEnv(opts: { devAuth?: boolean } = {}): PmEnv {
   let n = 0;
   return {
     ...env,
-    pmAsset: (name = `Machine ${++n}`, shipId = env.shipId) => createAsset(env.hubActor(), { name, homeShipId: shipId }).asset.id as string,
+    pmAsset: (name = `Machine ${++n}`, shipId = env.shipId) => createAsset(env.hubActor(), { name, classificationId: env.eqClassId, homeShipId: shipId }).asset.id as string,
     meter: (assetId, name = `Hours ${++n}`) => createMeter(env.hubActor(), { assetId, name }).id as string,
   };
 }

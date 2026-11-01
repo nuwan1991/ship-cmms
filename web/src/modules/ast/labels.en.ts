@@ -26,6 +26,7 @@ export const astLabelsEn: Record<string, string> = {
   'ast.field.location': 'Location',
   'ast.move.relocate': 'Move to another location',
   'ast.hint.relocate': 'The new place where the item now is. Its status and position do not change.',
+  'ast.hint.classification': 'The equipment class from the standard catalogue. If the list is empty, the hub has not loaded the catalogue yet.',
   'ast.hint.location': 'Where the item physically is (deck, compartment, store). Leave empty to keep the current location.',
   'ast.assets.empty': 'No assets match.',
   'ast.tags.low': 'Only {n} equipment tag numbers remain on this installation. Ask the hub for another range.',

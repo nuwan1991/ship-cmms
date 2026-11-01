@@ -174,7 +174,7 @@ export function AssetsScreen() {
 
   const fields: FieldDef[] = [
     { key: 'name', labelKey: 'ast.field.name', type: 'text', required: true, maxLength: 120 },
-    { key: 'classificationId', labelKey: 'ast.field.classification', type: 'select', options: opts(classes.items.filter((c) => c.kind === 'equipment')) },
+    { key: 'classificationId', labelKey: 'ast.field.classification', type: 'select', required: true, hintKey: 'ast.hint.classification', options: opts(classes.items.filter((c) => c.kind === 'equipment' && c.status === 'active').sort((x, y) => String(x.code).localeCompare(String(y.code)))) },
     { key: 'homeShipId', labelKey: 'ast.field.homeShip', type: 'select', options: opts(parties.ships) },
     { key: 'serialNumber', labelKey: 'ast.field.serialNumber', type: 'text', maxLength: 80 },
     { key: 'manufacturer', labelKey: 'ast.field.manufacturer', type: 'text', maxLength: 120 },

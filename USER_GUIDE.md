@@ -89,14 +89,14 @@ Do these once, in this order, before people start entering work. Most of the fle
 1. **Organization > Fleet, Commands, Ships**: the fleet structure (hub only).
 2. **Organization > Departments, Workshops, External providers**.
 3. **Organization > Locations**: decks, compartments and spaces for each ship or workshop.
-4. **Assets > Classifications**: the kinds of equipment (for example *Diesel generator*).
+4. **Assets > Classifications**: the kinds of equipment (for example *Diesel generator*). At the hub, load the standard catalogue once with `npm run classifications -- load-standard`; ships receive it at their next synchronization. Equipment cannot be registered until classifications exist.
 5. **Assets > Positions**: each ship's functional tree (system, equipment group, equipment, component).
 6. **Assets > Asset register**: the physical equipment, installed into positions.
 7. **Parts and stores > Parts** and **Stock locations**, then receive the opening stock.
 8. **Planned maintenance > Task templates**, **Meters** and **Plans**.
 9. **Identity & authority > Roles**, **Users** and **Role assignments**.
 
-Steps 3, 6 and 7 can be done in bulk from a spreadsheet: see [section 13](#13-excel-import-and-export).
+Steps 3, 6, 7 and the users in step 9 can be done in bulk from a spreadsheet: see [section 13](#13-excel-import-and-export).
 
 ---
 
@@ -179,7 +179,7 @@ An **asset** is a real item with a serial number. The position is where it goes;
 **To register an asset:**
 
 1. Choose **Register asset**.
-2. Fill in **Name**, **Classification**, **Serial number**, **Manufacturer**, **Model** and **Home ship**.
+2. Fill in **Name**, **Classification**, **Serial number**, **Manufacturer**, **Model** and **Home ship**. **Classification** is required: choose the active equipment class from the standard catalogue.
 3. Optionally choose a **Position** to install it straight away.
 4. Save. The system gives it the next equipment **Tag**, for example `SLN-EQ-00000001`.
 
@@ -473,7 +473,7 @@ Changes *Sent by a newer version* wait until this installation is upgraded; then
 
 ## 13. Excel import and export
 
-Load locations, assets or parts in bulk from a spreadsheet, or export the current data. The **Asset register** and **Locations** screens also have **Download (Excel)** and **Upload from Excel…** buttons that lead here with the right sheet chosen.
+Load locations, assets, parts or users in bulk from a spreadsheet, or export the current data. The **Asset register** and **Locations** screens also have **Download (Excel)** and **Upload from Excel…** buttons that lead here with the right sheet chosen.
 
 For a new ship, load the **locations** first, then the **positions** (on the Positions screen), then the **assets**: the asset sheet refers to position tags and location codes that must already exist.
 
@@ -500,7 +500,9 @@ For a new ship, load the **locations** first, then the **positions** (on the Pos
 
 ### Users
 
-**New user** adds a person with their **Name**, **Rank** and **Service number**. Then use **Sign-in** on their row to set a **Username** (3 to 32 characters: a–z, 0–9, dot, underscore, hyphen) and **Password**. Changing a password does not affect approvals the person made earlier.
+**New user** adds a person with their **Rank**, **Trade/Branch**, **Off No** (official number, unique), **Name** and **Officer/Sailor**. Then use **Sign-in** on their row to set a **Username** (3 to 32 characters: a–z, 0–9, dot, underscore, hyphen) and **Password**. Changing a password does not affect approvals the person made earlier.
+
+To load the whole nominal list at once, use **Excel > Excel import / export** with **Users (nominal list)** (hub only). The columns are **S/N**, **Rank**, **Trade/Branch**, **Off No**, **Name**, **Officer/Sailor** and **Status**. **Off No** is required: a number that already exists updates that person, a new number adds one (then **Name** is required). **S/N** is just the row number on your list and is not stored. **Officer/Sailor** is *officer* or *sailor*. The upload never creates usernames or passwords; set those with **Sign-in** afterwards.
 
 ### Roles and role assignments
 

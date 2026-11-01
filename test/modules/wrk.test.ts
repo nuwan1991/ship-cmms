@@ -15,7 +15,7 @@ import { DAY, HOUR, codeOf, iso, sql } from './ast-helpers.js';
 import { makeWrkEnv, stubApprovals, type WrkEnv } from './wrk-helpers.js';
 
 const id = (r: Record<string, unknown>) => r.id as string;
-const asset = (env: WrkEnv, over: Record<string, unknown> = {}) => createAsset(env.hubActor(), { name: 'Pump', homeShipId: env.shipId, ...over }).asset;
+const asset = (env: WrkEnv, over: Record<string, unknown> = {}) => createAsset(env.hubActor(), { name: 'Pump', classificationId: env.eqClassId, homeShipId: env.shipId, ...over }).asset;
 const wo = (env: WrkEnv, over: Record<string, unknown> = {}, a = env.asHub()) => createWorkOrder(a, { title: 'Replace seal', shipId: env.shipId, ...over });
 /** Drive a work order through to work_complete. */
 const complete = (a: ReturnType<WrkEnv['asHub']>, workOrderId: string) => {
