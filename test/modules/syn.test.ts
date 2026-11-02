@@ -4,6 +4,7 @@ import { exportBundle, handlePull, importBundle, retryQuarantined, resolveConfli
 import { applyChange } from '../../src/modules/m10-sync/apply.js';
 import { signEnvelope } from '../../src/modules/m10-sync/envelope.js';
 import { createRecord } from '../../src/platform/records.js';
+import { defineSequence, grantRange, nextNumber } from '../../src/platform/ranges.js';
 import { addLocation, addShip, directTransport, makeFleet, renameLocation } from './syn-helpers.js';
 import { codeOf } from './ast-helpers.js';
 import { createFirstAdmin } from '../../src/modules/m02-identity/bootstrap.js';
@@ -229,5 +230,25 @@ describe('M10 provisioning and sync', () => {
     expect(a.ship.rows('SELECT 1 FROM idn_user_installation')).toHaveLength(1);
     expect(b.ship.rows('SELECT 1 FROM idn_credential')).toHaveLength(0);
     expect(b.ship.rows('SELECT 1 FROM idn_user_installation')).toHaveLength(0);
+  });
+
+  it('delivers a number range only to the installation it was granted to, even when granted after that ship last synchronized', async () => {
+    const f = makeFleet();
+    const a = addShip(f.hub, 'SHIP-A', f.shipAId);
+    const b = addShip(f.hub, 'SHIP-B', f.shipBId);
+    const w = f.hub.wctx();
+    defineSequence(w, { code: 'equipment_tag', prefix: 'SLN-EQ', width: 8 });
+    grantRange(w, { sequenceCode: 'equipment_tag', installationId: f.hub.ctx.identity!.installationId, size: 1000 });
+    await syncOnce(a.ship.ctx, directTransport(f.hub));
+    await syncOnce(b.ship.ctx, directTransport(f.hub));
+    expect(a.ship.rows('SELECT 1 FROM sys_number_sequence')).toHaveLength(1);
+    expect(a.ship.rows('SELECT 1 FROM sys_number_range')).toHaveLength(0); // the hub's own range stays at the hub
+    // Granted after ship A's cursor has moved past everything.
+    grantRange(w, { sequenceCode: 'equipment_tag', installationId: a.ship.ctx.identity!.installationId, size: 500 });
+    await syncOnce(a.ship.ctx, directTransport(f.hub));
+    await syncOnce(b.ship.ctx, directTransport(f.hub));
+    expect(a.ship.rows('SELECT range_start, range_end FROM sys_number_range')).toEqual([{ range_start: 1001, range_end: 1500 }]);
+    expect(b.ship.rows('SELECT 1 FROM sys_number_range')).toHaveLength(0);
+    expect(nextNumber(a.ship.ctx.db, a.ship.ctx.identity!, 'equipment_tag').tag).toBe('SLN-EQ-00001001');
   });
 });

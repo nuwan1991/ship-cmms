@@ -77,7 +77,8 @@ export const PLATFORM_ENTITIES: readonly EntityDef[] = [
   { type: 'sys.installation', module: 'platform', table: 'sys_installation', recordClass: 'hub_reference', distribution: 'fleet' },
   { type: 'sys.audit_event', module: 'platform', table: 'sys_audit_event', recordClass: 'event', distribution: 'record' },
   { type: 'sys.number_sequence', module: 'platform', table: 'sys_number_sequence', recordClass: 'hub_reference', distribution: 'fleet' },
-  { type: 'sys.number_range', module: 'platform', table: 'sys_number_range', recordClass: 'hub_reference', requires: ['sys.number_sequence'], distribution: 'record' },
+  // A range goes only to the installation it was granted to; a new grant makes the hub resend from the start (M10 refreshAudience).
+  { type: 'sys.number_range', module: 'platform', table: 'sys_number_range', recordClass: 'hub_reference', requires: ['sys.number_sequence'], distribution: 'record', audience: { installationColumn: 'allocated_to_installation_id' } },
 ];
 
 export function createPlatformRegistry(): EntityRegistry {
