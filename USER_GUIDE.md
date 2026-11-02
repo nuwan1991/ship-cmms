@@ -217,7 +217,7 @@ If the screen says *"Only … equipment tag numbers remain on this installation"
 
 The kinds of equipment, optionally inside a **Parent class**. The parent cannot be changed later. Advisories (see [section 9](#9-maintenance-work)) are attached to classifications.
 
-The fleet uses a standard list based on the Ship Work Breakdown Structure (SWBS). Codes such as `SWBS-324-MSB` (*Main switchboard*) are equipment classes, and codes such as `CMP-EL-ACB` (*Air circuit breaker*) are component classes. Choose the most specific class that fits. Classes marked *Navy extension* in the description cover modern equipment, for example lithium-ion energy storage or DC switchboards.
+The fleet uses a standard list based on the Ship Work Breakdown Structure (SWBS); the full list is in [SWBS_REFERENCE.md](SWBS_REFERENCE.md). Codes such as `SWBS-324-MSB` (*Main switchboard*) are equipment classes, and codes such as `CMP-EL-ACB` (*Air circuit breaker*) are component classes. Choose the most specific class that fits. Classes marked *Navy extension* in the description cover modern equipment, for example lithium-ion energy storage or DC switchboards.
 
 An *inactive* class is an old code that has been replaced by a standard class. Records that still use it remain valid, but use the standard class for new records.
 
