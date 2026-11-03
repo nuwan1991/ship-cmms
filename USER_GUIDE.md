@@ -412,6 +412,14 @@ Everything that is **Overdue**, **Due soon** or **Not yet due**, from plans and 
 
 A part or location with stock history cannot be removed: mark it inactive.
 
+Administrators can also create a ship's store from the command line in the project folder, at the hub or on that ship's own installation. **--ship** takes the ship's code or its exact name, and running the same command again changes nothing:
+
+```bash
+npm run store -- create --ship "SLNS Sagara" --code MAIN-STORE --name "SLNS Sagara Main Store"
+```
+
+Add `--kind locker` (or *workshop*, *other*) for a locker, and `--compartment <code>` to tie it to a compartment from *Organization > Locations*. `npm run store -- list --ship "SLNS Sagara"` shows the ship's stores.
+
 ### Stock
 
 **Stock on hand** shows, for each part and location, the quantity **On hand**, **Reserved** and **Available**, and the **Minimum**. Rows under the minimum are marked *low*; tick **Below minimum only** to see just those.
