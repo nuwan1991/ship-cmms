@@ -18,6 +18,7 @@ Offline-first computerized maintenance management for a navy fleet. Every ship (
 | [DECISIONS.md](DECISIONS.md) | Design decisions and their reasons |
 | [OPERATIONS.md](OPERATIONS.md) | Install, run, back up, restore, upgrade, join a ship |
 | [USER_GUIDE.md](USER_GUIDE.md) | Using the screens |
+| [SWBS_REFERENCE.md](SWBS_REFERENCE.md) | Full SWBS list and the standard classification codes, for other departments |
 | [BUILD_STATUS.md](BUILD_STATUS.md) | What is built, what is open |
 
 ## Quick start (development)
