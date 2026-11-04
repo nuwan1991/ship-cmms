@@ -26,6 +26,7 @@
     "seed:demo-pm": "tsx src/modules/m06-planned-maintenance/seed-cli.ts",
     "store-numbers": "tsx src/modules/m07-stores/seed-cli.ts",
     "seed:demo-stores": "tsx src/modules/m07-stores/seed-cli.ts --demo",
+    "store": "tsx src/modules/m07-stores/store-cli.ts",
     "sync": "tsx src/sync-cli.ts",
     "ops": "tsx src/ops-cli.ts",
     "build:server": "tsc -p tsconfig.build.json && node tools/copy-sql.mjs",

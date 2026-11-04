@@ -6,7 +6,7 @@ import type { Authorizer } from '../../platform/authz.js';
 import { AppError } from '../../platform/errors.js';
 import { defineSequence, grantRange } from '../../platform/ranges.js';
 import type { WriteContext } from '../../platform/records.js';
-import { findPartyByCode } from '../m01-organization/index.js';
+import { findLocationByCode, findPartyByCode } from '../m01-organization/index.js';
 import { findAssetByName } from '../m03-assets/index.js';
 import type { Actor } from './actor.js';
 import { addCompatibility, createLocation, createPart, dispatchTransfer, receiveStock, setStockLevel, TRANSFER_SEQUENCE } from './service.js';
@@ -24,6 +24,53 @@ export function ensureStoreSequence(w: WriteContext, opts: { prefix?: string; wi
 export function grantStoreRange(w: WriteContext, installationId: string, size: number) {
   ensureStoreSequence(w);
   return grantRange(w, { sequenceCode: TRANSFER_SEQUENCE, installationId, size });
+}
+
+export interface SiteStoreInput {
+  /** Ship (or workshop) code, e.g. SAGARA, or its exact name, e.g. "SLNS Sagara". */
+  site: string;
+  code: string;
+  name: string;
+  kind?: 'store' | 'locker' | 'workshop' | 'other';
+  /** Code of the compartment in Organization > Locations that the store sits in. */
+  compartment?: string;
+}
+export interface SiteStoreResult { created: boolean; store: Record<string, unknown>; site: { kind: string; code: string; name: string } }
+
+/** Find a ship or workshop by code first, then by exact name (case-insensitive). */
+function findSite(a: Actor, ref: string) {
+  const db = a.wctx.db;
+  const byCode = findPartyByCode(db, 'ship', ref) ?? findPartyByCode(db, 'workshop', ref);
+  if (byCode) return byCode;
+  for (const kind of ['ship', 'workshop'] as const) {
+    const r = db.prepare(`SELECT code FROM org_${kind} WHERE lower(name) = lower(?) AND deleted_at IS NULL`).all(ref.trim()) as { code: string }[];
+    if (r.length > 1) throw new AppError('VALIDATION_FAILED', `More than one ${kind} is named "${ref}"; give its code instead`);
+    if (r[0]) return findPartyByCode(db, kind, r[0].code);
+  }
+  return null;
+}
+
+/**
+ * Create a stock location for a ship or workshop through the normal service (ownership and audit apply).
+ * Safe to repeat: a live store with the same code at that site is returned unchanged.
+ */
+export function createSiteStore(actor: Actor, input: SiteStoreInput): SiteStoreResult {
+  const a: Actor = { ...actor, authz: allowAll };
+  const db = a.wctx.db;
+  const site = findSite(a, input.site);
+  if (!site) throw new AppError('DEPENDENCY_MISSING', `No ship or workshop "${input.site}" on this installation. Add it under Organization > Ships at the hub first (and synchronize if this is a ship installation).`);
+  const code = input.code.trim().toUpperCase();
+  const existing = db.prepare('SELECT * FROM stk_location WHERE home_scope_id = ? AND code = ? AND deleted_at IS NULL').get(site.id, code) as Record<string, unknown> | undefined;
+  const siteOut = { kind: site.kind, code: site.code, name: site.name };
+  if (existing) return { created: false, store: existing, site: siteOut };
+  let orgLocationId: string | null = null;
+  if (input.compartment) {
+    const c = findLocationByCode(db, site.id, input.compartment.trim());
+    if (!c) throw new AppError('DEPENDENCY_MISSING', `No location "${input.compartment}" for ${site.name} under Organization > Locations`);
+    orgLocationId = c.id;
+  }
+  const store = createLocation(a, { code, name: input.name, kind: input.kind ?? 'store', siteId: site.id, orgLocationId });
+  return { created: true, store, site: siteOut };
 }
 
 export interface DemoStoresResult { parts: number; locations: number; transactions: number; transfers: number }

@@ -13,6 +13,7 @@ import { verifySyncedTables } from '../../src/platform/records.js';
 import { codeOf, sql } from './ast-helpers.js';
 import { denyOnly } from './org-helpers.js';
 import { makeStkEnv } from './stk-helpers.js';
+import { createSiteStore } from '../../src/modules/m07-stores/seed.js';
 
 const id = (r: Record<string, unknown>) => r.id as string;
 
@@ -282,5 +283,27 @@ describe('authorization and ownership', () => {
     const t = receiveStock(env.hubActor(), { partId: p, locationId: l, quantity: 2 });
     expect(() => env.ctx.db.prepare('UPDATE stk_transaction SET quantity = 9 WHERE id = ?').run(t.id)).toThrow();
     expect(() => env.ctx.db.prepare('DELETE FROM stk_transaction WHERE id = ?').run(t.id)).toThrow();
+  });
+});
+
+describe('ship store setup (npm run store)', () => {
+  it('creates a store for a ship found by code or name, once', () => {
+    const env = makeStkEnv();
+    const r = createSiteStore(env.hubActor(), { site: 'Ship One', code: 'main-store', name: 'Ship One Main Store' });
+    expect(r.created).toBe(true);
+    expect(r.site.code).toBe('SH1');
+    expect(r.store).toMatchObject({ code: 'MAIN-STORE', kind: 'store' });
+    const again = createSiteStore(env.hubActor(), { site: 'sh1', code: 'MAIN-STORE', name: 'Other name' });
+    expect(again.created).toBe(false);
+    expect(again.store.id).toBe(r.store.id);
+    expect(codeOf(() => createSiteStore(env.hubActor(), { site: 'NOPE', code: 'X', name: 'X' }))).toBe('DEPENDENCY_MISSING');
+    expect(codeOf(() => createSiteStore(env.hubActor(), { site: 'SH1', code: 'LOCKER', name: 'L', compartment: 'NOPE' }))).toBe('DEPENDENCY_MISSING');
+  });
+
+  it('lets a ship installation create its own store but not another ship\'s', () => {
+    const env = makeStkEnv();
+    expect(createSiteStore(env.shipActor(env.shipId), { site: 'SH1', code: 'ER-LOCKER', name: 'Engine room locker', kind: 'locker' }).created).toBe(true);
+    const other = env.ctx.db.prepare('SELECT code FROM org_ship WHERE id = ?').get(env.ship2Id) as { code: string };
+    expect(codeOf(() => createSiteStore(env.shipActor(env.shipId), { site: other.code, code: 'MAIN', name: 'x' }))).toBe('NOT_OWNER');
   });
 });
