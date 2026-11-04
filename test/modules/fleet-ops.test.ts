@@ -146,7 +146,7 @@ describe('defect categories (D67)', () => {
     const sys = createAst(h, 'position', { shipId: env.shipId, positionTag: '3', name: 'Electrical system' });
     const alt = createAst(h, 'position', { shipId: env.shipId, parentId: id(sys), positionTag: '3.1', name: 'Alternator' });
     createAst(h, 'position_responsibility', { positionId: id(sys), departmentId: env.eeId, effectiveFrom: ago(400) });
-    const asset = createAsset(h, { name: 'Alternator 1', homeShipId: env.shipId, positionId: id(alt) }).asset;
+    const asset = createAsset(h, { name: 'Alternator 1', classificationId: env.eqClassId, homeShipId: env.shipId, positionId: id(alt) }).asset;
     expect(suggestCategory(env.ctx.db, { assetId: id(asset) })).toMatchObject({ code: 'ELEC', departmentCode: 'EE' });
     const d = reportDefect(env.asHub(), { title: 'Alternator noisy', assetId: id(asset) });
     expect(d.categoryId).toBe(findCategoryByCode(env.ctx.db, 'ELEC')!.id);
