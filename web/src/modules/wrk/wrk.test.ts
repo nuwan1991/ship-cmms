@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { availableActions, normalizeTag, PROGRESS_TARGET, type Axes } from './actions';
 import { wrkLabelsEn } from './labels.en';
 import { wrkNav } from './index';
+import { PARTY_PATH } from './WorkOrderDetail';
 
 const ax = (o: Partial<Axes> = {}): Axes => ({ progress: 'planned', approval: 'not_required', returnToService: 'not_assessed', closure: 'open', ...o });
 const list = (a: Axes) => [...availableActions(a)].sort();
@@ -49,5 +50,11 @@ describe('labels', () => {
       party: ['command', 'ship', 'department', 'workshop', 'external_provider'], axis: ['progress', 'approval', 'returnToService', 'closure'], decision: ['accepted', 'rejected'],
     };
     for (const [f, vals] of Object.entries(families)) for (const v of vals) expect(wrkLabelsEn[`wrk.${f}.${v}`], `wrk.${f}.${v}`).toBeTruthy();
+  });
+});
+
+describe('party lists', () => {
+  it('loads external providers from the M01 collection (external-providers)', () => {
+    expect(PARTY_PATH).toEqual({ command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'external-providers' });
   });
 });

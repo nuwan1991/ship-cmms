@@ -12,7 +12,7 @@ import { availableActions, PROGRESS_TARGET, type Axes, type WorkOrderAction } fr
 import { ORG, WRK } from './binding';
 
 const PARTY_KINDS = ['command', 'ship', 'department', 'workshop', 'external_provider'];
-const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'providers' };
+const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'external-providers' };
 
 /** The four status axes as separate chips: progress, approval, return to service, closure. They never merge into one status. */
 export function AxisChips({ axes }: { axes: Axes }) {
@@ -27,8 +27,8 @@ export function AxisChips({ axes }: { axes: Axes }) {
 
 function useParties() {
   const lists = {
-    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: useList(`${ORG}/departments`),
-    workshop: useList(`${ORG}/workshops`), external_provider: useList(`${ORG}/providers`),
+    command: useList(`${ORG}/${PARTY_PATH.command}`), ship: useList(`${ORG}/${PARTY_PATH.ship}`), department: useList(`${ORG}/${PARTY_PATH.department}`),
+    workshop: useList(`${ORG}/${PARTY_PATH.workshop}`), external_provider: useList(`${ORG}/${PARTY_PATH.external_provider}`),
   };
   const options = (kind: string) => (lists[kind as keyof typeof lists]?.items ?? []).map((r) => ({ value: String(r.id), label: `${String(r.code)} – ${String(r.name)}` }));
   const name = (p: unknown) => {

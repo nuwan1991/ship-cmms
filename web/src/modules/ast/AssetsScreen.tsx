@@ -13,7 +13,7 @@ import { AST, ORG, optionLabel } from './binding';
 
 export const ASSET_STATUSES = ['in_service', 'in_store', 'under_repair', 'out_of_service', 'condemned'] as const;
 export const PARTY_KINDS = ['command', 'ship', 'department', 'workshop', 'external_provider'] as const;
-const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'providers' };
+export const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'external-providers' };
 
 /** Turns the flat "custodyKind + custodyId" form pair into the API's { custody: { kind, id } } and drops blanks. */
 export function buildMovementBody(kind: string, v: Record<string, unknown>): Record<string, unknown> {
@@ -29,8 +29,8 @@ const statusOpts = () => ASSET_STATUSES.map((s) => ({ value: s, label: t(`ast.as
 
 function useParties() {
   const lists = {
-    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: useList(`${ORG}/departments`),
-    workshop: useList(`${ORG}/workshops`), external_provider: useList(`${ORG}/providers`),
+    command: useList(`${ORG}/${PARTY_PATH.command}`), ship: useList(`${ORG}/${PARTY_PATH.ship}`), department: useList(`${ORG}/${PARTY_PATH.department}`),
+    workshop: useList(`${ORG}/${PARTY_PATH.workshop}`), external_provider: useList(`${ORG}/${PARTY_PATH.external_provider}`),
   };
   const options = (kind: string) => opts(lists[kind as keyof typeof lists]?.items ?? []);
   const name = (kind: unknown, id: unknown) => { const r = lists[kind as keyof typeof lists]?.items.find((x) => x.id === id); return r ? optionLabel(r) : String(id ?? ''); };
