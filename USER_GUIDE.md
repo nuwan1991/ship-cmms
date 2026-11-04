@@ -306,7 +306,7 @@ Choose **New work order** (or add one from a repair case). The form starts fille
 
 Inside an open work order, **Edit dates and people** changes the requested date, requester and supervisor, and the **Crew** list has **Add** and **Remove** (removing asks for a reason and keeps the history).
 
-**Ship sections.** Every ship has its own sections: each new ship starts with *Electrical*, *Engineering* and *General*, and more (for example *Weapons* or *Hull* on a large ship) are added under **Organization → Departments & sections** at headquarters. The same screen holds the departments of each command HQ. Set a person's section under **Users** so their work orders start with the right ship and section.
+**Ship sections.** Every ship has its own sections: each new ship starts with *Electrical*, *Engineering* and *General*. Add more (for example *Weapons* or *Hull* on a large ship) under **Organization → Ship sections**, on the ship's own installation (it works offline and reaches headquarters at the next sync) or at headquarters. A section can be changed only on the installation where it was added, so the three starting sections are changed at headquarters. Command HQ departments are under **Organization → Command departments** (headquarters only). Set a person's section under **Users** so their work orders start with the right ship and section.
 
 Filter the list by ship, progress and closure, or search by number or title. Open a work order to work on it.
 

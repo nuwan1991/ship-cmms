@@ -38,11 +38,14 @@ export const AssignmentCreate = z.strictObject({
   effectiveTo: UtcTimestamp.nullable().optional(),
   reason: Text(500),
 });
-/** ownerKind 'command' = a command HQ department; 'ship' = a section inside a ship. Both empty = legacy, not yet attached. */
+/** A command HQ department (ownerKind 'command'). Both empty = from before owners existed, not yet attached. Ship sections are ShipSectionCreate. */
 export const DepartmentCreate = z.strictObject({
   code: Code, name: Name, sortOrder: SortOrder.optional(), status: ActiveStatus.optional(),
-  ownerKind: z.enum(['command', 'ship']).nullable().optional(), ownerId: Uuid.nullable().optional(),
+  ownerKind: z.literal('command', { error: 'departments belong to a command; a ship\'s sections are entered as ship sections' }).nullable().optional(),
+  ownerId: Uuid.nullable().optional(),
 });
+/** A section inside a ship (Electrical, Engineering, General ...), held by that ship. */
+export const ShipSectionCreate = z.strictObject({ shipId: Uuid, code: Code, name: Name, sortOrder: SortOrder.optional(), status: ActiveStatus.optional() });
 export const WorkshopCreate = z.strictObject({
   code: Code,
   name: Name,
@@ -81,6 +84,7 @@ export const CommandUpdate = upd(CommandCreate);
 export const ShipUpdate = upd(ShipCreate, { fleetId: true });
 export const AssignmentUpdate = upd(AssignmentCreate, { shipId: true });
 export const DepartmentUpdate = upd(DepartmentCreate);
+export const ShipSectionUpdate = upd(ShipSectionCreate, { shipId: true });
 export const WorkshopUpdate = upd(WorkshopCreate);
 export const ProviderUpdate = upd(ProviderCreate);
 export const LocationUpdate = upd(LocationCreate, { siteKind: true, siteId: true });

@@ -23,6 +23,18 @@ describe('M10 provisioning and sync', () => {
     expect(f.hub.rows("SELECT status FROM syn_peer WHERE code = 'SHIP-A'")[0]!.status).toBe('active');
   });
 
+  it('a section added at a ship reaches the hub and other followers of that ship, not other ships', async () => {
+    const f = makeFleet();
+    const a = addShip(f.hub, 'SHIP-A', f.shipAId);
+    const b = addShip(f.hub, 'SHIP-B', f.shipBId);
+    for (const s of [a, b]) await syncOnce(s.ship.ctx, directTransport(f.hub));
+    createRecord(a.ship.wctx(), 'org.ship_section', { home_scope_id: f.shipAId, code: 'HULL', name: 'Hull' });
+    await syncOnce(a.ship.ctx, directTransport(f.hub));
+    await syncOnce(b.ship.ctx, directTransport(f.hub));
+    expect(f.hub.rows('SELECT code, owner_installation_id FROM org_ship_section')).toEqual([{ code: 'HULL', owner_installation_id: a.ship.ctx.identity!.installationId }]);
+    expect(b.ship.rows('SELECT code FROM org_ship_section')).toEqual([]);
+  });
+
   it('is idempotent: a second run moves nothing', async () => {
     const f = makeFleet();
     const { ship } = addShip(f.hub, 'SHIP-A', f.shipAId);

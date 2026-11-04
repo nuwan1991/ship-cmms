@@ -17,7 +17,12 @@ const ROLES = { roles: { apiBase: IDN, collection: 'roles', label: (r: Rec) => `
 const SCOPES = ['fleet', 'command', 'ship', 'workshop', 'department'];
 
 /** Ship sections and command departments, labelled with their owner because every ship has its own ELEC / ENG / GEN. */
-const SECTIONS = { sections: { apiBase: '/api/v1/org', collection: 'departments', label: (r: Rec) => `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}`, filter: (r: Rec) => r.status === 'active' } };
+const ownerLabel = (r: Rec) => `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}`;
+const SECTIONS = {
+  sections: { apiBase: '/api/v1/org', collection: 'ship-sections', label: ownerLabel, filter: (r: Rec) => r.status === 'active' },
+  departments: { apiBase: '/api/v1/org', collection: 'departments', label: ownerLabel, filter: (r: Rec) => r.status === 'active' },
+};
+const sectionOptions = (refs: Record<string, Array<{ value: string; label: string }>>) => [...(refs.sections ?? []), ...(refs.departments ?? [])];
 
 export const userConfig: IdnConfig = {
   noun: 'user', collection: 'users', titleKey: 'idn.title.users', newKey: 'idn.new.user',
@@ -25,13 +30,13 @@ export const userConfig: IdnConfig = {
   rowName: (r) => String(r.displayName),
   columns: [
     { key: 'displayName', labelKey: 'idn.field.displayName' }, { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' },
-    { key: 'sectionId', labelKey: 'idn.field.section', render: lookup('sections', 'sectionId') }, cStatus,
+    { key: 'sectionId', labelKey: 'idn.field.section', render: (r, _tz, refs) => sectionOptions(refs).find((o) => o.value === r.sectionId)?.label ?? String(r.sectionId ?? '') }, cStatus,
   ],
   fields: (refs) => [
     { key: 'displayName', labelKey: 'idn.field.displayName', type: 'text', required: true, maxLength: 120 },
     { key: 'rank', labelKey: 'idn.field.rank', type: 'text', maxLength: 60 },
     { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber', type: 'text', maxLength: 40 },
-    { key: 'sectionId', labelKey: 'idn.field.section', type: 'select', options: refs.sections ?? [], hintKey: 'idn.hint.section' },
+    { key: 'sectionId', labelKey: 'idn.field.section', type: 'select', options: sectionOptions(refs), hintKey: 'idn.hint.section' },
     status,
   ],
 };

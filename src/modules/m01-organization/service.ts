@@ -92,7 +92,7 @@ const DEFS: Record<OrgNoun, Def> = {
     beforeTombstone: (a, cur) => {
       const db = a.wctx.db;
       if (exists(db, 'SELECT 1 FROM org_location WHERE home_scope_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Ship still has locations');
-      if (exists(db, "SELECT 1 FROM org_department WHERE owner_kind = 'ship' AND owner_id = ? AND deleted_at IS NULL", cur.id)) throw blocked('Ship still has sections');
+      if (exists(db, 'SELECT 1 FROM org_ship_section WHERE home_scope_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Ship still has sections');
       if (exists(db, 'SELECT 1 FROM org_workshop WHERE ship_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Ship still has an onboard workshop');
       if (currentOrFuture(db, 'ship_id', cur.id as string)) throw blocked('Ship has current or future command assignments');
     },
@@ -119,15 +119,31 @@ const DEFS: Record<OrgNoun, Def> = {
   },
   department: {
     noun: 'department', type: 'org.department', create: S.DepartmentCreate, update: S.DepartmentUpdate,
-    // A ship section is managed under that ship's authority, a command department under its command's; unattached ones fleet-wide.
-    scope: (v) => (typeof v.owner_id === 'string' && (v.owner_kind === 'ship' || v.owner_kind === 'command') ? { kind: v.owner_kind, id: v.owner_id } : { kind: 'fleet' }),
+    // A command department is managed under its command's authority; unattached ones fleet-wide.
+    scope: (v) => (typeof v.owner_id === 'string' && v.owner_kind === 'command' ? { kind: 'command', id: v.owner_id } : { kind: 'fleet' }),
     unique: (v) => [{ owner_id: v.owner_id ?? null, code: v.code }],
+    // Departments only belong to commands, so a command id alone is enough.
+    prepare: (_a, v) => (v.owner_id && v.owner_kind == null ? { ...v, owner_kind: 'command' } : v),
     validate: (a, next) => {
       const kind = next.owner_kind ?? null;
       const owner = next.owner_id ?? null;
+      if (kind === 'ship') throw invalid('A ship\'s sections are entered as ship sections, not departments');
       if ((kind === null) !== (owner === null)) throw invalid('ownerKind and ownerId are given together or not at all');
-      if (kind === 'ship') requireLive(a.wctx.db, 'ship', owner, 'Ship');
       if (kind === 'command') requireLive(a.wctx.db, 'command', owner, 'Command');
+    },
+  },
+  ship_section: {
+    noun: 'ship_section', type: 'org.ship_section', create: S.ShipSectionCreate, update: S.ShipSectionUpdate,
+    scope: (v) => ({ kind: 'ship', ...(typeof v.home_scope_id === 'string' ? { id: v.home_scope_id } : {}) }),
+    unique: (v) => [{ home_scope_id: v.home_scope_id, code: v.code }],
+    prepare: (_a, v) => {
+      const { ship_id: shipId, ...rest } = v;
+      return shipId === undefined ? rest : { ...rest, home_scope_id: shipId };
+    },
+    validate: (a, next, cur) => {
+      requireLive(a.wctx.db, 'ship', next.home_scope_id, 'Ship');
+      // Entered where the ship is held: its own installation, or the hub / a command. Edits are the creating installation's (records.ts).
+      if (!cur) assertSiteHeldHere(a, next.home_scope_id as string);
     },
   },
   workshop: {
@@ -177,12 +193,20 @@ const DEFS: Record<OrgNoun, Def> = {
   },
 };
 
-/** A ship/workshop installation may only enter locations for the site it serves (sys_installation.org_unit_id). Hub/command may enter any (and own them). */
+/** The ship or workshop a ship/workshop installation serves (sys_installation.org_unit_id); null at the hub or a command. */
+function servedSiteId(a: Actor): string | null {
+  const inst = a.wctx.installation;
+  if (inst.kind !== 'ship' && inst.kind !== 'workshop') return null;
+  const r = a.wctx.db.prepare('SELECT org_unit_id FROM sys_installation WHERE id = ? AND deleted_at IS NULL').get(inst.installationId) as { org_unit_id: string | null } | undefined;
+  return r?.org_unit_id ?? null;
+}
+
+/** A ship/workshop installation may only enter locations and sections for the site it serves. Hub/command may enter any (and own them). */
 function assertSiteHeldHere(a: Actor, siteId: string): void {
   const inst = a.wctx.installation;
   if (inst.kind !== 'ship' && inst.kind !== 'workshop') return;
-  const r = a.wctx.db.prepare('SELECT org_unit_id FROM sys_installation WHERE id = ? AND deleted_at IS NULL').get(inst.installationId) as { org_unit_id: string | null } | undefined;
-  if (r?.org_unit_id && r.org_unit_id !== siteId) {
+  const r = { org_unit_id: servedSiteId(a) };
+  if (r.org_unit_id && r.org_unit_id !== siteId) {
     throw new AppError('NOT_OWNER', 'This installation serves a different ship or workshop; locations are entered where the site is held', { servedSiteId: r.org_unit_id, requestedSiteId: siteId });
   }
 }
@@ -245,7 +269,8 @@ function doCreate(a: Actor, def: Def, input: unknown): Row {
 export function createEntity(a: Actor, noun: OrgNoun, input: unknown): Row {
   const def = DEFS[noun];
   const parsed = S.parse(def.create, input) as Values;
-  authorize(a, perm(noun, 'create'), def.scope(snake(parsed)));
+  const v = snake(parsed);
+  authorize(a, perm(noun, 'create'), def.scope(def.prepare && (noun === 'ship_section' || noun === 'department') ? def.prepare(a, v) : v));
   assertCanWrite(a, def);
   if (noun !== 'ship') return toApi(doCreate(a, def, input));
   // A new ship comes with its standard sections so work can be raised against them straight away.
@@ -268,22 +293,27 @@ function addMissingSections(a: Actor, shipId: string): number {
   const db = a.wctx.db;
   let n = 0;
   DEFAULT_SHIP_SECTIONS.forEach((d, i) => {
-    if (exists(db, "SELECT 1 FROM org_department WHERE owner_kind = 'ship' AND owner_id = ? AND code = ? AND deleted_at IS NULL", shipId, d.code)) return;
-    doCreate(a, DEFS.department, { code: d.code, name: d.name, sortOrder: (i + 1) * 10, ownerKind: 'ship', ownerId: shipId });
+    if (exists(db, 'SELECT 1 FROM org_ship_section WHERE home_scope_id = ? AND code = ? AND deleted_at IS NULL', shipId, d.code)) return;
+    doCreate(a, DEFS.ship_section, { shipId, code: d.code, name: d.name, sortOrder: (i + 1) * 10 });
     n += 1;
   });
   return n;
 }
 
 /**
- * Give ships their default sections. `shipId` limits it to one ship; otherwise every live ship. Idempotent, so it is safe to
- * run again (e.g. for ships created before sections existed). Hub only, like all department changes.
+ * Give ships their default sections. `shipId` limits it to one ship; otherwise every live ship (at a ship installation: only
+ * the ship it serves). Idempotent, so it is safe to run again (e.g. for ships created before sections existed).
  */
 export function ensureDefaultSections(a: Actor, shipId?: string): { ships: number; created: number } {
-  assertCanWrite(a, DEFS.department);
   const db = a.wctx.db;
-  const ships = shipId ? [requireLive(db, 'ship', shipId, 'Ship')] : (db.prepare('SELECT id FROM org_ship WHERE deleted_at IS NULL ORDER BY id').all() as Row[]);
-  for (const s of ships) authorize(a, perm('department', 'create'), { kind: 'ship', id: s.id as string });
+  const served = servedSiteId(a);
+  const ships = shipId ? [requireLive(db, 'ship', shipId, 'Ship')]
+    : served ? [requireLive(db, 'ship', served, 'Ship')]
+    : (db.prepare('SELECT id FROM org_ship WHERE deleted_at IS NULL ORDER BY id').all() as Row[]);
+  for (const s of ships) {
+    authorize(a, perm('ship_section', 'create'), { kind: 'ship', id: s.id as string });
+    assertSiteHeldHere(a, s.id as string);
+  }
   return db.transaction(() => {
     let created = 0;
     for (const s of ships) created += addMissingSections(a, s.id as string);
@@ -301,6 +331,8 @@ export function updateEntity(a: Actor, noun: OrgNoun, id: string, input: unknown
   assertCanWrite(a, def);
   if (cur.version !== expectedVersion) throw new AppError('VERSION_CONFLICT', 'Record changed since it was read', { currentVersion: cur.version, expectedVersion });
   const patch = snake(rest);
+  // Attaching an older department to a command: the command id is enough.
+  if (noun === 'department' && patch.owner_id && cur.owner_kind == null && patch.owner_kind === undefined) patch.owner_kind = 'command';
   // Moving a record to another owner (e.g. a section to another ship) needs the right there too.
   authorize(a, perm(noun, 'update'), def.scope({ ...cur, ...patch }));
   return toApi(

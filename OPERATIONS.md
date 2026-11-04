@@ -79,7 +79,7 @@ Never provision a new machine for a ship that still has unsent changes: first cr
 2. Stop the application, install the new version (`git pull`, `npm ci`, `npm run web:install`, `npm run web:build`, `npm run build:server`).
 3. Start it. Pending database changes are applied at start, **after an automatic backup** (named `pre_upgrade`). `npm run migrate` does the same without starting.
 4. Upgrade the hub first. A ship on an older version keeps working; changes written by a newer version wait in *Synchronization > Conflicts* ("sent by a newer version") until that ship is upgraded, then *Retry held changes*. Installations more than one step apart refuse each other's changes.
-5. After the upgrade that adds ship sections, run `npm run org-sections` once at the hub. It gives ships created before that version their *Electrical*, *Engineering* and *General* sections (new ships get them automatically). Running it again does nothing.
+5. After the upgrade that adds ship sections, run `npm run org-sections` once at the hub. It gives ships created before that version their *Electrical*, *Engineering* and *General* sections (new ships get them automatically). Running it again does nothing. On a ship installation it does the same for that ship only. Add `org.ship_section.*` to the roles that should manage sections (for example a ship's administrator, at ship scope).
 
 ## 8. Everyday checks
 

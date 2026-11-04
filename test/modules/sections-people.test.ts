@@ -3,7 +3,9 @@
  * a work order (M05).
  */
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SHIP_SECTIONS } from '../../src/modules/m01-organization/index.js';
+import { DEFAULT_SHIP_SECTIONS, getDepartment, resolveParty } from '../../src/modules/m01-organization/index.js';
+import { applyMigrations, discoverMigrations } from '../../src/platform/db/migrate.js';
+import { openDatabase } from '../../src/platform/db/open.js';
 import { createEntity, ensureDefaultSections, tombstoneEntity, updateEntity } from '../../src/modules/m01-organization/service.js';
 import { createResource, updateResource } from '../../src/modules/m02-identity/service.js';
 import { createWorkOrder } from '../../src/modules/m05-work/index.js';
@@ -16,64 +18,76 @@ import { makeWrkEnv } from './wrk-helpers.js';
 const rows = (db: { prepare(s: string): { all(...p: unknown[]): unknown[] } }, q: string, ...p: unknown[]) => db.prepare(q).all(...p) as Array<Record<string, unknown>>;
 
 describe('ship sections and command departments', () => {
-  it('a new ship starts with Electrical, Engineering and General, owned by that ship', () => {
+  const sections = (db: Parameters<typeof rows>[0], shipId: string) =>
+    rows(db, 'SELECT id, version, code, name, owner_installation_id FROM org_ship_section WHERE home_scope_id = ? AND deleted_at IS NULL ORDER BY sort_order, code', shipId);
+
+  it('a new ship starts with Electrical, Engineering and General, held by that ship', () => {
     const env = makeOrgEnv();
     const s = seedBasics(env);
-    const got = rows(env.ctx.db, "SELECT code, name, owner_kind, owner_id FROM org_department WHERE owner_id = ? AND deleted_at IS NULL ORDER BY sort_order", s.shipId);
-    expect(got).toEqual(DEFAULT_SHIP_SECTIONS.map((d) => ({ code: d.code, name: d.name, owner_kind: 'ship', owner_id: s.shipId })));
+    expect(sections(env.ctx.db, s.shipId).map((r) => ({ code: r.code, name: r.name }))).toEqual(DEFAULT_SHIP_SECTIONS.map((d) => ({ code: d.code, name: d.name })));
+    expect(env.ctx.entities.get('org.ship_section')).toMatchObject({ recordClass: 'owner_mutable', distribution: 'record' });
   });
 
-  it('codes are unique per owner, so every ship has its own ENG, and large ships can add more', () => {
+  it('codes are unique per ship, so every ship has its own ENG, and large ships can add more', () => {
     const env = makeOrgEnv();
     const s = seedBasics(env);
     const a = env.hubActor();
-    const ship2 = createEntity(a, 'ship', { code: 'SH2', name: 'Ship Two' });
-    expect(rows(env.ctx.db, "SELECT 1 FROM org_department WHERE code = 'ENG' AND deleted_at IS NULL")).toHaveLength(2);
-    const wpn = createEntity(a, 'department', { code: 'WPN', name: 'Weapons', ownerKind: 'ship', ownerId: s.shipId });
-    expect(wpn).toMatchObject({ ownerKind: 'ship', ownerId: s.shipId, code: 'WPN' });
-    expect(codeOf(() => createEntity(a, 'department', { code: 'ENG', name: 'Engineering 2', ownerKind: 'ship', ownerId: s.shipId }))).toBe('DUPLICATE');
-    // A command HQ department may use the same code as a ship section.
+    createEntity(a, 'ship', { code: 'SH2', name: 'Ship Two' });
+    expect(rows(env.ctx.db, "SELECT 1 FROM org_ship_section WHERE code = 'ENG' AND deleted_at IS NULL")).toHaveLength(2);
+    expect(createEntity(a, 'ship_section', { shipId: s.shipId, code: 'WPN', name: 'Weapons' })).toMatchObject({ homeScopeId: s.shipId, code: 'WPN' });
+    expect(codeOf(() => createEntity(a, 'ship_section', { shipId: s.shipId, code: 'ENG', name: 'Engineering 2' }))).toBe('DUPLICATE');
+    expect(codeOf(() => createEntity(a, 'ship_section', { shipId: s.commandIds[0], code: 'X', name: 'X' }))).toBe('DEPENDENCY_MISSING');
+  });
+
+  it('the ship\'s own installation adds and edits its sections, offline, for its own ship only', () => {
+    const env = makeOrgEnv();
+    const s = seedBasics(env);
+    const other = createEntity(env.hubActor(), 'ship', { code: 'SH2', name: 'Ship Two' }).id as string;
+    const ship = env.shipActor(s.shipId);
+    const hull = createEntity(ship, 'ship_section', { shipId: s.shipId, code: 'HULL', name: 'Hull' });
+    expect(hull.ownerInstallationId).toBe(ship.wctx.installation.installationId);
+    expect(updateEntity(ship, 'ship_section', hull.id as string, { expectedVersion: 1, name: 'Hull & Deck' })).toMatchObject({ name: 'Hull & Deck', version: 2 });
+    expect(codeOf(() => createEntity(ship, 'ship_section', { shipId: other, code: 'HULL', name: 'Hull' }))).toBe('NOT_OWNER');
+    // One writer per record: the hub cannot edit the ship's section, and the ship cannot edit the hub's default ones.
+    expect(codeOf(() => updateEntity(env.hubActor(), 'ship_section', hull.id as string, { expectedVersion: 2, name: 'X' }))).toBe('NOT_OWNER');
+    const eng = sections(env.ctx.db, s.shipId).find((r) => r.code === 'ENG')!;
+    expect(codeOf(() => updateEntity(ship, 'ship_section', eng.id as string, { expectedVersion: 1, name: 'X' }))).toBe('NOT_OWNER');
+    // Changes made at the ship are written to the change log for the hub.
+    expect(rows(env.ctx.db, "SELECT op FROM sys_change_log WHERE entity_type = 'org.ship_section' AND entity_id = ?", hull.id)).toHaveLength(2);
+  });
+
+  it('command HQ departments stay hub data; a ship section cannot be entered as a department any more', () => {
+    const env = makeOrgEnv();
+    const s = seedBasics(env);
+    const a = env.hubActor();
     expect(createEntity(a, 'department', { code: 'ENG', name: 'Technical HQ', ownerKind: 'command', ownerId: s.commandIds[0] })).toMatchObject({ ownerKind: 'command' });
-    void ship2;
-  });
-
-  it('owner kind and id go together and must exist', () => {
-    const env = makeOrgEnv();
-    const s = seedBasics(env);
-    const a = env.hubActor();
-    expect(codeOf(() => createEntity(a, 'department', { code: 'X', name: 'X', ownerKind: 'ship' }))).toBe('VALIDATION_FAILED');
-    expect(codeOf(() => createEntity(a, 'department', { code: 'X', name: 'X', ownerId: s.shipId }))).toBe('VALIDATION_FAILED');
-    expect(codeOf(() => createEntity(a, 'department', { code: 'X', name: 'X', ownerKind: 'ship', ownerId: s.commandIds[0] }))).toBe('DEPENDENCY_MISSING');
-    // Legacy departments without an owner still work (treated as command departments not yet attached).
+    expect(codeOf(() => createEntity(a, 'department', { code: 'X', name: 'X', ownerKind: 'ship', ownerId: s.shipId }))).toBe('VALIDATION_FAILED');
+    expect(createEntity(a, 'department', { code: 'X', name: 'X', ownerId: s.commandIds[0] })).toMatchObject({ ownerKind: 'command' }); // a command id is enough
+    expect(codeOf(() => createEntity(a, 'department', { code: 'Z', name: 'Z', ownerKind: 'command' }))).toBe('VALIDATION_FAILED');
+    expect(codeOf(() => createEntity(a, 'department', { code: 'X', name: 'X', ownerKind: 'command', ownerId: s.shipId }))).toBe('DEPENDENCY_MISSING');
     expect(createEntity(a, 'department', { code: 'OLD', name: 'Old dept' })).toMatchObject({ ownerKind: null, ownerId: null });
+    expect(codeOf(() => createEntity(env.shipActor(s.shipId), 'department', { code: 'Y', name: 'Y', ownerKind: 'command', ownerId: s.commandIds[0] }))).toBe('NOT_OWNER');
   });
 
-  it('a ship section is managed under that ship\'s authority', () => {
+  it('sections are authorized against their ship; departments against their command', () => {
     const env = makeOrgEnv();
     const s = seedBasics(env);
     const seen: Array<{ permission: string; scope: unknown }> = [];
     const spy = { name: 'spy', check: (_p: unknown, permission: string, scope: unknown) => { seen.push({ permission, scope }); return { allowed: true }; } };
-    createEntity(env.hubActor(spy as never), 'department', { code: 'HULL', name: 'Hull', ownerKind: 'ship', ownerId: s.shipId });
-    expect(seen).toContainEqual({ permission: 'org.department.create', scope: { kind: 'ship', id: s.shipId } });
-    expect(codeOf(() => createEntity(env.hubActor(denyOnly('org.department.create')), 'department', { code: 'HULL2', name: 'Hull', ownerKind: 'ship', ownerId: s.shipId }))).toBe('FORBIDDEN');
+    createEntity(env.hubActor(spy as never), 'ship_section', { shipId: s.shipId, code: 'HULL', name: 'Hull' });
+    createEntity(env.hubActor(spy as never), 'department', { code: 'TECH', name: 'Tech', ownerKind: 'command', ownerId: s.commandIds[0] });
+    expect(seen).toContainEqual({ permission: 'org.ship_section.create', scope: { kind: 'ship', id: s.shipId } });
+    expect(seen).toContainEqual({ permission: 'org.department.create', scope: { kind: 'command', id: s.commandIds[0] } });
+    expect(codeOf(() => createEntity(env.hubActor(denyOnly('org.ship_section.create')), 'ship_section', { shipId: s.shipId, code: 'H2', name: 'Hull' }))).toBe('FORBIDDEN');
   });
 
-  it('moving a section to another ship needs the right on the new ship too', () => {
-    const env = makeOrgEnv();
-    const s = seedBasics(env);
-    const ship2 = createEntity(env.hubActor(), 'ship', { code: 'SH2', name: 'Ship Two' }).id as string;
-    const sec = createEntity(env.hubActor(), 'department', { code: 'HULL', name: 'Hull', ownerKind: 'ship', ownerId: s.shipId });
-    const onlyShip1 = { name: 'ship1', check: (_p: unknown, _perm: string, scope?: { id?: string }) => (scope?.id === ship2 ? { allowed: false, reason: 'not ship 2' } : { allowed: true }) };
-    expect(codeOf(() => updateEntity(env.hubActor(onlyShip1 as never), 'department', sec.id as string, { expectedVersion: 1, ownerId: ship2 }))).toBe('FORBIDDEN');
-  });
-
-  it('back-fills default sections for ships created before sections existed, and is safe to repeat', () => {
+  it('back-fills default sections, at the hub for every ship or at a ship for itself, and is safe to repeat', () => {
     const env = makeOrgEnv();
     const s = seedBasics(env);
     const a = env.hubActor();
-    const eng = rows(env.ctx.db, "SELECT id, version FROM org_department WHERE owner_id = ? AND code = 'ENG'", s.shipId)[0]!;
-    tombstoneEntity(a, 'department', eng.id as string, { expectedVersion: eng.version, reason: 'test' });
-    expect(ensureDefaultSections(a)).toEqual({ ships: 1, created: 1 });
+    const eng = sections(env.ctx.db, s.shipId).find((r) => r.code === 'ENG')!;
+    tombstoneEntity(a, 'ship_section', eng.id as string, { expectedVersion: eng.version, reason: 'test' });
+    expect(ensureDefaultSections(env.shipActor(s.shipId))).toEqual({ ships: 1, created: 1 });
     expect(ensureDefaultSections(a)).toEqual({ ships: 1, created: 0 });
     expect(ensureDefaultSections(a, s.shipId)).toEqual({ ships: 1, created: 0 });
   });
@@ -84,20 +98,38 @@ describe('ship sections and command departments', () => {
     expect(codeOf(() => tombstoneEntity(env.hubActor(), 'ship', s.shipId, { expectedVersion: 1, reason: 'test' }))).toBe('WORKFLOW_BLOCKED');
   });
 
-  it('department lists filter by owner and carry the owner\'s code and name', async () => {
+  it('section lists filter by ship and answer like departments (owner kind, code and name)', async () => {
     const env = makeOrgEnv({ devAuth: true });
     const s = seedBasics(env);
-    const r = await env.app.inject(`/api/v1/org/departments?ownerKind=ship&ownerId=${s.shipId}`);
+    const r = await env.app.inject(`/api/v1/org/ship-sections?shipId=${s.shipId}`);
     expect(r.statusCode).toBe(200);
     const items = r.json().items as Array<Record<string, unknown>>;
     expect(items.map((i) => i.code).sort()).toEqual(['ELEC', 'ENG', 'GEN']);
-    expect(items[0]).toMatchObject({ ownerKind: 'ship', ownerId: s.shipId, ownerCode: 'SH1', ownerName: 'Ship One' });
+    expect(items[0]).toMatchObject({ shipId: s.shipId, ownerKind: 'ship', ownerId: s.shipId, ownerCode: 'SH1', ownerName: 'Ship One' });
+    const deps = await env.app.inject('/api/v1/org/departments');
+    expect(deps.json().items).toEqual([]);
   });
 
-  it('only the hub changes departments and sections', () => {
+  it('a section is a `department` party, so work orders and users can point at it', () => {
     const env = makeOrgEnv();
     const s = seedBasics(env);
-    expect(codeOf(() => createEntity(env.shipActor(s.shipId), 'department', { code: 'HULL', name: 'Hull', ownerKind: 'ship', ownerId: s.shipId }))).toBe('NOT_OWNER');
+    const eng = sections(env.ctx.db, s.shipId).find((r) => r.code === 'ENG')!;
+    expect(resolveParty(env.ctx.db, { kind: 'department', id: eng.id as string })).toMatchObject({ kind: 'department', code: 'ENG' });
+    expect(getDepartment(env.ctx.db, eng.id as string)).toMatchObject({ ownerKind: 'ship', ownerId: s.shipId });
+  });
+
+  it('migration 0004 moves sections entered as departments, keeping their ids', () => {
+    const db = openDatabase(':memory:');
+    const all = discoverMigrations();
+    applyMigrations(db, all.filter((m) => !(m.module === 'M01' && m.id.startsWith('0004'))));
+    const cols = "id, version, owner_installation_id, home_scope_id, created_at, created_by, created_installation_id, updated_at, updated_by, code, name, sort_order, status, owner_kind, owner_id";
+    const t = '2026-11-01T00:00:00.000Z';
+    db.prepare(`INSERT INTO org_department (${cols}) VALUES ('sec-1', 3, 'hub', NULL, ?, 'u', 'hub', ?, 'u', 'ELEC', 'Electrical', 10, 'active', 'ship', 'ship-1')`).run(t, t);
+    db.prepare(`INSERT INTO org_department (${cols}) VALUES ('dep-1', 1, 'hub', NULL, ?, 'u', 'hub', ?, 'u', 'TECH', 'Technical', 1, 'active', 'command', 'cmd-1')`).run(t, t);
+    applyMigrations(db, all);
+    expect(rows(db, 'SELECT id, version, home_scope_id, code, owner_installation_id FROM org_ship_section')).toEqual([{ id: 'sec-1', version: 3, home_scope_id: 'ship-1', code: 'ELEC', owner_installation_id: 'hub' }]);
+    expect(getDepartment(db, 'sec-1')).toMatchObject({ ownerKind: 'ship', ownerId: 'ship-1' });
+    expect(getDepartment(db, 'dep-1')).toMatchObject({ ownerKind: 'command', ownerId: 'cmd-1' });
   });
 });
 
@@ -107,7 +139,7 @@ describe('a user\'s home section pre-fills forms', () => {
     const a = env.actor(env.adminId);
     const fleet = createEntity(a as never, 'fleet', { code: 'F1', name: 'Fleet' });
     const ship = createEntity(a as never, 'ship', { code: 'SH1', name: 'Ship One', fleetId: fleet.id });
-    const elec = rows(env.ctx.db, "SELECT id FROM org_department WHERE owner_id = ? AND code = 'ELEC'", ship.id)[0]!.id as string;
+    const elec = rows(env.ctx.db, "SELECT id FROM org_ship_section WHERE home_scope_id = ? AND code = 'ELEC'", ship.id)[0]!.id as string;
     const { userId } = await env.addUser({ username: 'sparky', displayName: 'Sparky', permissions: [] });
     const u = rows(env.ctx.db, 'SELECT version FROM idn_user WHERE id = ?', userId)[0]!;
     updateResource(a, env.ctx, 'user', userId, { expectedVersion: u.version, sectionId: elec, rank: 'PO' });
@@ -169,7 +201,7 @@ describe('work order: requested on / by, supervisor and crew', () => {
 
   it('a ship section can be the executing party', () => {
     const env = makeWrkEnv();
-    const elec = rows(env.ctx.db, "SELECT id FROM org_department WHERE owner_id = ? AND code = 'ELEC'", env.shipId)[0]!.id as string;
+    const elec = rows(env.ctx.db, "SELECT id FROM org_ship_section WHERE home_scope_id = ? AND code = 'ELEC'", env.shipId)[0]!.id as string;
     const w = createWorkOrder(env.asHub(), { title: 'Fix light', shipId: env.shipId, executingParty: { kind: 'department', id: elec } });
     expect(w.executingParty).toEqual({ kind: 'department', id: elec });
   });

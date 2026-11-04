@@ -27,8 +27,11 @@ export function AxisChips({ axes }: { axes: Axes }) {
 }
 
 function useParties() {
+  // A `department` party is a command department or a ship section (two lists, one party kind on the wire).
+  const departments = useList(`${ORG}/departments`, { limit: '500' });
+  const sections = useList(`${ORG}/ship-sections`, { limit: '500' });
   const lists = {
-    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: useList(`${ORG}/departments`, { limit: '500' }),
+    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: { items: [...sections.items, ...departments.items] },
     workshop: useList(`${ORG}/workshops`), external_provider: useList(`${ORG}/providers`),
   };
   const opt = (r: Rec) => ({ value: String(r.id), label: `${String(r.code)} – ${String(r.name)}` });

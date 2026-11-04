@@ -9,15 +9,15 @@ import { allowAllAuthorizer } from './seed-authz.js';
 import { ensureDefaultSections } from './service.js';
 
 /**
- * npm run org-sections  - gives every ship at the hub the default sections (Electrical, Engineering, General) it does not have yet.
- * Safe to run again. New ships get them automatically; this is for ships created before sections existed.
+ * npm run org-sections  - gives ships the default sections (Electrical, Engineering, General) they do not have yet: every ship
+ * at the hub or a command, the ship it serves at a ship installation. Safe to run again. New ships get them automatically.
  */
 const config = loadConfig();
 const db = openDatabase(config.dbFile);
 applyMigrations(db, discoverMigrations());
 const identity = getLocalIdentity(db);
-if (!identity || identity.kind !== 'hub') {
-  console.error('Ship sections are hub reference data; run this at the hub');
+if (!identity) {
+  console.error('This installation is not initialized (run init-installation)');
   process.exit(2);
 }
 const registry = createPlatformRegistry();
