@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMovementBody } from './AssetsScreen';
+import { buildMovementBody, PARTY_PATH } from './AssetsScreen';
 import { astLabelsEn } from './labels.en';
 import { astNav } from './index';
 
@@ -13,5 +13,11 @@ describe('ast movement body', () => {
 describe('ast labels and nav', () => {
   it('every nav label exists and every permission uses the ast prefix', () => {
     for (const n of astNav) { expect(astLabelsEn[n.labelKey]).toBeTruthy(); expect(n.requiredPermission).toMatch(/^ast\./); }
+  });
+});
+
+describe('ast party lists', () => {
+  it('loads external providers from the M01 collection (external-providers)', () => {
+    expect(PARTY_PATH.external_provider).toBe('external-providers');
   });
 });

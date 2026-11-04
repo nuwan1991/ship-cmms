@@ -13,7 +13,7 @@ import { ORG, WRK } from './binding';
 import { usePeople } from './people';
 
 const PARTY_KINDS: readonly string[] = UI_PARTY_KINDS;
-const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'providers' };
+const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'external-providers' };
 
 /** The four status axes as separate chips: progress, approval, return to service, closure. They never merge into one status. */
 export function AxisChips({ axes }: { axes: Axes }) {
@@ -31,8 +31,8 @@ function useParties() {
   const departments = useList(`${ORG}/departments`, { limit: '500' });
   const sections = useList(`${ORG}/ship-sections`, { limit: '500' });
   const lists = {
-    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: { items: [...sections.items, ...departments.items] },
-    workshop: useList(`${ORG}/workshops`), external_provider: useList(`${ORG}/providers`),
+    command: useList(`${ORG}/${PARTY_PATH.command}`), ship: useList(`${ORG}/${PARTY_PATH.ship}`), department: { items: [...sections.items, ...departments.items] },
+    workshop: useList(`${ORG}/${PARTY_PATH.workshop}`), external_provider: useList(`${ORG}/${PARTY_PATH.external_provider}`),
   };
   const opt = (r: Rec) => ({ value: String(r.id), label: `${String(r.code)} – ${String(r.name)}` });
   const deptOpt = (r: Rec) => ({ value: String(r.id), label: `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}` });
