@@ -14,8 +14,9 @@ export function register(ctx: AppContext, app: FastifyInstance): void {
   mountOrgRoutes(ctx, app);
 }
 
-export { getShipCommandAt, listShipsByCommand, getLocation, resolveParty, resolveParties, findPartyByCode, findLocationByCode } from './queries.js';
-export type { ShipCommandAt, ShipSummary, LocationInfo, ResolvedParty } from './queries.js';
+export { getShipCommandAt, listShipsByCommand, getLocation, getDepartment, resolveParty, resolveParties, findPartyByCode, findLocationByCode } from './queries.js';
+export type { ShipCommandAt, ShipSummary, LocationInfo, ResolvedParty, DepartmentInfo } from './queries.js';
+export { DEFAULT_SHIP_SECTIONS, ensureDefaultSections } from './service.js';
 export { ORG_PERMISSIONS, ORG_NOUNS, perm as orgPermission } from './permissions.js';
 export type { OrgNoun, OrgAction } from './permissions.js';
 export { ORG_ENTITIES } from './entities.js';

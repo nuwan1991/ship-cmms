@@ -159,6 +159,24 @@ export function findPartyByCode(db: Db, kind: PartyRef['kind'], code: string): R
   return r ? { kind, id: r.id, code: r.code, name: r.name, status: r.status ?? null } : null;
 }
 
+export interface DepartmentInfo {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  /** 'ship' = a section inside a ship, 'command' = a command HQ department, null = not yet attached. */
+  ownerKind: 'ship' | 'command' | null;
+  ownerId: string | null;
+}
+
+/** A live department or ship section, with its owner. */
+export function getDepartment(db: Db, id: string): DepartmentInfo | null {
+  const r = db.prepare('SELECT id, code, name, status, owner_kind, owner_id FROM org_department WHERE id = ? AND deleted_at IS NULL').get(id) as
+    | { id: string; code: string; name: string; status: string; owner_kind: 'ship' | 'command' | null; owner_id: string | null }
+    | undefined;
+  return r ? { id: r.id, code: r.code, name: r.name, status: r.status, ownerKind: r.owner_kind ?? null, ownerId: r.owner_id ?? null } : null;
+}
+
 export function resolveParties(db: Db, refs: readonly PartyRef[]): Array<ResolvedParty | null> {
   return refs.map((r) => resolveParty(db, r));
 }

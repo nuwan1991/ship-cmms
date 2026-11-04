@@ -6,7 +6,7 @@ import type { Db } from '../../platform/db/open.js';
 import { AppError } from '../../platform/errors.js';
 import { appendEvent, createRecord, tombstoneRecord, updateRecord, writeAudit } from '../../platform/records.js';
 import { nowUtc } from '../../platform/time.js';
-import { resolveParty } from '../m01-organization/index.js';
+import { getDepartment, resolveParty } from '../m01-organization/index.js';
 import type { Actor } from './actor.js';
 import { revokeUserSessions } from './auth.js';
 import { authorize } from './guard.js';
@@ -84,6 +84,9 @@ const DEFS: Record<Resource, Def> = {
   user: {
     type: 'idn.user', create: S.UserCreate, update: S.UserUpdate,
     unique: (v) => (v.service_number ? [{ service_number: v.service_number }] : []),
+    validate: (a, next) => {
+      if (next.section_id && !getDepartment(a.wctx.db, next.section_id as string)) throw new AppError('DEPENDENCY_MISSING', `Section ${String(next.section_id)} does not exist on this installation`, { entity: 'Section', id: next.section_id });
+    },
     beforeTombstone: (a, cur) => {
       const db = a.wctx.db;
       if (exists(db, 'SELECT 1 FROM idn_credential WHERE user_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('User still has a credential; deactivate the user instead');

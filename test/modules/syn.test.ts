@@ -4,6 +4,7 @@ import { exportBundle, handlePull, importBundle, retryQuarantined, resolveConfli
 import { applyChange } from '../../src/modules/m10-sync/apply.js';
 import { signEnvelope } from '../../src/modules/m10-sync/envelope.js';
 import { createRecord } from '../../src/platform/records.js';
+import { schemaVersions } from '../../src/platform/db/migrate.js';
 import { addLocation, addShip, directTransport, makeFleet, renameLocation } from './syn-helpers.js';
 import { codeOf } from './ast-helpers.js';
 import { createFirstAdmin } from '../../src/modules/m02-identity/bootstrap.js';
@@ -83,7 +84,7 @@ describe('M10 provisioning and sync', () => {
     // Now an equal-version fork: replay version 2 content that differs.
     const row = f.hub.rows('SELECT * FROM org_location')[0]!;
     const forked = { ...row, name: 'Different v2' };
-    const change = { changeId: crypto.randomUUID(), originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert', version: row.version, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString(), schemaVersion: 1, payload: forked, payloadHash: payloadHash(forked) };
+    const change = { changeId: crypto.randomUUID(), originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert', version: row.version, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString(), schemaVersion: schemaVersions(f.hub.ctx.db).M01!, payload: forked, payloadHash: payloadHash(forked) };
     const peerId = ship.ctx.identity!.installationId;
     const o = applyChange(f.hub.ctx, change, { installationId: peerId, isHub: false });
     expect(o).toMatchObject({ status: 'quarantined', code: 'FORK' });
@@ -101,13 +102,14 @@ describe('M10 provisioning and sync', () => {
     const row = ship.rows('SELECT * FROM org_location')[0]!;
     const base = { originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert' as const, version: 1, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString() };
     const src = { installationId: ship.ctx.identity!.installationId, isHub: false };
-    const bad = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: 'a'.repeat(64) }, src);
+    const sv = schemaVersions(f.hub.ctx.db).M01!; // the sender's (current) org schema
+    const bad = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: sv, payload: row, payloadHash: 'a'.repeat(64) }, src);
     expect(bad).toMatchObject({ status: 'rejected', code: 'INTEGRITY' });
     const newer = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: 99, payload: row, payloadHash: payloadHash(row) }, src);
     expect(newer).toMatchObject({ status: 'quarantined', code: 'SCHEMA_NEWER' });
-    const notOwner = applyChange(f.hub.ctx, { ...base, originInstallationId: crypto.randomUUID(), ownerInstallationId: crypto.randomUUID(), changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: payloadHash(row) }, src);
+    const notOwner = applyChange(f.hub.ctx, { ...base, originInstallationId: crypto.randomUUID(), ownerInstallationId: crypto.randomUUID(), changeId: crypto.randomUUID(), schemaVersion: sv, payload: row, payloadHash: payloadHash(row) }, src);
     expect(notOwner).toMatchObject({ status: 'rejected', code: 'NOT_OWNER' });
-    const hubRef = applyChange(f.hub.ctx, { ...base, entityType: 'org.ship', changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: payloadHash(row) }, src);
+    const hubRef = applyChange(f.hub.ctx, { ...base, entityType: 'org.ship', changeId: crypto.randomUUID(), schemaVersion: sv, payload: row, payloadHash: payloadHash(row) }, src);
     expect(hubRef).toMatchObject({ status: 'rejected', code: 'NOT_OWNER' });
     // A forged envelope (signed by another key) is refused by the hub.
     const other = addShip(f.hub, 'SHIP-B', null).ship;

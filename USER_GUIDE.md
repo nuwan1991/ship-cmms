@@ -291,14 +291,22 @@ A repair case groups the work orders for one repair. Open a case to see its work
 
 ### Work orders
 
-Choose **New work order** (or add one from a repair case) and fill in:
+Choose **New work order** (or add one from a repair case). The form starts filled in from your own details; change anything that is not right:
 
-- **Title** and **Description**
-- **Ship**, or an **Equipment tag**
+- **Title** (required) and **Description**
+- **Ship**: your ship. You can also give an **Equipment tag** instead; the ship then comes from the equipment
+- **Party type** and **Party**: who does the work. It starts as your own **Ship section** (for example *Electrical*) if your user has a section, otherwise your **Ship**. Other choices are *Command*, *Command department*, *Workshop* and *External provider*. Ship sections list only the sections of the chosen ship
+- **Requested on**: date and time, now by default
+- **Required by (date)**: pick the date the work is needed by from the calendar (optional)
+- **Requested by**: you, by default; pick someone else if you are entering it for them
+- **Supervisor**: the person who supervises the work (optional for now)
+- **Crew / workers**: tick everyone who will carry out the work (optional; more can be added later)
 - **Type of work**: *Corrective*, *Preventive*, *Inspection* or *Modification*
 - **Priority**: *Low*, *Normal*, *High* or *Urgent*
-- **Executing party** (optional): who does the work, such as a department, workshop or external provider
-- **Requested by**: the date the work is wanted by
+
+Inside an open work order, **Edit dates and people** changes the requested date, requester and supervisor, and the **Crew** list has **Add** and **Remove** (removing asks for a reason and keeps the history).
+
+**Ship sections.** Every ship has its own sections: each new ship starts with *Electrical*, *Engineering* and *General*, and more (for example *Weapons* or *Hull* on a large ship) are added under **Organization → Departments & sections** at headquarters. The same screen holds the departments of each command HQ. Set a person's section under **Users** so their work orders start with the right ship and section.
 
 Filter the list by ship, progress and closure, or search by number or title. Open a work order to work on it.
 

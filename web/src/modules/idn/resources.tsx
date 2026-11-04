@@ -16,14 +16,22 @@ const USERS = { users: { apiBase: IDN, collection: 'users', label: (r: Rec) => S
 const ROLES = { roles: { apiBase: IDN, collection: 'roles', label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` } };
 const SCOPES = ['fleet', 'command', 'ship', 'workshop', 'department'];
 
+/** Ship sections and command departments, labelled with their owner because every ship has its own ELEC / ENG / GEN. */
+const SECTIONS = { sections: { apiBase: '/api/v1/org', collection: 'departments', label: (r: Rec) => `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}`, filter: (r: Rec) => r.status === 'active' } };
+
 export const userConfig: IdnConfig = {
   noun: 'user', collection: 'users', titleKey: 'idn.title.users', newKey: 'idn.new.user',
+  refs: SECTIONS,
   rowName: (r) => String(r.displayName),
-  columns: [{ key: 'displayName', labelKey: 'idn.field.displayName' }, { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' }, cStatus],
-  fields: () => [
+  columns: [
+    { key: 'displayName', labelKey: 'idn.field.displayName' }, { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' },
+    { key: 'sectionId', labelKey: 'idn.field.section', render: lookup('sections', 'sectionId') }, cStatus,
+  ],
+  fields: (refs) => [
     { key: 'displayName', labelKey: 'idn.field.displayName', type: 'text', required: true, maxLength: 120 },
     { key: 'rank', labelKey: 'idn.field.rank', type: 'text', maxLength: 60 },
     { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber', type: 'text', maxLength: 40 },
+    { key: 'sectionId', labelKey: 'idn.field.section', type: 'select', options: refs.sections ?? [], hintKey: 'idn.hint.section' },
     status,
   ],
 };

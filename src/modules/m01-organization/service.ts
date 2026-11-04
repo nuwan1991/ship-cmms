@@ -71,6 +71,7 @@ const DEFS: Record<OrgNoun, Def> = {
       const db = a.wctx.db;
       if (currentOrFuture(db, 'command_id', cur.id as string)) throw blocked('Command has current or future ship assignments');
       if (exists(db, 'SELECT 1 FROM org_workshop WHERE command_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Command still has workshops');
+      if (exists(db, "SELECT 1 FROM org_department WHERE owner_kind = 'command' AND owner_id = ? AND deleted_at IS NULL", cur.id)) throw blocked('Command still has departments');
     },
   },
   ship: {
@@ -91,6 +92,7 @@ const DEFS: Record<OrgNoun, Def> = {
     beforeTombstone: (a, cur) => {
       const db = a.wctx.db;
       if (exists(db, 'SELECT 1 FROM org_location WHERE home_scope_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Ship still has locations');
+      if (exists(db, "SELECT 1 FROM org_department WHERE owner_kind = 'ship' AND owner_id = ? AND deleted_at IS NULL", cur.id)) throw blocked('Ship still has sections');
       if (exists(db, 'SELECT 1 FROM org_workshop WHERE ship_id = ? AND deleted_at IS NULL', cur.id)) throw blocked('Ship still has an onboard workshop');
       if (currentOrFuture(db, 'ship_id', cur.id as string)) throw blocked('Ship has current or future command assignments');
     },
@@ -117,8 +119,16 @@ const DEFS: Record<OrgNoun, Def> = {
   },
   department: {
     noun: 'department', type: 'org.department', create: S.DepartmentCreate, update: S.DepartmentUpdate,
-    scope: () => ({ kind: 'fleet' }),
-    unique: (v) => [{ code: v.code }],
+    // A ship section is managed under that ship's authority, a command department under its command's; unattached ones fleet-wide.
+    scope: (v) => (typeof v.owner_id === 'string' && (v.owner_kind === 'ship' || v.owner_kind === 'command') ? { kind: v.owner_kind, id: v.owner_id } : { kind: 'fleet' }),
+    unique: (v) => [{ owner_id: v.owner_id ?? null, code: v.code }],
+    validate: (a, next) => {
+      const kind = next.owner_kind ?? null;
+      const owner = next.owner_id ?? null;
+      if ((kind === null) !== (owner === null)) throw invalid('ownerKind and ownerId are given together or not at all');
+      if (kind === 'ship') requireLive(a.wctx.db, 'ship', owner, 'Ship');
+      if (kind === 'command') requireLive(a.wctx.db, 'command', owner, 'Command');
+    },
   },
   workshop: {
     noun: 'workshop', type: 'org.workshop', create: S.WorkshopCreate, update: S.WorkshopUpdate,
@@ -237,7 +247,48 @@ export function createEntity(a: Actor, noun: OrgNoun, input: unknown): Row {
   const parsed = S.parse(def.create, input) as Values;
   authorize(a, perm(noun, 'create'), def.scope(snake(parsed)));
   assertCanWrite(a, def);
-  return toApi(doCreate(a, def, input));
+  if (noun !== 'ship') return toApi(doCreate(a, def, input));
+  // A new ship comes with its standard sections so work can be raised against them straight away.
+  return toApi(a.wctx.db.transaction(() => {
+    const ship = doCreate(a, def, input);
+    addMissingSections(a, ship.id as string);
+    return ship;
+  })());
+}
+
+/** The sections every ship starts with. More can be added per ship (large ships), and these can be renamed or retired. */
+export const DEFAULT_SHIP_SECTIONS: ReadonlyArray<{ code: string; name: string }> = [
+  { code: 'ELEC', name: 'Electrical' },
+  { code: 'ENG', name: 'Engineering' },
+  { code: 'GEN', name: 'General' },
+];
+
+/** Create the default sections a ship does not have yet (by code, live rows). Returns how many were created. */
+function addMissingSections(a: Actor, shipId: string): number {
+  const db = a.wctx.db;
+  let n = 0;
+  DEFAULT_SHIP_SECTIONS.forEach((d, i) => {
+    if (exists(db, "SELECT 1 FROM org_department WHERE owner_kind = 'ship' AND owner_id = ? AND code = ? AND deleted_at IS NULL", shipId, d.code)) return;
+    doCreate(a, DEFS.department, { code: d.code, name: d.name, sortOrder: (i + 1) * 10, ownerKind: 'ship', ownerId: shipId });
+    n += 1;
+  });
+  return n;
+}
+
+/**
+ * Give ships their default sections. `shipId` limits it to one ship; otherwise every live ship. Idempotent, so it is safe to
+ * run again (e.g. for ships created before sections existed). Hub only, like all department changes.
+ */
+export function ensureDefaultSections(a: Actor, shipId?: string): { ships: number; created: number } {
+  assertCanWrite(a, DEFS.department);
+  const db = a.wctx.db;
+  const ships = shipId ? [requireLive(db, 'ship', shipId, 'Ship')] : (db.prepare('SELECT id FROM org_ship WHERE deleted_at IS NULL ORDER BY id').all() as Row[]);
+  for (const s of ships) authorize(a, perm('department', 'create'), { kind: 'ship', id: s.id as string });
+  return db.transaction(() => {
+    let created = 0;
+    for (const s of ships) created += addMissingSections(a, s.id as string);
+    return { ships: ships.length, created };
+  })();
 }
 
 export function updateEntity(a: Actor, noun: OrgNoun, id: string, input: unknown): Row {
@@ -250,6 +301,8 @@ export function updateEntity(a: Actor, noun: OrgNoun, id: string, input: unknown
   assertCanWrite(a, def);
   if (cur.version !== expectedVersion) throw new AppError('VERSION_CONFLICT', 'Record changed since it was read', { currentVersion: cur.version, expectedVersion });
   const patch = snake(rest);
+  // Moving a record to another owner (e.g. a section to another ship) needs the right there too.
+  authorize(a, perm(noun, 'update'), def.scope({ ...cur, ...patch }));
   return toApi(
     guard(() =>
       db.transaction(() => {

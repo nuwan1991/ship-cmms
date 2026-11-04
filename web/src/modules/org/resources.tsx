@@ -33,11 +33,27 @@ export const commandConfig: ResourceConfig = {
   defaults: { status: 'active' },
 };
 
+/** Command HQ departments (under a command) and ship sections (inside a ship: Electrical, Engineering, General ...). */
 export const departmentConfig: ResourceConfig = {
   noun: 'department', collection: 'departments', titleKey: 'org.title.departments', newKey: 'org.new.department', hubOnly: true, rowName,
-  columns: [cCode, cName, { key: 'sortOrder', labelKey: 'org.field.sortOrder' }, cStatus],
-  fields: () => [code, name, sortOrder, status],
-  defaults: { status: 'active' },
+  refs: {
+    commands: { collection: 'commands', label: (r) => `${String(r.code)} – ${String(r.name)}` },
+    ships: { collection: 'ships', label: (r) => `${String(r.code)} – ${String(r.name)}` },
+  },
+  columns: [
+    { key: 'ownerKind', labelKey: 'org.field.ownerKind', render: (r) => <span>{t(`org.dept.kind.${r.ownerKind ? String(r.ownerKind) : 'none'}`)}</span> },
+    { key: 'ownerName', labelKey: 'org.field.owner', render: (r) => <span>{r.ownerCode ? `${String(r.ownerCode)} – ${String(r.ownerName)}` : '—'}</span> },
+    cCode, cName, { key: 'sortOrder', labelKey: 'org.field.sortOrder' }, cStatus,
+  ],
+  fields: (refs) => [
+    {
+      key: 'ownerKind', labelKey: 'org.field.ownerKind', type: 'select', required: true, hintKey: 'org.hint.dept_kind',
+      options: () => [opt('ship', 'org.dept.kind.ship'), opt('command', 'org.dept.kind.command')],
+    },
+    { key: 'ownerId', labelKey: 'org.field.owner', type: 'select', required: true, options: (v) => (v.ownerKind === 'command' ? refs.commands : refs.ships) ?? [] },
+    code, name, sortOrder, status,
+  ],
+  defaults: { status: 'active', ownerKind: 'ship' },
 };
 
 export const providerConfig: ResourceConfig = {

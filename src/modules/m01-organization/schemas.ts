@@ -38,7 +38,11 @@ export const AssignmentCreate = z.strictObject({
   effectiveTo: UtcTimestamp.nullable().optional(),
   reason: Text(500),
 });
-export const DepartmentCreate = z.strictObject({ code: Code, name: Name, sortOrder: SortOrder.optional(), status: ActiveStatus.optional() });
+/** ownerKind 'command' = a command HQ department; 'ship' = a section inside a ship. Both empty = legacy, not yet attached. */
+export const DepartmentCreate = z.strictObject({
+  code: Code, name: Name, sortOrder: SortOrder.optional(), status: ActiveStatus.optional(),
+  ownerKind: z.enum(['command', 'ship']).nullable().optional(), ownerId: Uuid.nullable().optional(),
+});
 export const WorkshopCreate = z.strictObject({
   code: Code,
   name: Name,

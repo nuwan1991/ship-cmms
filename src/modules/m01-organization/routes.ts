@@ -8,7 +8,7 @@ import { actorFromRequest, authorize, type Actor } from './actor.js';
 import { perm, type OrgNoun } from './permissions.js';
 import { getLive, getLocation, getShipCommandAt, resolveParty, TABLES, toApi, type Row } from './queries.js';
 import { parse } from './schemas.js';
-import { createEntity, reassignShip, tombstoneEntity, updateEntity } from './service.js';
+import { createEntity, ensureDefaultSections, reassignShip, tombstoneEntity, updateEntity } from './service.js';
 
 export const ORG_API_PREFIX = '/api/v1/org';
 
@@ -30,7 +30,7 @@ const FILTERS: Record<OrgNoun, Record<string, string>> = {
   command: { status: 'status' },
   ship: { status: 'status', fleetId: 'fleet_id', commandId: 'v.command_id' }, // v.* = org_v_ship_current_command
   ship_command_assignment: { shipId: 'ship_id', commandId: 'command_id' },
-  department: { status: 'status' },
+  department: { status: 'status', ownerKind: 'owner_kind', ownerId: 'owner_id' },
   workshop: { status: 'status', kind: 'kind', commandId: 'command_id', shipId: 'ship_id' },
   external_provider: { status: 'status' },
   location: { status: 'status', kind: 'kind', siteId: 'home_scope_id', parentId: 'parent_id' },
@@ -87,7 +87,14 @@ function listRows(a: Actor, ctx: AppContext, noun: OrgNoun, rawQuery: unknown) {
     : `SELECT t.* FROM ${TABLES[noun]} t WHERE ${where.join(' AND ')} ORDER BY t.id LIMIT ?`;
   const rows = a.wctx.db.prepare(sql).all(...params, q.limit + 1) as Row[];
   const page = rows.slice(0, q.limit);
+  // Departments carry their owner's code and name: every ship has its own ELEC / ENG / GEN, so pick lists need "SHIP-1 / ELEC".
+  const ownerOf = (r: Row) => {
+    const kind = r.owner_kind === 'ship' || r.owner_kind === 'command' ? r.owner_kind : null;
+    const o = kind && typeof r.owner_id === 'string' ? getLive(a.wctx.db, kind, r.owner_id) : undefined;
+    return { ownerCode: o?.code ?? null, ownerName: o?.name ?? null };
+  };
   const items = page.map((r) => {
+    if (noun === 'department') return { ...toApi(r), ...ownerOf(r) };
     if (!ship) return toApi(r);
     const { cur_command_id, cur_command_code, cur_command_name, cur_assigned_since, ...rest } = r;
     return {
@@ -138,6 +145,10 @@ export function mountOrgRoutes(ctx: AppContext, app: FastifyInstance): void {
     const body = (req.body ?? {}) as Record<string, unknown>;
     return reassignShip(actorFromRequest(ctx, req), { ...body, shipId: id });
   });
+
+  // Default sections (Electrical, Engineering, General): for every ship, or one ship. Safe to repeat.
+  app.post(`${base}/ships/default-sections`, async (req) => ensureDefaultSections(actorFromRequest(ctx, req)));
+  app.post(`${base}/ships/:id/default-sections`, async (req) => ensureDefaultSections(actorFromRequest(ctx, req), idParam(req)));
 
   app.get(`${base}/ships/:id/command`, async (req) => {
     const a = actorFromRequest(ctx, req);

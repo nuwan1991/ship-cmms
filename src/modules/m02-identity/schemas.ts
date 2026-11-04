@@ -23,8 +23,8 @@ const Gate = z.string().regex(/^[a-z]{2,4}\.[a-z0-9_]+\.[a-z0-9_]+$/, 'gate code
 
 export const Tombstone = z.strictObject({ expectedVersion: Version, reason: z.string().trim().min(1).max(500) });
 
-export const UserCreate = z.strictObject({ displayName: Name, rank: Text(60), serviceNumber: Text(40), status: ActiveStatus.optional() });
-export const UserUpdate = z.strictObject({ expectedVersion: Version, displayName: Name.optional(), rank: Text(60), serviceNumber: Text(40), status: ActiveStatus.optional() });
+export const UserCreate = z.strictObject({ displayName: Name, rank: Text(60), serviceNumber: Text(40), status: ActiveStatus.optional(), sectionId: Uuid.nullable().optional() });
+export const UserUpdate = z.strictObject({ expectedVersion: Version, displayName: Name.optional(), rank: Text(60), serviceNumber: Text(40), status: ActiveStatus.optional(), sectionId: Uuid.nullable().optional() });
 
 export const RoleCreate = z.strictObject({ code: Code, name: Name, description: Text(500), status: ActiveStatus.optional() });
 export const RoleUpdate = z.strictObject({ expectedVersion: Version, name: Name.optional(), description: Text(500), status: ActiveStatus.optional() });

@@ -30,6 +30,8 @@ export const idnLabelsEn: Record<string, string> = {
   'idn.field.status': 'Status',
   'idn.field.displayName': 'Name',
   'idn.field.rank': 'Rank',
+  'idn.field.section': 'Section',
+  'idn.hint.section': 'The ship section or command department this person works in. New work orders they raise start with this ship and section.',
   'idn.field.serviceNumber': 'Service number',
   'idn.field.code': 'Code',
   'idn.field.name': 'Name',

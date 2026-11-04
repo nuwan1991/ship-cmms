@@ -2,7 +2,7 @@
  * Permission codes `wrk.<noun>.<action>` (CONTRACTS §7), announced on the event bus at startup (D25).
  * `wrk.work_order.approve` and `wrk.acceptance.accept` are also the GATE codes M02 configures (mode, offline policy).
  */
-export type WrkNoun = 'defect' | 'repair_case' | 'work_order' | 'job_card' | 'advisory' | 'labour_entry' | 'finding' | 'test_record' | 'acceptance' | 'handover' | 'status_event';
+export type WrkNoun = 'defect' | 'repair_case' | 'work_order' | 'job_card' | 'work_order_crew' | 'advisory' | 'labour_entry' | 'finding' | 'test_record' | 'acceptance' | 'handover' | 'status_event';
 export const perm = (noun: WrkNoun, action: string): string => `wrk.${noun}.${action}`;
 
 export const GATE_APPROVE = 'wrk.work_order.approve';

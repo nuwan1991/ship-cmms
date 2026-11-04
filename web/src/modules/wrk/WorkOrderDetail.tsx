@@ -8,10 +8,11 @@ import { useSystem } from '../../platform/system';
 import { toLocalDisplay } from '../../platform/time';
 import { ErrorNotice, Modal, StatusChip } from '../../platform/ui';
 import { useList } from '../../platform/useList';
-import { availableActions, PROGRESS_TARGET, type Axes, type WorkOrderAction } from './actions';
+import { availableActions, departmentsFor, PROGRESS_TARGET, UI_PARTY_KINDS, uiPartyKind, wirePartyKind, type Axes, type WorkOrderAction } from './actions';
 import { ORG, WRK } from './binding';
+import { usePeople } from './people';
 
-const PARTY_KINDS = ['command', 'ship', 'department', 'workshop', 'external_provider'];
+const PARTY_KINDS: readonly string[] = UI_PARTY_KINDS;
 const PARTY_PATH: Record<string, string> = { command: 'commands', ship: 'ships', department: 'departments', workshop: 'workshops', external_provider: 'providers' };
 
 /** The four status axes as separate chips: progress, approval, return to service, closure. They never merge into one status. */
@@ -27,25 +28,34 @@ export function AxisChips({ axes }: { axes: Axes }) {
 
 function useParties() {
   const lists = {
-    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: useList(`${ORG}/departments`),
+    command: useList(`${ORG}/commands`), ship: useList(`${ORG}/ships`), department: useList(`${ORG}/departments`, { limit: '500' }),
     workshop: useList(`${ORG}/workshops`), external_provider: useList(`${ORG}/providers`),
   };
-  const options = (kind: string) => (lists[kind as keyof typeof lists]?.items ?? []).map((r) => ({ value: String(r.id), label: `${String(r.code)} – ${String(r.name)}` }));
+  const opt = (r: Rec) => ({ value: String(r.id), label: `${String(r.code)} – ${String(r.name)}` });
+  const deptOpt = (r: Rec) => ({ value: String(r.id), label: `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}` });
+  /** Options for a screen party kind; ship sections are limited to the chosen ship when one is given. */
+  const options = (kind: string, shipId?: string) => {
+    if (kind === 'ship_section' || kind === 'command_department') return departmentsFor(lists.department.items.filter((r) => r.status !== 'inactive'), kind, shipId).map(deptOpt);
+    return (lists[kind as keyof typeof lists]?.items ?? []).map(opt);
+  };
   const name = (p: unknown) => {
     const x = p as { kind?: string; id?: string } | null;
     if (!x?.id) return '—';
     const r = lists[x.kind as keyof typeof lists]?.items.find((i) => i.id === x.id);
-    return r ? `${t(`wrk.party.${String(x.kind)}`)}: ${String(r.name)}` : String(x.id);
+    if (!r) return String(x.id);
+    const kind = uiPartyKind(String(x.kind), r.ownerKind);
+    return `${t(`wrk.party.${kind}`)}: ${x.kind === 'department' && r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.name)}`;
   };
   return { options, name };
 }
 export { PARTY_KINDS, PARTY_PATH, useParties };
 
-type Dialog = null | 'labour' | 'finding' | 'test' | 'jobcard' | 'accept' | 'decide' | 'review' | 'close' | 'reopen' | 'offer' | 'progress';
+type Dialog = null | 'labour' | 'finding' | 'test' | 'jobcard' | 'accept' | 'decide' | 'review' | 'close' | 'reopen' | 'offer' | 'progress' | 'people' | 'crew';
 
 export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrderId: string; onClose(): void; onChanged(): void }) {
   const { tz } = useSystem();
   const parties = useParties();
+  const people = usePeople();
   const [wo, setWo] = useState<Rec | null>(null);
   const [err, setErr] = useState<Error | null>(null);
   const labour = useList(`${WRK}/work-orders/${workOrderId}/labour`);
@@ -55,6 +65,7 @@ export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrder
   const [dialog, setDialog] = useState<Dialog>(null);
   const [target, setTarget] = useState<'in_progress' | 'on_hold' | 'work_complete'>('in_progress');
   const [card, setCard] = useState<Rec | null>(null);
+  const [removingCrew, setRemovingCrew] = useState<Rec | null>(null);
   const load = () => api<Rec>('GET', `${WRK}/work-orders/${workOrderId}`).then(setWo, setErr);
   useEffect(() => { void load(); }, [workOrderId]); // eslint-disable-line react-hooks/exhaustive-deps
   const done = () => { void load(); labour.reload(); findings.reload(); tests.reload(); history.reload(); onChanged(); setErr(null); };
@@ -63,6 +74,8 @@ export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrder
   const post = (path: string, body: unknown) => api('POST', `${WRK}/work-orders/${workOrderId}/${path}`, body).then(done, (e: Error) => { setErr(e); throw e; });
   const note: FieldDef = { key: 'note', labelKey: 'wrk.field.note', type: 'textarea', maxLength: 500 };
   const cards = ((wo?.jobCards as Rec[]) ?? []);
+  const crew = ((wo?.crew as Rec[]) ?? []);
+  const canEdit = can('wrk.work_order.update') && axes?.closure !== 'closed';
   const handovers = ((wo?.handovers as Rec[]) ?? []);
   const pending = handovers.find((h) => h.status === 'pending');
   const act = (a: WorkOrderAction) => {
@@ -87,11 +100,15 @@ export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrder
             <dt>{t('wrk.field.workType')}</dt><dd>{t(`wrk.wtype.${String(wo.workType)}`)} · {t(`wrk.priority.${String(wo.priority)}`)}</dd>
             <dt>{t('wrk.field.operatingParty')}</dt><dd>{parties.name(wo.operatingParty)}</dd>
             <dt>{t('wrk.field.executingParty')}</dt><dd>{parties.name(wo.effectiveExecutingParty)}{pending ? ` (${t('wrk.handover.pending')})` : ''}</dd>
+            <dt>{t('wrk.field.requestedAt')}</dt><dd>{toLocalDisplay(wo.requestedAt as string | null, tz)}{wo.requestedDue ? ` · ${t('wrk.field.requestedDue')} ${String(wo.requestedDue)}` : ''}</dd>
+            <dt>{t('wrk.field.requestedBy')}</dt><dd>{people.name(wo.requestedByUserId)}</dd>
+            <dt>{t('wrk.field.supervisor')}</dt><dd>{people.name(wo.supervisorUserId)}</dd>
             <dt>{t('wrk.field.labour')}</dt><dd>{t('wrk.labour.total', { h: (Number(wo.labourMinutes) / 60).toFixed(1) })}</dd>
             {wo.description ? <><dt>{t('wrk.field.description')}</dt><dd>{String(wo.description)}</dd></> : null}
           </dl>
           <div className="tools">
             {BUTTONS.filter(([a, , perm]) => actions.has(a) && can(perm)).map(([a, key]) => <button key={a} className={a === 'start' || a === 'accept' ? 'primary' : undefined} onClick={() => act(a)}>{t(key)}</button>)}
+            {canEdit ? <button onClick={() => setDialog('people')}>{t('wrk.act.edit_people')}</button> : null}
             {can('wrk.work_order.handover') && !pending && axes.closure !== 'closed' ? <button onClick={() => setDialog('offer')}>{t('wrk.act.offer')}</button> : null}
             {pending && can('wrk.work_order.accept_handover') ? <>
               <button onClick={() => void post('handover/respond', { offerId: pending.offerId, action: 'accept' })}>{t('wrk.act.accept_handover')}</button>
@@ -99,6 +116,17 @@ export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrder
             </> : null}
             {pending && can('wrk.work_order.handover') ? <button className="link-danger" onClick={() => void post('handover/respond', { offerId: pending.offerId, action: 'withdraw' })}>{t('wrk.act.withdraw_handover')}</button> : null}
           </div>
+
+          <h3>{t('wrk.section.crew')} {canEdit ? <button onClick={() => setDialog('crew')}>{t('wrk.add')}</button> : null}</h3>
+          <ul className="plain">
+            {crew.map((c) => (
+              <li key={String(c.id)}>
+                {people.name(c.userId)}{c.note ? ` · ${String(c.note)}` : ''}{' '}
+                {canEdit ? <button className="link-danger" onClick={() => setRemovingCrew(c)}>{t('common.remove')}</button> : null}
+              </li>
+            ))}
+            {crew.length === 0 ? <li className="empty">{t('wrk.crew.none')}</li> : null}
+          </ul>
 
           <h3>{t('wrk.section.jobcards')} {can('wrk.job_card.create') && axes.closure !== 'closed' ? <button onClick={() => setDialog('jobcard')}>{t('wrk.add')}</button> : null}</h3>
           <ul className="plain">
@@ -183,7 +211,27 @@ export function WorkOrderDetail({ workOrderId, onClose, onChanged }: { workOrder
       {dialog === 'offer' ? (
         <FormModal title={t('wrk.act.offer')} tz={tz} record={null} submitKey="common.save" onClose={() => setDialog(null)} defaults={{ kind: 'workshop' }}
           fields={[{ key: 'kind', labelKey: 'wrk.field.partyKind', type: 'select', required: true, options: PARTY_KINDS.map((k) => ({ value: k, label: t(`wrk.party.${k}`) })) }, { key: 'id', labelKey: 'wrk.field.party', type: 'select', required: true, options: (v) => parties.options(String(v.kind ?? '')) }, note]}
-          onSubmit={(b) => post('handover/offer', { toParty: { kind: b.kind, id: b.id }, note: b.note })} />
+          onSubmit={(b) => post('handover/offer', { toParty: { kind: wirePartyKind(String(b.kind)), id: b.id }, note: b.note })} />
+      ) : null}
+      {dialog === 'people' && wo ? (
+        <FormModal title={t('wrk.act.edit_people')} tz={tz} record={wo} submitKey="common.save" onClose={() => setDialog(null)}
+          onFetchLatest={() => api<Rec>('GET', `${WRK}/work-orders/${workOrderId}`)}
+          fields={[
+            { key: 'requestedAt', labelKey: 'wrk.field.requestedAt', type: 'datetime', required: true },
+            { key: 'requestedDue', labelKey: 'wrk.field.requestedDue', type: 'date' },
+            { key: 'requestedByUserId', labelKey: 'wrk.field.requestedBy', type: 'select', options: people.options },
+            { key: 'supervisorUserId', labelKey: 'wrk.field.supervisor', type: 'select', options: people.options },
+          ]}
+          onSubmit={(b) => api('PATCH', `${WRK}/work-orders/${workOrderId}`, b).then(done)} />
+      ) : null}
+      {dialog === 'crew' ? (
+        <FormModal title={t('wrk.act.add_crew')} tz={tz} record={null} submitKey="common.save" onClose={() => setDialog(null)}
+          fields={[{ key: 'userId', labelKey: 'wrk.field.crewMember', type: 'select', required: true, options: people.options.filter((o) => !crew.some((c) => c.userId === o.value)) }, { key: 'note', labelKey: 'wrk.field.note', type: 'text', maxLength: 200 }]}
+          onSubmit={(b) => api('POST', `${WRK}/work-orders/${workOrderId}/crew`, b).then(done)} />
+      ) : null}
+      {removingCrew ? (
+        <ReasonModal title={t('wrk.act.remove_crew', { name: people.name(removingCrew.userId) })} onClose={() => setRemovingCrew(null)}
+          onConfirm={(reason) => api('POST', `${WRK}/work-orders/${workOrderId}/crew/${String(removingCrew.id)}/tombstone`, { expectedVersion: removingCrew.version, reason }).then(done)} />
       ) : null}
       {card ? <JobCardModal card={card} locked={axes?.closure === 'closed'} onChanged={() => { setCard(null); done(); }} /> : null}
     </Modal>

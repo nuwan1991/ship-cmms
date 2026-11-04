@@ -53,3 +53,22 @@ describe('location tree', () => {
     expect(buildTree([rec('x', 'y', 'X'), rec('y', 'x', 'Y')])).toEqual([]);
   });
 });
+
+import { multiValues, toFormValues, toPayload, type FieldDef } from './form';
+
+describe('form: date and multiselect fields', () => {
+  const fields: FieldDef[] = [
+    { key: 'due', labelKey: 'x', type: 'date' },
+    { key: 'crew', labelKey: 'x', type: 'multiselect' },
+  ];
+  it('reads an array into the form and sends it back as an array', () => {
+    const v = toFormValues(fields, { crew: ['u1', 'u2'], due: '2026-11-30' } as unknown as Rec, 'UTC');
+    expect(v).toEqual({ due: '2026-11-30', crew: 'u1,u2' });
+    expect(multiValues(v.crew)).toEqual(['u1', 'u2']);
+    expect(toPayload(fields, v, null, 'UTC')).toEqual({ due: '2026-11-30', crew: ['u1', 'u2'] });
+  });
+  it('omits an empty multiselect on create, and clears it on update', () => {
+    expect(toPayload(fields, { due: '', crew: '' }, null, 'UTC')).toEqual({});
+    expect(toPayload(fields, { due: '', crew: '' }, { crew: ['u1'] } as unknown as Rec, 'UTC')).toEqual({ crew: [] });
+  });
+});

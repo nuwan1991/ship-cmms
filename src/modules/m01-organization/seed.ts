@@ -25,7 +25,8 @@ export function seedDemoOrganization(actor: Actor): DemoSeedResult {
   const commands = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((l, i) => make('command', { code: `DEMO-CMD-${l}`, name: `Demo Command ${l}`, shortName: `DC-${l}`, sortOrder: i + 1 }));
 
   const deptDefs: Array<[string, string]> = [['ME', 'Marine Engineering'], ['EE', 'Electrical Engineering'], ['WPN', 'Weapons Engineering'], ['COM', 'Communications']];
-  deptDefs.forEach(([code, name], i) => make('department', { code, name, sortOrder: i + 1 }));
+  // Command HQ departments; each ship gets its own sections (Electrical, Engineering, General) when it is created.
+  deptDefs.forEach(([code, name], i) => make('department', { code, name, sortOrder: i + 1, ownerKind: 'command', ownerId: id(commands[0]!) }));
 
   const ships = [
     { code: 'DEMO-101', name: 'Demo Patrol 101', pennantNo: 'P101', shipClass: 'Demo patrol class', shipType: 'Patrol vessel' },

@@ -6,8 +6,11 @@ import { can } from '../../platform/permissions';
 import { useSystem } from '../../platform/system';
 import { ErrorNotice, FreshnessBanner, StatusChip } from '../../platform/ui';
 import { useList } from '../../platform/useList';
-import { normalizeTag } from './actions';
+import { useAuth } from '../../platform/session';
+import { utcIsoToLocalInput } from '../../platform/time';
+import { normalizeTag, wirePartyKind, workOrderDefaults } from './actions';
 import { AST, ORG, WRK } from './binding';
+import { usePeople } from './people';
 import { PARTY_KINDS, useParties, WorkOrderDetail } from './WorkOrderDetail';
 
 const WORK_TYPES = ['corrective', 'preventive', 'inspection', 'modification'];
@@ -17,6 +20,8 @@ const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 export function WorkOrdersScreen({ initialCase }: { initialCase?: string }) {
   const { tz } = useSystem();
   const parties = useParties();
+  const people = usePeople();
+  const { me } = useAuth();
   const ships = useList(`${ORG}/ships`);
   const [shipId, setShipId] = useState('');
   const [progress, setProgress] = useState('');
@@ -27,17 +32,27 @@ export function WorkOrdersScreen({ initialCase }: { initialCase?: string }) {
   const [creating, setCreating] = useState(false);
   const shipName = (id: unknown) => String(ships.items.find((s) => s.id === id)?.name ?? id ?? '');
 
+  // Order of the form: what, where, who does it, when, who asked / supervises / works, then the details.
   const fields: FieldDef[] = [
     { key: 'title', labelKey: 'wrk.field.title', type: 'text', required: true, maxLength: 160 },
     { key: 'shipId', labelKey: 'wrk.field.ship', type: 'select', hintKey: 'wrk.hint.wo_target', options: ships.items.map((s) => ({ value: String(s.id), label: `${String(s.code)} – ${String(s.name)}` })) },
+    { key: 'executingKind', labelKey: 'wrk.field.partyKind', type: 'select', options: PARTY_KINDS.map((k) => ({ value: k, label: t(`wrk.party.${k}`) })), hintKey: 'wrk.hint.executing' },
+    { key: 'executingId', labelKey: 'wrk.field.party', type: 'select', showWhen: (v) => Boolean(v.executingKind), options: (v) => parties.options(String(v.executingKind ?? ''), String(v.shipId ?? '') || undefined) },
+    { key: 'requestedAt', labelKey: 'wrk.field.requestedAt', type: 'datetime', required: true },
+    { key: 'requestedDue', labelKey: 'wrk.field.requestedDue', type: 'date', hintKey: 'wrk.hint.due' },
+    { key: 'requestedByUserId', labelKey: 'wrk.field.requestedBy', type: 'select', options: people.options, hintKey: 'wrk.hint.optional_now' },
+    { key: 'supervisorUserId', labelKey: 'wrk.field.supervisor', type: 'select', options: people.options, hintKey: 'wrk.hint.optional_now' },
+    { key: 'crewUserIds', labelKey: 'wrk.field.crew', type: 'multiselect', options: people.options, hintKey: 'wrk.hint.crew' },
     { key: 'assetTag', labelKey: 'wrk.field.assetTag', type: 'text', maxLength: 40, hintKey: 'wrk.hint.asset_tag' },
     { key: 'workType', labelKey: 'wrk.field.workType', type: 'select', options: WORK_TYPES.map((w) => ({ value: w, label: t(`wrk.wtype.${w}`) })) },
     { key: 'priority', labelKey: 'wrk.field.priority', type: 'select', options: PRIORITIES.map((p) => ({ value: p, label: t(`wrk.priority.${p}`) })) },
-    { key: 'executingKind', labelKey: 'wrk.field.partyKind', type: 'select', options: PARTY_KINDS.map((k) => ({ value: k, label: t(`wrk.party.${k}`) })), hintKey: 'wrk.hint.executing' },
-    { key: 'executingId', labelKey: 'wrk.field.party', type: 'select', showWhen: (v) => Boolean(v.executingKind), options: (v) => parties.options(String(v.executingKind ?? '')) },
-    { key: 'requestedDue', labelKey: 'wrk.field.requestedDue', type: 'text', maxLength: 10, hintKey: 'wrk.hint.date' },
     { key: 'description', labelKey: 'wrk.field.description', type: 'textarea', maxLength: 2000 },
   ];
+  /** Ship and party from the signed-in user, requested now, by them. Computed when the form opens; all of it can be changed. */
+  const createDefaults = () => ({
+    workType: 'corrective', priority: 'normal', ...workOrderDefaults(me?.home),
+    requestedAt: utcIsoToLocalInput(new Date().toISOString(), tz), requestedByUserId: me?.user.id && people.options.some((o) => o.value === me.user.id) ? me.user.id : '',
+  });
 
   return (
     <section>
@@ -87,12 +102,12 @@ export function WorkOrdersScreen({ initialCase }: { initialCase?: string }) {
       {list.hasMore ? <button onClick={list.loadMore}>{t('common.more')}</button> : null}
       {open ? <WorkOrderDetail workOrderId={open} onClose={() => setOpen(null)} onChanged={list.reload} /> : null}
       {creating ? (
-        <FormModal title={t('wrk.new.workorder')} fields={fields} record={null} tz={tz} defaults={{ workType: 'corrective', priority: 'normal' }} submitKey="common.create" onClose={() => setCreating(false)}
+        <FormModal title={t('wrk.new.workorder')} fields={fields} record={null} tz={tz} defaults={createDefaults()} submitKey="common.create" onClose={() => setCreating(false)}
           onSubmit={async (body) => {
             const { assetTag, executingKind, executingId, ...rest } = body;
             const payload: Record<string, unknown> = { ...rest };
             if (assetTag) payload.assetId = (await api<Rec>('GET', `${AST}/assets/resolve?tag=${encodeURIComponent(normalizeTag(String(assetTag)))}`)).id;
-            if (executingKind && executingId) payload.executingParty = { kind: executingKind, id: executingId };
+            if (executingKind && executingId) payload.executingParty = { kind: wirePartyKind(String(executingKind)), id: executingId };
             await api('POST', `${WRK}/work-orders`, payload);
             list.reload();
           }} />

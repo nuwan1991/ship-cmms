@@ -9,7 +9,8 @@ export interface FieldDef {
   labelKey: string;
   /** Literal text for data-driven fields (e.g. survey questions); wins over labelKey. */
   label?: string;
-  type: 'text' | 'number' | 'select' | 'checkbox' | 'datetime' | 'textarea' | 'password';
+  /** 'date' = calendar date (YYYY-MM-DD, no zone); 'multiselect' = several options, sent as an array of values. */
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'checkbox' | 'date' | 'datetime' | 'textarea' | 'password';
   required?: boolean;
   /** Static options, or resolved at render time (e.g. from a loaded list). */
   options?: Array<{ value: string; label: string }> | ((values: Values) => Array<{ value: string; label: string }>);
@@ -28,6 +29,7 @@ export function toFormValues(fields: readonly FieldDef[], rec: Partial<Rec> | nu
     const raw = rec?.[f.key];
     if (f.type === 'checkbox') out[f.key] = raw === undefined ? ((defaults[f.key] as boolean | undefined) ?? false) : Boolean(raw);
     else if (f.type === 'datetime') out[f.key] = raw ? utcIsoToLocalInput(String(raw), tz) : ((defaults[f.key] as string | undefined) ?? '');
+    else if (f.type === 'multiselect') out[f.key] = Array.isArray(raw) ? raw.map(String).join(',') : ((defaults[f.key] as string | undefined) ?? '');
     else out[f.key] = raw === undefined || raw === null ? ((defaults[f.key] as string | undefined) ?? '') : String(raw);
   }
   return out;
@@ -50,7 +52,10 @@ export function toPayload(fields: readonly FieldDef[], values: Values, original:
       continue;
     }
     if (f.type === 'checkbox') out[f.key] = Boolean(v);
-    else if (v === '' || v === undefined) {
+    else if (f.type === 'multiselect') {
+      const list = multiValues(v);
+      if (list.length || editing) out[f.key] = list;
+    } else if (v === '' || v === undefined) {
       if (editing && original?.[f.key] != null) out[f.key] = null;
     } else if (f.type === 'number') out[f.key] = Number(v);
     else if (f.type === 'datetime') out[f.key] = localInputToUtcIso(String(v), tz);
@@ -58,6 +63,9 @@ export function toPayload(fields: readonly FieldDef[], values: Values, original:
   }
   return out;
 }
+
+/** The selected values of a multiselect field (kept in the form as a comma-separated string). */
+export const multiValues = (v: string | boolean | undefined): string[] => (typeof v === 'string' && v ? v.split(',').filter(Boolean) : []);
 
 export function FormModal(props: {
   title: string;
@@ -144,6 +152,19 @@ export function FormModal(props: {
                   <option value="">{t('common.choose')}</option>
                   {(opts ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
+              ) : f.type === 'multiselect' ? (
+                <div id={id} className="checklist" role="group" aria-label={f.label ?? t(f.labelKey)}>
+                  {(opts ?? []).length === 0 ? <small>{t('common.none')}</small> : null}
+                  {(opts ?? []).map((o) => {
+                    const chosen = multiValues(v);
+                    const on = chosen.includes(o.value);
+                    return (
+                      <label className="check" key={o.value}>
+                        <input type="checkbox" checked={on} onChange={() => set(f.key, (on ? chosen.filter((x) => x !== o.value) : [...chosen, o.value]).join(','))} /> {o.label}
+                      </label>
+                    );
+                  })}
+                </div>
               ) : f.type === 'textarea' ? (
                 <textarea id={id} value={String(v)} maxLength={f.maxLength} onChange={(e) => set(f.key, e.target.value)} />
               ) : f.type === 'checkbox' ? null : (
