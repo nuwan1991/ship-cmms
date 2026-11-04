@@ -6,17 +6,21 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/app-context.js';
 import { ORG_ENTITIES } from './entities.js';
 import { locationsPort } from './import-export.js';
-import { mountOrgRoutes } from './routes.js';
+import { mountOperationsRoutes } from './operations-routes.js';
+import { mountOrgRoutes, ORG_API_PREFIX } from './routes.js';
 
 export function register(ctx: AppContext, app: FastifyInstance): void {
   for (const d of ORG_ENTITIES) ctx.entities.register(d);
   ctx.importExport.register(locationsPort(ctx));
   mountOrgRoutes(ctx, app);
+  mountOperationsRoutes(ctx, app, ORG_API_PREFIX);
 }
 
 export { getShipCommandAt, listShipsByCommand, getLocation, resolveParty, resolveParties, findPartyByCode, findLocationByCode } from './queries.js';
 export type { ShipCommandAt, ShipSummary, LocationInfo, ResolvedParty } from './queries.js';
-export { ORG_PERMISSIONS, ORG_NOUNS, perm as orgPermission } from './permissions.js';
+export { ORG_PERMISSIONS, ORG_OPS_PERMISSIONS, ORG_NOUNS, perm as orgPermission } from './permissions.js';
+export { SHIP_STATUSES, shipStatusAt, deploymentAt, currentShipStatuses, recordShipStatus, voidShipStatus, createDeployment, updateDeployment, tombstoneDeployment } from './operations.js';
+export type { ShipStatus } from './operations.js';
 export type { OrgNoun, OrgAction } from './permissions.js';
 export { ORG_ENTITIES } from './entities.js';
 export { ORG_API_PREFIX } from './routes.js';

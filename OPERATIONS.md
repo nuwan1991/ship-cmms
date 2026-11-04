@@ -19,7 +19,7 @@ npm run web:build                  # builds the screens
 npm run build:server               # compiles the server into dist/
 npm run ops -- setup --kind hub --code HQ --name "Fleet HQ" --admin admin
 ```
-`setup` creates the data folder (`./data`, or `CMMS_DATA_DIR`), the database, the hub identity and the first administrator. If you do not give `--password`, a password is printed once: write it down and change it after signing in.
+`setup` creates the data folder (`./data`, or `CMMS_DATA_DIR`), the database, the hub identity, the first administrator and the standard defect categories (Electrical, Marine Engineering, Weapon and their subcategories). If you do not give `--password`, a password is printed once: write it down and change it after signing in.
 
 Start it: `npm start` (runs `node dist/main.js`). One program serves the API and the screens on `http://<machine>:8080`. Use `CMMS_HOST=0.0.0.0` to allow other computers on the network, and `CMMS_PORT` to change the port. During development `npm run dev` and `npm run web:dev` can be used instead.
 
@@ -38,6 +38,8 @@ npm run store-numbers -- setup
 ```
 Then sign in and use the screens. Excel import (Data > Excel) loads locations, assets and parts in bulk.
 
+**Operational status and deployments.** In *Identity & authority > Roles* give the Command role `org.ship_status.view`, `org.ship_status.record`, `org.ship_status.void` and `org.deployment.*` and assign it with the command as scope (it then covers that command's ships); give NHQ the same with the fleet as scope. During roll-out these may be given to every role, ships included; take them away from ship roles later. Give everyone `org.ship_status.view`, `org.deployment.view` and `wrk.defect_category.view`. The category list is maintained at the hub (`wrk.defect_category.*`); `npm run defect-categories -- list` shows it at any installation.
+
 ## 4. Add a ship, workshop or command
 
 At the hub, in the web app: **Synchronization > Installations > Add installation** (or `npm run sync -- provision --kind ship --code SLNS-01 --name "SLNS Example" --scope <ship id> --out package.json`). Choose which ships it follows. Save the package file: it holds a one-time secret.
@@ -47,7 +49,7 @@ On the new machine, install as above (steps 1 and 2, but **do not run `setup`**)
 npm run sync -- join --package package.json --url http://<hub address>:8080
 npm run sync -- run
 ```
-The first exchange brings the fleet reference data, the ship's own records, the users provisioned to it and its number ranges. Delete the package file afterwards. Sign in with a user that the hub administrator linked to this installation.
+The first exchange brings the fleet reference data (the defect category list included), the ship's own records (its operational status and deployments included), the users provisioned to it and its number ranges. Status changes and deployments entered at the ship travel to the hub the same way. Delete the package file afterwards. Sign in with a user that the hub administrator linked to this installation.
 
 **No network link?** Use files: at the hub, *Synchronization > Files (USB)* creates a file for the installation; on the ship, read it, then create a file for the hub and carry it back. Files are signed; a damaged or altered file is refused, and reading the same file twice does nothing.
 
@@ -79,11 +81,12 @@ Never provision a new machine for a ship that still has unsent changes: first cr
 2. Stop the application, install the new version (`git pull`, `npm ci`, `npm run web:install`, `npm run web:build`, `npm run build:server`).
 3. Start it. Pending database changes are applied at start, **after an automatic backup** (named `pre_upgrade`). `npm run migrate` does the same without starting.
 4. Upgrade the hub first. A ship on an older version keeps working; changes written by a newer version wait in *Synchronization > Conflicts* ("sent by a newer version") until that ship is upgraded, then *Retry held changes*. Installations more than one step apart refuse each other's changes.
+5. **Upgrading to the version with operational status and defect categories** (M01 schema 3, M05 schema 2): upgrade the hub first, then on the hub run `npm run defect-categories -- setup` once (a hub set up with this version already has the list). Upgrade each ship next; after its first synchronization run `npm run defect-categories -- backfill` there (it shows what it would do) and `npm run defect-categories -- backfill --apply`, or use *Maintenance work > Defect categories > Categorise old defects*. Do the same at the hub for defects entered there. Ships still on the older version keep working, but status changes and categorised defects from the hub wait for them in *Conflicts* until they are upgraded.
 
 ## 8. Everyday checks
 
 - *Operations > System health*: warnings about backups, disk space, pending changes.
-- *Operations > Data checks* (`npm run ops -- integrity`): finds records that point to something missing, overlapping number ranges, a ship attached to two commands, negative stock. It reports; it never changes data. Run it after a restore or a long period offline.
+- *Operations > Data checks* (`npm run ops -- integrity`): finds records that point to something missing, overlapping number ranges, a ship attached to two commands, a ship with two sea deployments at once, negative stock. It reports; it never changes data. Run it after a restore or a long period offline.
 - *Synchronization > Sync status* and *Conflicts*: a conflict means two versions of one record exist; the owner chooses which stands.
 - *Reports > Overview* and *Notifications*: the working picture. Every report states when its data was last synchronized.
 

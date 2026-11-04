@@ -10,6 +10,7 @@ import { ORG_ENTITIES } from '../m01-organization/index.js';
 import { AST_ENTITIES } from '../m03-assets/index.js';
 import { WRK_ENTITIES } from './entities.js';
 import { ensureWorkSequences, grantWorkRanges, seedDemoWork } from './seed.js';
+import { ensureDefectCategories } from './categories.js';
 
 /**
  *   npm run work-numbers -- setup [--width 8] [--size 1000]   hub: define the three sequences, grant the hub a range
@@ -41,6 +42,8 @@ try {
     ensureWorkSequences(wctx, { ...(values.width ? { width: Number(values.width) } : {}) });
     grantWorkRanges(wctx, identity.installationId, Number(values.size ?? 1000));
     console.log(`Defect, repair case and work order numbers granted to ${identity.code}`);
+    const added = ensureDefectCategories(wctx);
+    console.log(added ? `Standard defect categories loaded (${added} added)` : 'Defect categories already loaded');
   } else if (cmd === 'grant' && values.installation) {
     grantWorkRanges(wctx, values.installation, Number(values.size ?? 500));
     console.log(`Defect, repair case and work order numbers granted to ${values.installation}`);

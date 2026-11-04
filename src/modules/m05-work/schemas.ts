@@ -26,8 +26,12 @@ export const Tombstone = z.strictObject({ expectedVersion: Version, reason: Reas
 export const DefectCreate = z.strictObject({
   title: Title, description: Text(2000), severity: z.enum(SEVERITIES).optional(),
   assetId: Uuid.nullable().optional(), positionId: Uuid.nullable().optional(), shipId: Uuid.nullable().optional(), reportedAt: UtcTimestamp.optional(),
+  categoryId: Uuid.nullable().optional(), subcategoryId: Uuid.nullable().optional(),
 });
-export const DefectUpdate = z.strictObject({ expectedVersion: Version, title: Title.optional(), description: Text(2000), severity: z.enum(SEVERITIES).optional() });
+export const DefectUpdate = z.strictObject({
+  expectedVersion: Version, title: Title.optional(), description: Text(2000), severity: z.enum(SEVERITIES).optional(),
+  categoryId: Uuid.nullable().optional(), subcategoryId: Uuid.nullable().optional(),
+});
 export const DefectConvert = z.strictObject({ expectedVersion: Version, title: Title.optional(), priority: z.enum(PRIORITIES).optional(), repairCaseId: Uuid.optional() });
 export const DefectDismiss = z.strictObject({ expectedVersion: Version, reason: Reason });
 

@@ -37,7 +37,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](wrk\.[a-z_]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const missing = [...used].filter((k) => !(k in wrkLabelsEn) && !/^wrk\.(work_order|repair_case|defect|job_card|labour_entry|finding|test_record|acceptance|advisory)\./.test(k));
+    const missing = [...used].filter((k) => !(k in wrkLabelsEn) && !/^wrk\.(work_order|repair_case|defect|job_card|labour_entry|finding|test_record|acceptance|advisory|defect_category)\./.test(k));
     expect(missing).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {

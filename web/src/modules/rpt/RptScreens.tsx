@@ -6,8 +6,11 @@ import { useSystem } from '../../platform/system';
 import { toLocalDisplay } from '../../platform/time';
 import { ErrorNotice, FreshnessBanner } from '../../platform/ui';
 import { useList } from '../../platform/useList';
+import { categoryStyle } from '../../platform/colors';
 
 const RPT = '/api/v1/reports';
+/** Filter options shown with a label instead of their code. */
+const LABELLED_OPTIONS = new Set(['operational', 'semi_operational', 'non_operational', 'critical', 'major', 'minor']);
 const COUNTS = ['openWorkOrders', 'overdueWorkOrders', 'urgentWorkOrders', 'pendingReviews', 'maintenanceOverdue', 'maintenanceDueSoon', 'stockBelowMinimum', 'recurringFaults', 'openConflicts', 'staleInstallations'] as const;
 const WARN = new Set(['overdueWorkOrders', 'urgentWorkOrders', 'maintenanceOverdue', 'stockBelowMinimum', 'openConflicts', 'staleInstallations']);
 
@@ -53,13 +56,15 @@ export function DashboardScreen() {
 }
 
 interface Column { key: string; label: string; kind?: string }
-interface FilterDef { key: string; label: string; kind: 'ship' | 'text' | 'number' | 'select'; options?: string[] }
+interface FilterDef { key: string; label: string; kind: 'ship' | 'command' | 'category' | 'subcategory' | 'date' | 'text' | 'number' | 'select'; options?: string[] }
 interface ReportOut { report: { code: string; title: string; columns: Column[]; filters: FilterDef[] }; items: Array<Record<string, unknown>>; freshness: Freshness[] }
 
 export function ReportsScreen() {
   const { tz } = useSystem();
   const catalogue = useList(`${RPT}/reports`);
   const ships = useList('/api/v1/org/ships', { limit: '500' });
+  const commands = useList('/api/v1/org/commands', { limit: '500' });
+  const categories = useList('/api/v1/work/defect-categories', { limit: '500' });
   const [code, setCode] = useState('backlog');
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [out, setOut] = useState<ReportOut | null>(null);
@@ -70,8 +75,17 @@ export function ReportsScreen() {
     api<ReportOut>('GET', `${RPT}/reports/${code}${query}`).then((r) => { if (live) { setOut(r); setError(null); } }, (e: Error) => live && setError(e));
     return () => { live = false; };
   }, [code, query]);
-  const cell = (c: Column, v: unknown): string =>
+  const text = (c: Column, v: unknown): string =>
     v === null || v === undefined ? '' : c.kind === 'flag' ? t(v ? 'rpt.yes' : 'rpt.no') : c.kind === 'datetime' ? toLocalDisplay(String(v), tz) : String(v);
+  /** Category names carry their colour; operational status shows as a green / amber / red pill. */
+  const cell = (c: Column, r: Record<string, unknown>) => {
+    const v = r[c.key];
+    if (c.key === 'categoryName' && v) return <span className="cat" style={categoryStyle(r.categoryColor ? String(r.categoryColor) : null)}>{String(v)}</span>;
+    if (c.key === 'statusLabel' && r.status) return <span className={`pill st-${String(r.status)}`}>{String(v)}</span>;
+    if (c.key === 'atSeaNow' && v) return <span className="pill sea">{t('rpt.yes')}</span>;
+    return text(c, v);
+  };
+  const subsOf = (mainId: string | undefined) => categories.items.filter((x) => x.parentId && (!mainId || x.parentId === mainId));
   async function csv() {
     try { const f = await apiDownload(`${RPT}/reports/${code}/file${query}`); saveBlob(f.blob, f.fileName); setError(null); } catch (e) { setError(e as Error); }
   }
@@ -92,8 +106,16 @@ export function ReportsScreen() {
             <label key={f.key}>{t(`rpt.filter.${f.kind === 'ship' ? 'ship' : f.key}`)}
               {f.kind === 'ship' ? (
                 <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}><option value="">{t('rpt.filter.any')}</option>{ships.items.map((s) => <option key={s.id} value={s.id}>{String(s.name)}</option>)}</select>
+              ) : f.kind === 'command' ? (
+                <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}><option value="">{t('rpt.filter.any')}</option>{commands.items.map((s) => <option key={s.id} value={s.id}>{String(s.name)}</option>)}</select>
+              ) : f.kind === 'category' ? (
+                <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value, subcategoryId: '' })}><option value="">{t('rpt.filter.any')}</option>{categories.items.filter((x) => !x.parentId).map((s) => <option key={s.id} value={s.id}>{String(s.name)}</option>)}<option value="none">{t('rpt.filter.uncategorised')}</option></select>
+              ) : f.kind === 'subcategory' ? (
+                <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}><option value="">{t('rpt.filter.any')}</option>{subsOf(filters.categoryId && filters.categoryId !== 'none' ? filters.categoryId : undefined).map((s) => <option key={s.id} value={s.id}>{String(s.name)}</option>)}</select>
+              ) : f.kind === 'date' ? (
+                <input type="date" value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })} />
               ) : f.kind === 'select' ? (
-                <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}><option value="">{t('rpt.filter.any')}</option>{(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                <select value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })}><option value="">{t('rpt.filter.any')}</option>{(f.options ?? []).map((o) => <option key={o} value={o}>{LABELLED_OPTIONS.has(o) ? t(`rpt.option.${o}`) : o}</option>)}</select>
               ) : <input type="number" min={0} value={filters[f.key] ?? ''} onChange={(e) => setFilters({ ...filters, [f.key]: e.target.value })} />}
             </label>
           ))}
@@ -107,7 +129,7 @@ export function ReportsScreen() {
           <div className="table-wrap"><table>
             <thead><tr>{out.report.columns.map((c) => <th key={c.key} scope="col" className={c.kind === 'number' ? 'num' : undefined}>{c.label}</th>)}</tr></thead>
             <tbody>
-              {out.items.map((r, i) => <tr key={String(r.id ?? i)}>{out.report.columns.map((c) => <td key={c.key} className={c.kind === 'number' ? 'num' : undefined}>{cell(c, r[c.key])}</td>)}</tr>)}
+              {out.items.map((r, i) => <tr key={String(r.id ?? i)}>{out.report.columns.map((c) => <td key={c.key} className={c.kind === 'number' ? 'num' : undefined}>{cell(c, r)}</td>)}</tr>)}
               {out.items.length === 0 ? <tr><td colSpan={out.report.columns.length} className="empty">{t('rpt.empty')}</td></tr> : null}
             </tbody>
           </table></div>

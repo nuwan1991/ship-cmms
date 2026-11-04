@@ -9,6 +9,7 @@ import { GATE_ACCEPT, GATE_APPROVE, perm, type WrkNoun } from './permissions.js'
 import { currentAxes, getLive, toApi, type Row } from './queries.js';
 import { parse } from './schemas.js';
 import * as V from './service.js';
+import * as C from './categories.js';
 
 export const WRK_API_PREFIX = '/api/v1/work';
 
@@ -65,7 +66,24 @@ export function mountWorkRoutes(ctx: AppContext, app: FastifyInstance): void {
   };
 
   // ---- defects
-  collection('defect', 'defects', { table: 'wrk_defect', filters: { shipId: 'home_scope_id', status: 'status', assetId: 'asset_id', severity: 'severity', repairCaseId: 'repair_case_id' }, search: ['defect_no', 'title'], idCol: 'id' }, V.reportDefect, V.updateDefect, V.tombstoneDefect, 'defect');
+  collection('defect', 'defects', { table: 'wrk_defect', filters: { shipId: 'home_scope_id', status: 'status', assetId: 'asset_id', severity: 'severity', repairCaseId: 'repair_case_id', categoryId: 'category_id', subcategoryId: 'subcategory_id' }, search: ['defect_no', 'title'], idCol: 'id' }, V.reportDefect, V.updateDefect, V.tombstoneDefect, 'defect');
+
+  // ---- defect categories (hub reference, D67): list, edit at the hub, suggestion from the equipment's department, catch-up for old defects
+  collection('defect_category', 'defect-categories', { table: 'wrk_defect_category', filters: { parentId: 'parent_id', status: 'status' }, search: ['code', 'name'], idCol: 'id' }, C.createDefectCategory, C.updateDefectCategory, C.tombstoneDefectCategory, 'defect category');
+  app.get(`${base}/defect-category-suggestion`, async (req) => {
+    authorize(actor(req), perm('defect', 'view'), { kind: 'fleet' });
+    const q = parse(z.strictObject({ assetId: z.uuid().optional(), positionId: z.uuid().optional() }), req.query);
+    return { suggestion: C.suggestCategory(ctx.db, q) };
+  });
+  app.post(`${base}/defect-categories/load-standard`, async (req) => {
+    const a = actor(req);
+    authorize(a, perm('defect_category', 'create'), { kind: 'fleet' });
+    return { added: C.ensureDefectCategories(a.wctx) };
+  });
+  app.post(`${base}/defects/categorise-existing`, async (req) => {
+    const b = parse(z.strictObject({ apply: z.boolean().default(false) }), req.body ?? {});
+    return C.categoriseExistingDefects(actor(req), b);
+  });
   app.post(`${base}/defects/:id/convert`, async (req) => V.convertDefect(actor(req), idParam(req), req.body));
   app.post(`${base}/defects/:id/dismiss`, async (req) => V.dismissDefect(actor(req), idParam(req), req.body));
 

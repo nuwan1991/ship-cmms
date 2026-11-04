@@ -168,7 +168,7 @@ const DEFS: Record<OrgNoun, Def> = {
 };
 
 /** A ship/workshop installation may only enter locations for the site it serves (sys_installation.org_unit_id). Hub/command may enter any (and own them). */
-function assertSiteHeldHere(a: Actor, siteId: string): void {
+export function assertSiteHeldHere(a: Actor, siteId: string): void {
   const inst = a.wctx.installation;
   if (inst.kind !== 'ship' && inst.kind !== 'workshop') return;
   const r = a.wctx.db.prepare('SELECT org_unit_id FROM sys_installation WHERE id = ? AND deleted_at IS NULL').get(inst.installationId) as { org_unit_id: string | null } | undefined;

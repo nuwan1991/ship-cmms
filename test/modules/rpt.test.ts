@@ -12,10 +12,12 @@ const ymd = (d: number): string => new Date(Date.now() + d * 86_400_000).toISOSt
 describe('M13 reports', () => {
   it('lists every report and runs each on an empty installation', () => {
     const env = makeRptEnv();
-    expect(REPORTS.map((r) => r.code)).toEqual(['backlog', 'pending_reviews', 'maintenance_due', 'stock_below_minimum', 'recurring_faults', 'sync_health']);
+    expect(REPORTS.map((r) => r.code)).toEqual(['ship_status_history', 'availability', 'sea_deployments', 'defects_by_category', 'backlog', 'pending_reviews', 'maintenance_due', 'stock_below_minimum', 'recurring_faults', 'sync_health']);
     for (const r of REPORTS) {
       const out = runReport(env.ctx, r.code, {});
-      expect(out.rows, r.code).toEqual(r.code === 'sync_health' ? [] : []);
+      // Availability lists every ship, recorded or not; everything else is empty.
+      if (r.code === 'availability') expect(out.rows.every((x) => x.notRecordedDays === 90), r.code).toBe(true);
+      else expect(out.rows, r.code).toEqual([]);
       expect(out.freshness.stale).toBe(false); // the hub is authoritative
     }
     expect((dashboard(env.ctx).counts as Record<string, number>).openWorkOrders).toBe(0);

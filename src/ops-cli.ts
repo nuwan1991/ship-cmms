@@ -1,7 +1,7 @@
 /**
  * Installer and recovery commands. Run with the application stopped unless noted.
  *   npm run ops -- check                                   look at the machine: Node version, data folder, disk space, web app
- *   npm run ops -- setup --kind hub --code HQ --name "Fleet HQ" --admin admin [--password ...]
+ *   npm run ops -- setup --kind hub --code HQ --name "Fleet HQ" --admin admin [--password ...]   (also loads the standard defect categories)
  *   npm run ops -- status                                  (also while running)
  *   npm run ops -- backup                                  (also while running)
  *   npm run ops -- backups                                 list backup files
@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { boot } from './boot.js';
 import { createFirstAdmin } from './modules/m02-identity/bootstrap.js';
+import { ensureDefectCategories } from './modules/m05-work/index.js';
 import { backupDirOf, createBackup, filesOnDisk, opsStatus, restoreBackup, runIntegrity, verifyBackupFile } from './modules/m14-operations/index.js';
 import { INSTALLATION_KINDS } from './platform/contracts.js';
 import { loadConfig } from './platform/config.js';
@@ -56,6 +57,9 @@ async function main(): Promise<void> {
       createRecord({ db: ctx.db, registry: ctx.entities, installation: identity, actor: { userId: 'system' }, correlationId: uuidv7() }, 'sys.installation', { id: identity.installationId, kind: 'hub', code: identity.code, name: identity.name });
       say(`Initialized hub ${identity.code} (${identity.installationId})`);
     }
+    // Fleet reference lists every installation needs from the start; ships receive them at their first synchronization.
+    const added = ensureDefectCategories({ db: ctx.db, registry: ctx.entities, installation: ctx.identity!, actor: { userId: 'system' }, correlationId: uuidv7() });
+    if (added) say(`Loaded the standard defect categories (Electrical, Marine Engineering, Weapon and ${added - 3} subcategories).`);
     if (values.admin) {
       const password = values.password ?? randomBytes(12).toString('base64url');
       try {

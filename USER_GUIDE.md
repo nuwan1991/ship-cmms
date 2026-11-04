@@ -68,12 +68,12 @@ If two people edit the same record, the second one to save sees *"This record wa
 
 | Menu | Screens | Used for |
 |---|---|---|
-| **Reports** | Overview, Reports, Notifications | The working picture: open work, maintenance due, low stock |
-| **Organization** | Commands, Ships, Departments, Workshops, External providers, Locations, Fleet | Who and where: the fleet structure |
+| **Reports** | Fleet status, Overview, Reports, Notifications | The working picture: ships operational or not, at sea, open work, maintenance due, low stock |
+| **Organization** | Commands, Ships, Operational status, Sea deployments, Departments, Workshops, External providers, Locations, Fleet | Who and where: the fleet structure, and each ship's status and time at sea |
 | **Assets** | Asset register, Positions, Classifications, Legacy mapping | The equipment fitted in each ship |
 | **Identity & authority** | Users, Roles, Role assignments, Approval gates, Offline authority, Users per installation, Pending confirmation, Revocations | Who may do what (administrators) |
 | **Labels and surveys** | QR labels, Compartment surveys, Survey forms | Sticking QR labels on equipment and checking compartments |
-| **Maintenance work** | Defects, Repair cases, Work orders, Advisories | Faults and the work to fix them |
+| **Maintenance work** | Defects, Repair cases, Work orders, Advisories, Defect categories | Faults and the work to fix them |
 | **Planned maintenance** | Due list, Plans, Meters, Calibration, Task templates | Routine maintenance by date or running hours |
 | **Parts and stores** | Stock, Transfers, Parts, Stock locations | Spare parts and stock movements |
 | **Synchronization** | Sync status, Installations, Conflicts, Files (USB) | Exchanging data with the hub |
@@ -94,13 +94,24 @@ Do these once, in this order, before people start entering work. Most of the fle
 6. **Assets > Asset register**: the physical equipment, installed into positions.
 7. **Parts and stores > Parts** and **Stock locations**, then receive the opening stock.
 8. **Planned maintenance > Task templates**, **Meters** and **Plans**.
-9. **Identity & authority > Roles**, **Users** and **Role assignments**.
+9. **Identity & authority > Roles**, **Users** and **Role assignments**. Give the Command and NHQ roles the permissions for operational status and deployments (see [section 6](#operational-status)).
+10. **Maintenance work > Defect categories**: check the list (a new hub already has the standard one).
 
 Steps 3, 6 and 7 can be done in bulk from a spreadsheet: see [section 13](#13-excel-import-and-export).
 
 ---
 
 ## 5. Reports
+
+### Fleet status
+
+The picture of the whole fleet at a glance. Choose a **Command** to see only its ships, and a **Period** (last 30, 90, 180 or 365 days).
+
+- **Counts**: how many ships are **Operational** (green), **Semi-operational** (amber) and **Non-operational** (red), how many are **At sea (deployed)** (light blue) with the days spent at sea, and **Fleet availability**: the share of ship-days that were operational.
+- **Ship status now**: each ship's status, since when, the reason and who set it, the OPDEF reference if there is one, whether it is at sea, and its open defects per category: **Electrical** (green), **Marine Engineering** (maroon), **Weapon** (light grey).
+- **Open defects by category**: the same totals for the fleet, and how many were reported while ships were deployed.
+- **Recent status changes**: the last changes, newest first.
+- **Status and sea deployment**: for each ship a bar of its status over the period and, under it, its deployments. Point at a part of a bar to see the dates and the reason. Grey means no status was recorded then.
 
 ### Overview
 
@@ -117,11 +128,15 @@ Below the counts, **Open work by ship** shows the open, past-date and high-or-ur
 
 ### Reports
 
-Choose a report, set the filters (**Ship**, **Older than (days)**, **Type**, **Priority**, **Source**) and read the result. **Download CSV** saves it for Excel.
+Choose a report, set the filters (**Ship**, **Command**, **Category**, **Subcategory**, **From** and **To** dates, **Older than (days)**, **Type**, **Priority**, **Source**) and read the result. Reports with dates cover the last 90 days unless you choose dates. **Download CSV** saves it for Excel.
 
 | Report | Shows |
 |---|---|
-| **Maintenance backlog** | Open work orders, oldest first |
+| **Operational status history** | Every operational, semi-operational and non-operational period of each ship in the period |
+| **Operational availability summary** | For each ship: days operational, semi-operational, non-operational and not recorded, the percentages, and days at sea |
+| **Sea deployments** | Each deployment in the period, its length, and which ships are at sea now |
+| **Defects by category** | Defects reported in the period by ship, category and subcategory: still open, by severity, and reported while deployed |
+| **Maintenance backlog** | Open work orders, oldest first (filter by **Category** too) |
 | **Pending reviews and confirmations** | Work and approvals waiting for a decision |
 | **Planned maintenance and calibration due** | Plans and calibrations that are due or overdue |
 | **Stock below minimum** | Parts whose available stock is under the minimum |
@@ -149,6 +164,29 @@ Codes may use letters, digits and `- _ .`, and are stored in capitals.
 ### Moving a ship to another command
 
 On **Ships**, choose **Assign command…** on the ship's row. Pick the new **Command** and the **Effective from** time. The old attachment ends at that moment and the new one begins. The ship's records stay with the ship; only the attachment changes. **Command history** lists every attachment, and **Correct** fixes a wrong entry.
+
+### Operational status
+
+**Organization > Operational status** lists every ship with its status now: **Operational**, **Semi-operational** or **Non-operational** (or *Not recorded*), since when, the reason, the OPDEF reference and whether the ship is at sea.
+
+To change a ship's status (Command authority or NHQ):
+
+1. Choose **Change status** on the ship's row.
+2. Choose the **Status** and the time it takes effect (**From**; it may be a planned date up to 120 days ahead).
+3. Give the **Reason** (required unless operational), **Set by** (for example the Command or NHQ) and, if used, the **OPDEF reference** and **OPDEF category**.
+4. **Record**. The status lasts until the next change.
+
+**Status history** lists the periods. An entry made by mistake is not deleted: **Withdraw** it with a reason and it is listed under *Withdrawn entries*.
+
+Who may change a status is set by roles: the permission `org.ship_status.record` (and `org.ship_status.void` to withdraw). Give it to the Command role with the command as scope (it then covers that command's ships) and to the NHQ role with the fleet as scope. Until the system is fully in use it may be given to anyone, including ship staff.
+
+### Sea deployments
+
+**Organization > Sea deployments** lists deployments, newest first; **At sea now** shows only the ships at sea.
+
+- **New deployment**: the **Ship**, the **Deployment / operation**, the **Area** and when it **Sailed**. Leave **Returned** empty while the ship is at sea.
+- **Returned**: records the return when the ship comes back.
+- A deployment can be changed only at the installation where it was entered (the hub, or the ship). Two deployments of one ship cannot overlap.
 
 ### Locations
 
@@ -278,12 +316,21 @@ Anyone who finds a fault reports it here.
 1. Choose **Report defect**.
 2. Enter a **Title** and **Description** and choose the **Severity** (*Minor*, *Major*, *Critical*).
 3. Choose the **Ship**, or give the **Equipment tag** instead (the ship is then taken from the equipment).
-4. Save. The defect gets a number and its status is *Open*.
+4. Choose the **Category** (*Electrical*, *Marine Engineering*, *Weapon*) and, if you can, the **Subcategory** (for example *Hull and structure* under Marine Engineering). With an equipment tag you may leave the category empty: it is taken from the department responsible for the equipment.
+5. Save. The defect gets a number and its status is *Open*.
+
+The list can be filtered by **Category** and **Subcategory**; each defect shows its category in colour (Electrical green, Marine Engineering maroon, Weapon light grey). **Category** on a row changes it, also after the defect became a repair case.
 
 Then, on the defect's row:
 
 - **Make repair case** to start the repair. The defect's status becomes *In a repair case*.
 - **Dismiss** if no work is needed (a reason is required).
+
+### Defect categories
+
+**Maintenance work > Defect categories** is the list of main categories and their subcategories. It is kept at headquarters and reaches every ship when it synchronizes. At the hub, **New category** adds one (choose a **Main category** to make it a subcategory), **Colour** sets a main category's colour, and **Suggested for departments** lists the department codes whose equipment gets that category automatically. **Load the standard list** adds any standard category that is missing. Set a category *Inactive* instead of removing it, so old defects keep their name.
+
+**Categorise old defects** gives defects entered before categories existed the category of their equipment's department, after showing how many it can match. The rest stay *Uncategorised* until someone chooses.
 
 ### Repair cases
 

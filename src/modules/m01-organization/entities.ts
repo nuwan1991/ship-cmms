@@ -13,4 +13,7 @@ export const ORG_ENTITIES: readonly EntityDef[] = [
   { type: 'org.workshop', module: 'M01', table: 'org_workshop', recordClass: 'hub_reference', requires: ['org.command', 'org.ship'], distribution: 'fleet' },
   { type: 'org.external_provider', module: 'M01', table: 'org_external_provider', recordClass: 'hub_reference', distribution: 'fleet' },
   { type: 'org.location', module: 'M01', table: 'org_location', recordClass: 'owner_mutable', requires: ['org.ship', 'org.workshop'], distribution: 'record' },
+  // Operational status (D66): events from any installation (Command, NHQ or the ship), scoped to the ship so they reach it and the hub.
+  { type: 'org.ship_status_event', module: 'M01', table: 'org_ship_status_event', recordClass: 'event', requires: ['org.ship'], distribution: 'record' },
+  { type: 'org.deployment', module: 'M01', table: 'org_deployment', recordClass: 'owner_mutable', requires: ['org.ship'], distribution: 'record' },
 ];

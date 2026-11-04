@@ -8,6 +8,9 @@ import { addLocation, addShip, directTransport, makeFleet, renameLocation } from
 import { codeOf } from './ast-helpers.js';
 import { createFirstAdmin } from '../../src/modules/m02-identity/bootstrap.js';
 
+/** Changes built by hand carry the current M01 schema version (applying needs it within one step, SYNC_RULES §5). */
+const M01_SCHEMA = 3;
+
 describe('M10 provisioning and sync', () => {
   it('enrols a ship and brings fleet reference data and its scoped records', async () => {
     const f = makeFleet();
@@ -83,7 +86,7 @@ describe('M10 provisioning and sync', () => {
     // Now an equal-version fork: replay version 2 content that differs.
     const row = f.hub.rows('SELECT * FROM org_location')[0]!;
     const forked = { ...row, name: 'Different v2' };
-    const change = { changeId: crypto.randomUUID(), originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert', version: row.version, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString(), schemaVersion: 1, payload: forked, payloadHash: payloadHash(forked) };
+    const change = { changeId: crypto.randomUUID(), originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert', version: row.version, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString(), schemaVersion: M01_SCHEMA, payload: forked, payloadHash: payloadHash(forked) };
     const peerId = ship.ctx.identity!.installationId;
     const o = applyChange(f.hub.ctx, change, { installationId: peerId, isHub: false });
     expect(o).toMatchObject({ status: 'quarantined', code: 'FORK' });
@@ -101,13 +104,13 @@ describe('M10 provisioning and sync', () => {
     const row = ship.rows('SELECT * FROM org_location')[0]!;
     const base = { originInstallationId: ship.ctx.identity!.installationId, entityType: 'org.location', entityId: row.id, op: 'upsert' as const, version: 1, ownerInstallationId: ship.ctx.identity!.installationId, homeScopeId: f.shipAId, occurredAt: new Date().toISOString() };
     const src = { installationId: ship.ctx.identity!.installationId, isHub: false };
-    const bad = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: 'a'.repeat(64) }, src);
+    const bad = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: M01_SCHEMA, payload: row, payloadHash: 'a'.repeat(64) }, src);
     expect(bad).toMatchObject({ status: 'rejected', code: 'INTEGRITY' });
     const newer = applyChange(f.hub.ctx, { ...base, changeId: crypto.randomUUID(), schemaVersion: 99, payload: row, payloadHash: payloadHash(row) }, src);
     expect(newer).toMatchObject({ status: 'quarantined', code: 'SCHEMA_NEWER' });
-    const notOwner = applyChange(f.hub.ctx, { ...base, originInstallationId: crypto.randomUUID(), ownerInstallationId: crypto.randomUUID(), changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: payloadHash(row) }, src);
+    const notOwner = applyChange(f.hub.ctx, { ...base, originInstallationId: crypto.randomUUID(), ownerInstallationId: crypto.randomUUID(), changeId: crypto.randomUUID(), schemaVersion: M01_SCHEMA, payload: row, payloadHash: payloadHash(row) }, src);
     expect(notOwner).toMatchObject({ status: 'rejected', code: 'NOT_OWNER' });
-    const hubRef = applyChange(f.hub.ctx, { ...base, entityType: 'org.ship', changeId: crypto.randomUUID(), schemaVersion: 1, payload: row, payloadHash: payloadHash(row) }, src);
+    const hubRef = applyChange(f.hub.ctx, { ...base, entityType: 'org.ship', changeId: crypto.randomUUID(), schemaVersion: M01_SCHEMA, payload: row, payloadHash: payloadHash(row) }, src);
     expect(hubRef).toMatchObject({ status: 'rejected', code: 'NOT_OWNER' });
     // A forged envelope (signed by another key) is refused by the hub.
     const other = addShip(f.hub, 'SHIP-B', null).ship;

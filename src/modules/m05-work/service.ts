@@ -16,6 +16,7 @@ import { approvalsOf, authorize, withReason, type Actor } from './actor.js';
 import { GATE_ACCEPT, GATE_APPROVE, perm, type WrkNoun } from './permissions.js';
 import { currentAxes, exists, getLive, TABLES, toApi, type Axis, type Row, type SubjectType } from './queries.js';
 import * as S from './schemas.js';
+import { resolveDefectCategory } from './categories.js';
 
 export const WORK_ORDER_SEQUENCE = 'work_order_no';
 export const REPAIR_CASE_SEQUENCE = 'repair_case_no';
@@ -111,11 +112,12 @@ export function reportDefect(a: Actor, input: unknown): Row {
   const t = resolveTarget(db, b);
   authorize(a, perm('defect', 'create'), shipScope(t.shipId));
   assertSiteHeldHere(a, t.shipId);
+  const cat = resolveDefectCategory(db, b, t);
   return db.transaction(() => {
     const { tag } = nextNumber(db, a.wctx.installation, DEFECT_SEQUENCE);
     const row = createRecord(a.wctx, 'wrk.defect', {
       defect_no: tag, title: b.title, description: b.description ?? null, severity: b.severity ?? 'minor', asset_id: t.assetId, position_id: t.positionId,
-      home_scope_id: t.shipId, status: 'open', reported_at: b.reportedAt ?? nowUtc(),
+      home_scope_id: t.shipId, status: 'open', reported_at: b.reportedAt ?? nowUtc(), category_id: cat.categoryId, subcategory_id: cat.subcategoryId,
     });
     return toApi(row);
   })();
@@ -545,8 +547,19 @@ export function updateDefect(a: Actor, id: string, input: unknown): Row {
   if (!cur) throw notFound('Defect', id);
   authorize(a, perm('defect', 'update'), shipScope(cur.home_scope_id));
   checkVersion(cur, expectedVersion);
-  if (cur.status !== 'open') throw blocked(`Defect is ${String(cur.status)} and can no longer be edited`);
-  updateRecord(a.wctx, 'wrk.defect', id, expectedVersion, snake(rest));
+  const { categoryId, subcategoryId, ...fields } = rest;
+  // A converted or dismissed defect keeps its text, but its category may still be set or corrected (reports group by it).
+  if (cur.status !== 'open' && Object.values(fields).some((v) => v !== undefined)) throw blocked(`Defect is ${String(cur.status)} and can no longer be edited; only its category can be changed`);
+  const patch: Row = snake(fields);
+  if (categoryId !== undefined || subcategoryId !== undefined) {
+    const cat = resolveDefectCategory(db, {
+      categoryId: categoryId === undefined ? (subcategoryId ? undefined : (cur.category_id as string | null)) : categoryId,
+      subcategoryId: subcategoryId === undefined ? (categoryId === undefined || categoryId === cur.category_id ? (cur.subcategory_id as string | null) : null) : subcategoryId,
+    }, { assetId: cur.asset_id as string | null, positionId: cur.position_id as string | null }, false);
+    patch.category_id = cat.categoryId;
+    patch.subcategory_id = cat.subcategoryId;
+  }
+  updateRecord(a.wctx, 'wrk.defect', id, expectedVersion, patch);
   return toApi(reload(db, 'defect', id));
 }
 export function tombstoneDefect(a: Actor, id: string, input: unknown): Row {
