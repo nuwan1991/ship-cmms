@@ -14,6 +14,7 @@ export const TABLES: Record<OrgNoun, string> = {
   ship: 'org_ship',
   ship_command_assignment: 'org_ship_command_assignment',
   department: 'org_department',
+  ship_section: 'org_ship_section',
   workshop: 'org_workshop',
   external_provider: 'org_external_provider',
   location: 'org_location',
@@ -143,8 +144,15 @@ const PARTY_TABLE: Record<PartyRef['kind'], string> = {
   external_provider: 'org_external_provider',
 };
 
-/** Resolve a PartyRef (ownership / operating / executing party on repair work) to a live org unit, or null. */
+/**
+ * Resolve a PartyRef (ownership / operating / executing party on repair work) to a live org unit, or null.
+ * Kind `department` is a command department or a ship section (ids are unique across both tables).
+ */
 export function resolveParty(db: Db, ref: PartyRef): ResolvedParty | null {
+  if (ref.kind === 'department') {
+    const d = getDepartment(db, ref.id);
+    return d ? { kind: 'department', id: d.id, code: d.code, name: d.name, status: d.status } : null;
+  }
   const r = db.prepare(`SELECT id, code, name, status FROM ${PARTY_TABLE[ref.kind]} WHERE id = ? AND deleted_at IS NULL`).get(ref.id) as
     | { id: string; code: string; name: string; status: string | null }
     | undefined;
@@ -157,6 +165,29 @@ export function findPartyByCode(db: Db, kind: PartyRef['kind'], code: string): R
     | { id: string; code: string; name: string; status: string | null }
     | undefined;
   return r ? { kind, id: r.id, code: r.code, name: r.name, status: r.status ?? null } : null;
+}
+
+export interface DepartmentInfo {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  /** 'ship' = a section inside a ship, 'command' = a command HQ department, null = not yet attached. */
+  ownerKind: 'ship' | 'command' | null;
+  ownerId: string | null;
+}
+
+/** A live ship section (held by its ship) or command department, with its owner. */
+export function getDepartment(db: Db, id: string): DepartmentInfo | null {
+  const s = db.prepare('SELECT id, code, name, status, home_scope_id FROM org_ship_section WHERE id = ? AND deleted_at IS NULL').get(id) as
+    | { id: string; code: string; name: string; status: string; home_scope_id: string }
+    | undefined;
+  if (s) return { id: s.id, code: s.code, name: s.name, status: s.status, ownerKind: 'ship', ownerId: s.home_scope_id };
+  // Rows with owner_kind 'ship' are pre-0005 copies of sections (now in org_ship_section) and are ignored.
+  const r = db.prepare("SELECT id, code, name, status, owner_kind, owner_id FROM org_department WHERE id = ? AND deleted_at IS NULL AND owner_kind IS NOT 'ship'").get(id) as
+    | { id: string; code: string; name: string; status: string; owner_kind: 'command' | null; owner_id: string | null }
+    | undefined;
+  return r ? { id: r.id, code: r.code, name: r.name, status: r.status, ownerKind: r.owner_kind ?? null, ownerId: r.owner_id ?? null } : null;
 }
 
 export function resolveParties(db: Db, refs: readonly PartyRef[]): Array<ResolvedParty | null> {

@@ -33,10 +33,33 @@ export const commandConfig: ResourceConfig = {
   defaults: { status: 'active' },
 };
 
+/** Command HQ departments, under a command. Hub reference data. */
 export const departmentConfig: ResourceConfig = {
   noun: 'department', collection: 'departments', titleKey: 'org.title.departments', newKey: 'org.new.department', hubOnly: true, rowName,
-  columns: [cCode, cName, { key: 'sortOrder', labelKey: 'org.field.sortOrder' }, cStatus],
-  fields: () => [code, name, sortOrder, status],
+  refs: { commands: { collection: 'commands', label: (r) => `${String(r.code)} – ${String(r.name)}` } },
+  columns: [
+    { key: 'ownerName', labelKey: 'org.field.commandId', render: (r) => <span>{r.ownerCode ? `${String(r.ownerCode)} – ${String(r.ownerName)}` : t('org.dept.kind.none')}</span> },
+    cCode, cName, { key: 'sortOrder', labelKey: 'org.field.sortOrder' }, cStatus,
+  ],
+  fields: (refs) => [{ key: 'ownerId', labelKey: 'org.field.commandId', type: 'select', required: true, options: refs.commands ?? [] }, code, name, sortOrder, status],
+  defaults: { status: 'active' },
+};
+
+/**
+ * Sections inside a ship (Electrical, Engineering, General, ... ). Held by the ship: its own installation adds and edits them,
+ * even offline; the hub or a command can too. Each installation edits only the sections it entered.
+ */
+export const shipSectionConfig: ResourceConfig = {
+  noun: 'ship_section', collection: 'ship-sections', titleKey: 'org.title.sections', newKey: 'org.new.section', hubOnly: false, rowName,
+  refs: { ships: { collection: 'ships', label: (r) => `${String(r.code)} – ${String(r.name)}` } },
+  columns: [
+    { key: 'ownerName', labelKey: 'org.field.shipId', render: (r) => <span>{r.ownerCode ? `${String(r.ownerCode)} – ${String(r.ownerName)}` : String(r.shipId ?? '')}</span> },
+    cCode, cName, { key: 'sortOrder', labelKey: 'org.field.sortOrder' }, cStatus,
+  ],
+  fields: (refs) => [
+    { key: 'shipId', labelKey: 'org.field.shipId', type: 'select', required: true, createOnly: true, options: refs.ships ?? [], hintKey: 'org.hint.section_ship' },
+    code, name, sortOrder, status,
+  ],
   defaults: { status: 'active' },
 };
 

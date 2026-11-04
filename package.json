@@ -15,6 +15,7 @@
     "verify": "npm run typecheck && npm run check:boundaries && npm test",
     "init-installation": "tsx src/platform/init-cli.ts",
     "seed:demo-org": "tsx src/modules/m01-organization/seed-cli.ts",
+    "org-sections": "tsx src/modules/m01-organization/sections-cli.ts",
     "asset-tags": "tsx src/modules/m03-assets/seed-cli.ts",
     "seed:demo-assets": "tsx src/modules/m03-assets/seed-cli.ts --demo",
     "classifications": "tsx src/modules/m03-assets/classification-cli.ts",

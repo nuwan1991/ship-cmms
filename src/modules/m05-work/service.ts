@@ -249,10 +249,55 @@ export function createWorkOrder(a: Actor, input: unknown): Row {
     const row = createRecord(a.wctx, 'wrk.work_order', {
       wo_no: tag, repair_case_id: kase?.id ?? null, title: b.title, description: b.description ?? null, work_type: b.workType ?? 'corrective', priority: b.priority ?? 'normal',
       asset_id: t.assetId, position_id: t.positionId, home_scope_id: t.shipId, requested_due: b.requestedDue ?? null,
+      requested_at: b.requestedAt ?? nowUtc(), requested_by_user_id: b.requestedByUserId === undefined ? signedInUser(a) : b.requestedByUserId, supervisor_user_id: b.supervisorUserId ?? null,
       ...partyCols('operating_party', b.operatingParty ?? (t.assetId || t.positionId ? { kind: 'ship', id: t.shipId } : null)), ...partyCols('executing_party', b.executingParty),
     });
+    for (const userId of new Set(b.crewUserIds ?? [])) createRecord(a.wctx, 'wrk.work_order_crew', { work_order_id: row.id, home_scope_id: t.shipId, user_id: userId, note: null });
     audit(a, 'work_order.create', 'wrk.work_order', row.id as string);
-    return { ...toApi(row), axes: currentAxes(db, 'work_order', row.id as string) };
+    return { ...toApi(row), axes: currentAxes(db, 'work_order', row.id as string), crew: crewOf(db, row.id as string) };
+  })();
+}
+
+/** The signed-in user's id, or null for system/seed actors that are not real users. */
+const signedInUser = (a: Actor): string | null => (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(a.wctx.actor.userId) ? a.wctx.actor.userId : null);
+
+/** Live crew members of a work order, oldest first. */
+export const crewOf = (db: Db, workOrderId: string): Row[] =>
+  (db.prepare('SELECT * FROM wrk_work_order_crew WHERE work_order_id = ? AND deleted_at IS NULL ORDER BY created_at, id').all(workOrderId) as Row[]).map(toApi);
+
+/** Put a person on the crew of a work order. Changing the crew is changing the order, so it needs work_order.update. */
+export function addCrewMember(a: Actor, workOrderId: string, input: unknown): Row {
+  const b = S.parse(S.CrewAdd, input);
+  const db = a.wctx.db;
+  const w = requireWorkOrder(db, workOrderId);
+  authorize(a, perm('work_order', 'update'), shipScope(w.home_scope_id));
+  requireOwner(a, w, 'The work order');
+  return db.transaction(() => {
+    notClosed(db, 'work_order', workOrderId);
+    if (exists(db, 'SELECT 1 FROM wrk_work_order_crew WHERE work_order_id = ? AND user_id = ? AND deleted_at IS NULL', workOrderId, b.userId)) {
+      throw new AppError('DUPLICATE', 'This person is already on the crew', { userId: b.userId });
+    }
+    const row = createRecord(a.wctx, 'wrk.work_order_crew', { work_order_id: workOrderId, home_scope_id: w.home_scope_id, user_id: b.userId, note: b.note ?? null });
+    audit(a, 'work_order.crew_add', 'wrk.work_order', workOrderId);
+    return toApi(row);
+  })();
+}
+
+/** Take a person off the crew (the row is tombstoned, so the history of who worked on it stays). */
+export function removeCrewMember(a: Actor, workOrderId: string, crewId: string, input: unknown): Row {
+  const { expectedVersion, reason } = S.parse(S.Tombstone, input);
+  const db = a.wctx.db;
+  const w = requireWorkOrder(db, workOrderId);
+  const cur = getLive(db, 'work_order_crew', crewId);
+  if (!cur || cur.work_order_id !== workOrderId) throw notFound('Crew member', crewId);
+  authorize(a, perm('work_order', 'update'), shipScope(w.home_scope_id));
+  requireOwner(a, w, 'The work order');
+  checkVersion(cur, expectedVersion);
+  notClosed(db, 'work_order', workOrderId);
+  return db.transaction(() => {
+    tombstoneRecord(a.wctx, 'wrk.work_order_crew', crewId, expectedVersion, reason);
+    audit(a, 'work_order.crew_remove', 'wrk.work_order', workOrderId);
+    return toApi(reload(db, 'work_order_crew', crewId));
   })();
 }
 
@@ -412,6 +457,7 @@ export function tombstoneWorkOrder(a: Actor, id: string, input: unknown): Row {
   if (used) throw blocked('Work has been recorded against this order; close it instead of removing it');
   return db.transaction(() => {
     for (const j of db.prepare('SELECT id, version FROM wrk_job_card WHERE work_order_id = ? AND deleted_at IS NULL').all(id) as Array<{ id: string; version: number }>) tombstoneRecord(a.wctx, 'wrk.job_card', j.id, j.version, reason);
+    for (const c of db.prepare('SELECT id, version FROM wrk_work_order_crew WHERE work_order_id = ? AND deleted_at IS NULL').all(id) as Array<{ id: string; version: number }>) tombstoneRecord(a.wctx, 'wrk.work_order_crew', c.id, c.version, reason);
     tombstoneRecord(a.wctx, 'wrk.work_order', id, expectedVersion, reason);
     return toApi(reload(db, 'work_order', id));
   })();

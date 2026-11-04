@@ -6,7 +6,7 @@ import type { WrkNoun } from './permissions.js';
 export type Row = Record<string, unknown>;
 
 export const TABLES = {
-  defect: 'wrk_defect', defect_category: 'wrk_defect_category', repair_case: 'wrk_repair_case', work_order: 'wrk_work_order', job_card: 'wrk_job_card', advisory: 'wrk_advisory',
+  defect: 'wrk_defect', defect_category: 'wrk_defect_category', repair_case: 'wrk_repair_case', work_order: 'wrk_work_order', work_order_crew: 'wrk_work_order_crew', job_card: 'wrk_job_card', advisory: 'wrk_advisory',
   labour_entry: 'wrk_labour_entry', finding: 'wrk_finding', test_record: 'wrk_test_record', acceptance: 'wrk_acceptance', handover: 'wrk_handover', status_event: 'wrk_status_event',
 } as const satisfies Record<WrkNoun, string>;
 

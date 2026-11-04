@@ -8,7 +8,7 @@ import { actorFromRequest, authorize, type Actor } from './actor.js';
 import { perm, type OrgNoun } from './permissions.js';
 import { getLive, getLocation, getShipCommandAt, resolveParty, TABLES, toApi, type Row } from './queries.js';
 import { parse } from './schemas.js';
-import { createEntity, reassignShip, tombstoneEntity, updateEntity } from './service.js';
+import { createEntity, ensureDefaultSections, reassignShip, tombstoneEntity, updateEntity } from './service.js';
 
 export const ORG_API_PREFIX = '/api/v1/org';
 
@@ -19,6 +19,7 @@ const COLLECTIONS: Record<OrgNoun, string> = {
   ship: 'ships',
   ship_command_assignment: 'ship-command-assignments',
   department: 'departments',
+  ship_section: 'ship-sections',
   workshop: 'workshops',
   external_provider: 'external-providers',
   location: 'locations',
@@ -30,13 +31,14 @@ const FILTERS: Record<OrgNoun, Record<string, string>> = {
   command: { status: 'status' },
   ship: { status: 'status', fleetId: 'fleet_id', commandId: 'v.command_id' }, // v.* = org_v_ship_current_command
   ship_command_assignment: { shipId: 'ship_id', commandId: 'command_id' },
-  department: { status: 'status' },
+  department: { status: 'status', ownerKind: 'owner_kind', ownerId: 'owner_id' },
+  ship_section: { status: 'status', shipId: 'home_scope_id' },
   workshop: { status: 'status', kind: 'kind', commandId: 'command_id', shipId: 'ship_id' },
   external_provider: { status: 'status' },
   location: { status: 'status', kind: 'kind', siteId: 'home_scope_id', parentId: 'parent_id' },
 };
 const SEARCH_COLUMNS: Partial<Record<OrgNoun, string[]>> = {
-  command: ['code', 'name'], ship: ['code', 'name', 'pennant_no'], department: ['code', 'name'],
+  command: ['code', 'name'], ship: ['code', 'name', 'pennant_no'], department: ['code', 'name'], ship_section: ['code', 'name'],
   workshop: ['code', 'name'], external_provider: ['code', 'name'], location: ['code', 'name'], fleet: ['code', 'name'],
 };
 
@@ -60,6 +62,8 @@ function listRows(a: Actor, ctx: AppContext, noun: OrgNoun, rawQuery: unknown) {
   const q = parse(listQuerySchema(noun), rawQuery) as Record<string, string | number | undefined> & { limit: number };
   const t = 't';
   const where = [`${t}.deleted_at IS NULL`];
+  // Pre-0005 copies of ship sections (now org_ship_section) are ignored.
+  if (noun === 'department') where.push(`${t}.owner_kind IS NOT 'ship'`);
   const params: unknown[] = [];
   for (const [param, col] of Object.entries(FILTERS[noun])) {
     const v = q[param];
@@ -87,7 +91,15 @@ function listRows(a: Actor, ctx: AppContext, noun: OrgNoun, rawQuery: unknown) {
     : `SELECT t.* FROM ${TABLES[noun]} t WHERE ${where.join(' AND ')} ORDER BY t.id LIMIT ?`;
   const rows = a.wctx.db.prepare(sql).all(...params, q.limit + 1) as Row[];
   const page = rows.slice(0, q.limit);
+  // Departments carry their owner's code and name: every ship has its own ELEC / ENG / GEN, so pick lists need "SHIP-1 / ELEC".
+  const ownerOf = (kind: unknown, id: unknown) => {
+    const o = (kind === 'ship' || kind === 'command') && typeof id === 'string' ? getLive(a.wctx.db, kind, id) : undefined;
+    return { ownerCode: o?.code ?? null, ownerName: o?.name ?? null };
+  };
   const items = page.map((r) => {
+    if (noun === 'department') return { ...toApi(r), ...ownerOf(r.owner_kind, r.owner_id) };
+    // Sections answer like departments too (ownerKind 'ship'), so pick lists can treat both alike.
+    if (noun === 'ship_section') return { ...toApi(r), shipId: r.home_scope_id, ownerKind: 'ship', ownerId: r.home_scope_id, ...ownerOf('ship', r.home_scope_id) };
     if (!ship) return toApi(r);
     const { cur_command_id, cur_command_code, cur_command_name, cur_assigned_since, ...rest } = r;
     return {
@@ -95,7 +107,7 @@ function listRows(a: Actor, ctx: AppContext, noun: OrgNoun, rawQuery: unknown) {
       currentCommand: cur_command_id ? { commandId: cur_command_id, code: cur_command_code, name: cur_command_name, assignedSince: cur_assigned_since } : null,
     };
   });
-  const scope: ScopeRef = noun === 'location' && typeof q.siteId === 'string' ? { kind: 'ship', id: q.siteId } : { kind: 'fleet' };
+  const scope: ScopeRef = noun === 'location' && typeof q.siteId === 'string' ? { kind: 'ship', id: q.siteId } : noun === 'ship_section' && typeof q.shipId === 'string' ? { kind: 'ship', id: q.shipId } : { kind: 'fleet' };
   return {
     items,
     nextCursor: rows.length > q.limit ? (page[page.length - 1]?.id as string) : null,
@@ -113,7 +125,7 @@ export function mountOrgRoutes(ctx: AppContext, app: FastifyInstance): void {
 
     app.get(path, async (req) => {
       const a = actorFromRequest(ctx, req);
-      authorize(a, perm(noun, 'view'), noun === 'location' ? undefined : { kind: 'fleet' });
+      authorize(a, perm(noun, 'view'), noun === 'location' || noun === 'ship_section' ? undefined : { kind: 'fleet' });
       return listRows(a, ctx, noun, req.query);
     });
 
@@ -122,8 +134,8 @@ export function mountOrgRoutes(ctx: AppContext, app: FastifyInstance): void {
       const id = idParam(req);
       const row = getLive(ctx.db, noun, id);
       if (!row) throw new AppError('NOT_FOUND', `${noun} ${id} not found`);
-      authorize(a, perm(noun, 'view'), noun === 'location' ? { kind: row.site_kind === 'workshop' ? 'workshop' : 'ship', id: row.home_scope_id as string } : undefined);
-      const out = toApi(row);
+      authorize(a, perm(noun, 'view'), noun === 'location' ? { kind: row.site_kind === 'workshop' ? 'workshop' : 'ship', id: row.home_scope_id as string } : noun === 'ship_section' ? { kind: 'ship', id: row.home_scope_id as string } : undefined);
+      const out = noun === 'ship_section' ? { ...toApi(row), shipId: row.home_scope_id } : toApi(row);
       return noun === 'location' ? { ...out, path: getLocation(ctx.db, id)?.path ?? [] } : out;
     });
 
@@ -138,6 +150,10 @@ export function mountOrgRoutes(ctx: AppContext, app: FastifyInstance): void {
     const body = (req.body ?? {}) as Record<string, unknown>;
     return reassignShip(actorFromRequest(ctx, req), { ...body, shipId: id });
   });
+
+  // Default sections (Electrical, Engineering, General): for every ship, or one ship. Safe to repeat.
+  app.post(`${base}/ships/default-sections`, async (req) => ensureDefaultSections(actorFromRequest(ctx, req)));
+  app.post(`${base}/ships/:id/default-sections`, async (req) => ensureDefaultSections(actorFromRequest(ctx, req), idParam(req)));
 
   app.get(`${base}/ships/:id/command`, async (req) => {
     const a = actorFromRequest(ctx, req);

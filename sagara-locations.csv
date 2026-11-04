@@ -1,0 +1,80 @@
+Ship or workshop code,Parent location code,Location code,Name,Kind,Sort order,Status
+P622,,DECK-02,Deck 02,deck,2,active
+P622,,DECK-01,Deck 01,deck,5,active
+P622,,DECK-1,Deck 1,deck,10,active
+P622,,DECK-2,Deck 2,deck,20,active
+P622,,DECK-3,Deck 3,deck,30,active
+P622,,DECK-4,Deck 4,deck,40,active
+P622,DECK-02,D02-01,LSO,compartment,10,active
+P622,DECK-01,D01-02,WHEEL HOUSE,compartment,20,active
+P622,DECK-01,D01-03,CHART ROOM,compartment,30,active
+P622,DECK-01,D01-04,WHEEL HOUSE ALLEY WAY,compartment,40,active
+P622,DECK-01,D01-05,MSO,compartment,50,active
+P622,DECK-01,D01-06,SRE,compartment,60,active
+P622,DECK-01,D01-07,EMERGENCY GENERATOR ROOM,compartment,70,active
+P622,DECK-01,D01-A,NO BATHROOM,room,80,active
+P622,DECK-01,D01-B,NO CABIN,room,90,active
+P622,DECK-01,D01-C,BATTERY CHARGING ROOM,room,100,active
+P622,DECK-01,D01-D,ELECTRICAL OFFICE,room,110,active
+P622,DECK-01,D01-E,WOMEN SAILORS MESS,room,120,active
+P622,DECK-01,D01-F,GYRO ROOM,room,130,active
+P622,DECK-1,D1-09,CO CABIN,compartment,140,active
+P622,DECK-1,D1-10,CO CABIN ALLEY WAY,compartment,150,active
+P622,DECK-1,D1-11,SCO CABIN,compartment,160,active
+P622,DECK-1,D1-12,XO CABIN,compartment,170,active
+P622,DECK-1,D1-13,SEO CABIN,compartment,180,active
+P622,DECK-1,D1-14,GO/LO CABIN,compartment,190,active
+P622,DECK-1,D1-15,SLO CABIN,compartment,200,active
+P622,DECK-1,D1-16,WARD ROOM ALLEY WAY,compartment,210,active
+P622,DECK-1,D1-17,HELI HANGAR,compartment,220,active
+P622,DECK-1,D1-G,WARD ROOM,room,230,active
+P622,DECK-1,D1-H,WOMEN SAILORS MESS,room,240,active
+P622,DECK-1,D1-I,WARD ROOM PANTRY,room,250,active
+P622,DECK-2,D2-18,BOSON STORES,compartment,260,active
+P622,DECK-2,D2-19,BOSON STORES ALLEY WAY,compartment,270,active
+P622,DECK-2,D2-20,SCO CABIN,compartment,280,active
+P622,DECK-2,D2-21,OFFICER CABIN,compartment,290,active
+P622,DECK-2,D2-22,S/S CABIN,compartment,300,active
+P622,DECK-2,D2-23,WRITER OFFICE,compartment,310,active
+P622,DECK-2,D2-24,SICK BAY ALLEY WAY,compartment,320,active
+P622,DECK-2,D2-25,GENERAL MESS,compartment,330,active
+P622,DECK-2,D2-26,MAIN GALLEY,compartment,340,active
+P622,DECK-2,D2-27,SHIP OFFICE ALLEY WAY,compartment,350,active
+P622,DECK-2,D2-28,S/S DINING HALL,compartment,360,active
+P622,DECK-2,D2-29,AFT DC POST ALLEY WAY,compartment,370,active
+P622,DECK-2,D2-30,INCINERATOR,compartment,380,active
+P622,DECK-2,D2-31,ENGINEERING WORKSHOP,compartment,390,active
+P622,DECK-2,D2-32,ENGINEERING OFFICE,compartment,400,active
+P622,DECK-2,D2-33,LAUNDRY,compartment,410,active
+P622,DECK-2,D2-J,SICKBAY,room,420,active
+P622,DECK-2,D2-K,SHIP OFFICE,room,430,active
+P622,DECK-2,D2-L,S/S DINING HALL PANTRY,room,440,active
+P622,DECK-2,D2-M,12 SAILORS BATHROOM,room,450,active
+P622,DECK-2,D2-N,VICTUALLING STORES,room,460,active
+P622,DECK-2,D2-O,WINE STORES,room,470,active
+P622,DECK-2,D2-P,NAVAL STORES,room,480,active
+P622,DECK-2,D2-Q,WARD ROOM VICTUALLING STORES,room,490,active
+P622,DECK-2,D2-R,OFFICER BATHROOM,room,500,active
+P622,DECK-2,D2-S,40 SAILORS BATHROOM,room,510,active
+P622,DECK-2,D2-T,S/S BATHROOM,room,520,active
+P622,DECK-3,D3-36,COOL ROOM,compartment,530,active
+P622,DECK-3,D3-37,STP,compartment,540,active
+P622,DECK-3,D3-40,12 SAILORS MESS,compartment,550,active
+P622,DECK-3,D3-41,MAA CABIN,compartment,560,active
+P622,DECK-3,D3-42,TRAINING OFFICER CABIN,compartment,570,active
+P622,DECK-3,D3-43,MAA CABIN ALLEY WAY,compartment,580,active
+P622,DECK-3,D3-44,S/S CABIN NO 2,compartment,590,active
+P622,DECK-3,D3-45,40 SAILORS MESS,compartment,600,active
+P622,DECK-3,D3-47,MCR,compartment,610,active
+P622,DECK-3,D3-48,MSB,compartment,620,active
+P622,DECK-3,D3-49,DA ROOM,compartment,630,active
+P622,DECK-3,D3-50,ENGINE ROOM,compartment,640,active
+P622,DECK-3,D3-51,ELECTRICAL STORES,compartment,650,active
+P622,DECK-3,D3-52,SALOON,compartment,660,active
+P622,DECK-3,D3-53,ENGINEERING STORES,compartment,670,active
+P622,DECK-3,D3-54,POLLUTION CONTROL,compartment,680,active
+P622,DECK-3,D3-55,AFTER ARMORY,compartment,690,active
+P622,DECK-3,D3-56,ASP,compartment,700,active
+P622,DECK-4,D4-35,FORWARD BAGGAGE ROOM,compartment,710,active
+P622,DECK-4,D4-38,AFTER BAGGAGE ROOM,compartment,720,active
+P622,DECK-4,D4-39,HDA,compartment,730,active

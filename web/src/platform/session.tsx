@@ -9,6 +9,8 @@ export interface Me {
   restrictedWhenOffline: Record<string, string>;
   authority: { hub: boolean; lastHubSyncAt: string | null; leaseDays: number | null; leaseExpiresAt: string | null; expired: boolean };
   clock: { highWater: string | null; suspect: boolean };
+  /** Where the user belongs (section, ship, command), used to pre-fill forms. Grants nothing. */
+  home?: { sectionId: string | null; sectionOwnerKind: 'ship' | 'command' | null; shipId: string | null; commandId: string | null };
 }
 
 export type AuthState = 'loading' | 'anonymous' | 'ready' | 'unreachable';

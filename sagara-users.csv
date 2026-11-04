@@ -1,0 +1,20 @@
+S/N,Rank,Trade/Branch,Off No,Name,Officer/Sailor,Status
+1,CDR,NRL,1234,BC Sandaruwan,officer,active
+2,LCDR,NRL,3540,WKMND Bandara,officer,active
+3,EA I,AL,108643,HAIP KUMARA,sailor,active
+4,PO (L),LL,47025,AC MADUSANKA,sailor,active
+5,PO (L),LL,52413,WMU PREMALAL,sailor,active
+6,EA III,AL,113599,AKR NIMNA,sailor,active
+7,LEM,LL,88384,HMGN BANDARA,sailor,active
+8,LEM,LL,100480,AHCM GUNAWARDANA,sailor,active
+9,LEM,LL,100656,INM SENEVIRATHNA,sailor,active
+10,LEM,LL,100657,HJ SAMPATH,sailor,active
+11,LEM,LL,110827,HPSE SEELAWIMALA,sailor,active
+12,EA IV,AL,119259,HMKC HERATH,sailor,active
+13,PO(RL),LR,80028,DKNP WIJESEKARA,sailor,active
+14,PO(RL),LR,82736,ALAP SANDARUWAN,sailor,active
+15,REA II,AR,112217,DMIM BANDARA,sailor,active
+16,LREM,LR,84901,K WANNIARACHCHI,sailor,active
+17,LREM,LR,89292,PB THILAKARATHNA,sailor,active
+18,LREM,LR,103929,PK MADUSHANKA,sailor,active
+19,REA,AR,118497,MDP KUMARA,sailor,active

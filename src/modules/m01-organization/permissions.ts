@@ -5,6 +5,7 @@ export const ORG_NOUNS = [
   'ship',
   'ship_command_assignment',
   'department',
+  'ship_section',
   'workshop',
   'external_provider',
   'location',

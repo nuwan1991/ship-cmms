@@ -9,6 +9,7 @@ import { nowUtc } from '../../platform/time.js';
 import { makeActor, snapshotFor, type Actor } from './actor.js';
 import { effectivePermissions, clockState, leaseInfo, resetClock } from './authority.js';
 import { authorize } from './guard.js';
+import { userHome } from './home.js';
 import { authenticate, changeOwnPassword, login, logout, resetLocalPassword, setCredential } from './auth.js';
 import { evaluateGate, ratifyApproval, recordApproval } from './approvals.js';
 import { perm, type PermissionCatalogue } from './permissions.js';
@@ -105,7 +106,16 @@ export function mountIdentityRoutes(ctx: AppContext, app: FastifyInstance, catal
       restrictedWhenOffline: eff.restricted,
       authority: { hub: !lease.applies, lastHubSyncAt: lease.lastHubSyncAt, leaseDays: lease.leaseDays, leaseExpiresAt: lease.leaseExpiresAt, expired: lease.expired },
       clock: { highWater: clock.highWater, suspect: clock.suspect },
+      home: userHome(ctx.db, userId, (ctx.identity ?? getLocalIdentity(ctx.db))?.installationId ?? null),
     };
+  });
+  // People to pick on forms (requested by, supervisor, crew): active users with name, rank and section only. Any signed-in user.
+  app.get(`${base}/users/directory`, async (req) => {
+    actorFromRequest(ctx, req);
+    const rows = ctx.db.prepare(
+      "SELECT id, display_name, rank, service_number, section_id FROM idn_user WHERE deleted_at IS NULL AND status = 'active' ORDER BY display_name, id LIMIT 5000",
+    ).all() as Row[];
+    return { items: rows.map(toApi), nextCursor: null, freshness: [freshnessFor(ctx)] };
   });
   app.post(`${base}/me/password`, async (req) => changeOwnPassword(actorFromRequest(ctx, req), ctx, req.body));
   app.get(`${base}/permissions`, async (req) => { authorize(actorFromRequest(ctx, req), perm('role_permission', 'view')); return { permissions: catalogue.list() }; });

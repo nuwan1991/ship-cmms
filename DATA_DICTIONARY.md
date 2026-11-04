@@ -34,7 +34,8 @@ All rows carry the standard sync columns (CONTRACTS §2). No foreign keys; servi
 | org_command | H | code, name, short_name, sort_order, status | Count is data (seven initially); cannot be deactivated or removed while it has current/future ship assignments or workshops |
 | org_ship | H | fleet_id, code, name, pennant_no, ship_class, ship_type, status (`active|laid_up|decommissioned`) | `fleet_id` defaults to the single fleet; cannot be removed while it has locations, an onboard workshop or current/future assignments |
 | org_ship_command_assignment | H | ship_id, command_id, effective_from, effective_to (NULL = open), reason | Half-open `[from, to)`; live rows of one ship never overlap (service check + DB trigger); inactive commands cannot receive ships |
-| org_department | H | code, name, sort_order, status | Disciplines; responsibility itself lives in M03 |
+| org_department | H | code, name, sort_order, status, owner_kind (`command`/empty), owner_id | A command HQ department. Code unique per owner. Empty owner = from before 0004, a department not yet attached to a command. Rows with `owner_kind = ship` are pre-0005 copies of ship sections and are ignored (migrations `0004_department_owner`, `0005_ship_section`; D69, D70) |
+| org_ship_section | O | code, name, sort_order, status; home_scope_id = the ship | A section inside a ship (Electrical, Engineering, General, …). Held by the ship like a location: entered by the ship's own installation (offline too) or the hub / a command, edited only by the installation that entered it. Code unique per ship. Each new ship gets ELEC, ENG, GEN; `npm run org-sections` back-fills. A section is a `department` party (D70) |
 | org_workshop | H | code, name, kind (`onboard|command|specialist`), command_id, ship_id, has_replica, status | onboard ⇒ ship_id only; command ⇒ command_id only; specialist ⇒ neither (serves any command by capability, M08) |
 | org_external_provider | H | code, name, contact_*, notes, status | Executing party only; no site |
 | org_location | O | site_kind (`ship|workshop`), home_scope_id (= site id), parent_id, code, name, kind, sort_order, status | Tree per site, depth ≤ `LOCATION_MAX_DEPTH`; parent in same site; no cycles; code unique per parent; owner = installation that entered it; ship/workshop installations enter only their own site |
@@ -50,7 +51,7 @@ Permissions: `idn.<noun>.<view|create|update|remove>` for user, credential, user
 
 | Table | Class | Key columns | Rules |
 |---|---|---|---|
-| idn_user | H | display_name, rank, trade_branch, service_number (shown as *Off No*), personnel_category (`officer`/`sailor`), status | Person identity; no credentials. Approvals reference `user_id`, never the name |
+| idn_user | H | display_name, rank, trade_branch, service_number (shown as *Off No*), personnel_category (`officer`/`sailor`), status, section_id | Person identity; no credentials. Approvals reference `user_id`, never the name. `section_id` (a ship section or command department, migration `0003_user_section`) pre-fills forms and grants nothing (D69) |
 | idn_credential | H | user_id, username, password_hash (scrypt, redacted from audit), credential_version | One live credential per user; username unique; a new version ends that user's sessions and affects only future sign-in |
 | idn_user_installation | H | user_id, installation_id, lease_expires_at | Which users are provisioned where (credentials replicate only there, M10) |
 | idn_role / idn_role_permission | H | code, name, status / role_id, permission | Permission list replaced as a set (`PUT /roles/:id/permissions`) |
@@ -99,7 +100,8 @@ View: **`qr_v_survey_summary`** (per survey: item, scanned, pending and converte
 | wrk_defect | O | defect_no (`SLN-DF-########`, range `defect_no`), title, description, severity (`minor`/`major`/`critical`), asset_id, position_id, status (`open`/`converted`/`dismissed`), repair_case_id, reported_at, dismiss_reason, category_id, subcategory_id (migration `0002`, D67); home scope = ship |
 | wrk_defect_category | H | code (unique, permanent), name, parent_id (NULL = main category; one level), department_codes (comma list suggesting a main category), color (`#RRGGBB`, main categories), sort_order, status (D67) |
 | wrk_repair_case | O | case_no (`SLN-RC-…`), title, description, asset_id, position_id, priority, opened_at |
-| wrk_work_order | O | wo_no (`SLN-WO-…`), repair_case_id, title, work_type (`corrective`/`preventive`/`inspection`/`modification`), priority, asset_id, position_id, operating party (kind+id), executing party (kind+id), requested_due (local date). The owner is the installation that entered it |
+| wrk_work_order | O | wo_no (`SLN-WO-…`), repair_case_id, title, work_type (`corrective`/`preventive`/`inspection`/`modification`), priority, asset_id, position_id, operating party (kind+id), executing party (kind+id), requested_due (local date), requested_at (UTC, defaults to now), requested_by_user_id (defaults to the signed-in user), supervisor_user_id (migration `0003_work_order_people`, D69). The owner is the installation that entered it |
+| wrk_work_order_crew | O | work_order_id, user_id, note | Crew / workers on a work order, several per order. Written by the work order's owner; removing a member tombstones the row so the history stays (D69) |
 | wrk_job_card | O | work_order_id, seq, title, instructions, checklist_json (`[{text,done}]`), status (`draft`/`issued`/`completed`/`void`), completed_at |
 | wrk_status_event | E | subject_type (`repair_case`/`work_order`), subject_id, axis (`progress`/`approval`/`return_to_service`/`closure`), value, note, approval_id, provisional |
 | wrk_labour_entry | E | work_order_id, worker_name, trade, minutes (1–1440), note |

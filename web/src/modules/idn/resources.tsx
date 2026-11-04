@@ -20,21 +20,32 @@ const orgRef = (collection: string) => ({ apiBase: ORG, collection, label: (r: R
 /** Scoped targets, keyed by scope kind, so the scope is picked by name rather than typed as a raw id. */
 const SCOPE_REFS = { command: orgRef('commands'), ship: orgRef('ships'), workshop: orgRef('workshops'), department: orgRef('departments') };
 
+/** Ship sections and command departments, labelled with their owner because every ship has its own ELEC / ENG / GEN. */
+const ownerLabel = (r: Rec) => `${r.ownerCode ? `${String(r.ownerCode)} / ` : ''}${String(r.code)} – ${String(r.name)}`;
+const SECTIONS = {
+  sections: { apiBase: '/api/v1/org', collection: 'ship-sections', label: ownerLabel, filter: (r: Rec) => r.status === 'active' },
+  departments: { apiBase: '/api/v1/org', collection: 'departments', label: ownerLabel, filter: (r: Rec) => r.status === 'active' },
+};
+const sectionOptions = (refs: Record<string, Array<{ value: string; label: string }>>) => [...(refs.sections ?? []), ...(refs.departments ?? [])];
+
 export const userConfig: IdnConfig = {
   noun: 'user', collection: 'users', titleKey: 'idn.title.users', newKey: 'idn.new.user',
+  refs: SECTIONS,
   rowName: (r) => String(r.displayName),
   columns: [
     { key: 'rank', labelKey: 'idn.field.rank' }, { key: 'tradeBranch', labelKey: 'idn.field.tradeBranch' },
     { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber' }, { key: 'displayName', labelKey: 'idn.field.displayName' },
     { key: 'personnelCategory', labelKey: 'idn.field.personnelCategory', render: (r) => (r.personnelCategory ? t(`idn.personnelCategory.${String(r.personnelCategory)}`) : '') },
+    { key: 'sectionId', labelKey: 'idn.field.section', render: (r, _tz, refs) => sectionOptions(refs).find((o) => o.value === r.sectionId)?.label ?? String(r.sectionId ?? '') },
     cStatus,
   ],
-  fields: () => [
+  fields: (refs) => [
     { key: 'rank', labelKey: 'idn.field.rank', type: 'text', maxLength: 60 },
     { key: 'tradeBranch', labelKey: 'idn.field.tradeBranch', type: 'text', maxLength: 60 },
     { key: 'serviceNumber', labelKey: 'idn.field.serviceNumber', type: 'text', maxLength: 40 },
     { key: 'displayName', labelKey: 'idn.field.displayName', type: 'text', required: true, maxLength: 120 },
     { key: 'personnelCategory', labelKey: 'idn.field.personnelCategory', type: 'select', options: () => [opt('officer', 'idn.personnelCategory.officer'), opt('sailor', 'idn.personnelCategory.sailor')] },
+    { key: 'sectionId', labelKey: 'idn.field.section', type: 'select', options: sectionOptions(refs), hintKey: 'idn.hint.section' },
     status,
   ],
 };

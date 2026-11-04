@@ -24,7 +24,7 @@ describe('M01 registration', () => {
     const env = makeOrgEnv();
     expect(env.ctx.entities.validate()).toEqual([]);
     expect(verifySyncedTables(env.ctx.db, env.ctx.entities)).toEqual([]);
-    expect(env.ctx.entities.all().filter((d) => d.module === 'M01')).toHaveLength(10);
+    expect(env.ctx.entities.all().filter((d) => d.module === 'M01')).toHaveLength(11);
     expect(env.ctx.entities.get('org.ship_status_event').recordClass).toBe('event');
     expect(env.ctx.entities.get('org.deployment').recordClass).toBe('owner_mutable');
     expect(env.ctx.entities.get('org.location').recordClass).toBe('owner_mutable');

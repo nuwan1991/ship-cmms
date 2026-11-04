@@ -45,11 +45,16 @@ export const WorkOrderCreate = z.strictObject({
   title: Title, description: Text(2000), workType: z.enum(WORK_TYPES).optional(), priority: z.enum(PRIORITIES).optional(),
   repairCaseId: Uuid.nullable().optional(), assetId: Uuid.nullable().optional(), positionId: Uuid.nullable().optional(), shipId: Uuid.nullable().optional(),
   operatingParty: PartyRef.nullable().optional(), executingParty: PartyRef.nullable().optional(), requestedDue: LocalDate.nullable().optional(),
+  // People: requestedBy defaults to the signed-in user, requestedAt to now. Supervisor and crew are optional for now.
+  requestedAt: UtcTimestamp.optional(), requestedByUserId: Uuid.nullable().optional(), supervisorUserId: Uuid.nullable().optional(),
+  crewUserIds: z.array(Uuid).max(50).optional(),
 });
 export const WorkOrderUpdate = z.strictObject({
   expectedVersion: Version, title: Title.optional(), description: Text(2000), priority: z.enum(PRIORITIES).optional(),
   operatingParty: PartyRef.nullable().optional(), executingParty: PartyRef.nullable().optional(), requestedDue: LocalDate.nullable().optional(),
+  requestedAt: UtcTimestamp.optional(), requestedByUserId: Uuid.nullable().optional(), supervisorUserId: Uuid.nullable().optional(),
 });
+export const CrewAdd = z.strictObject({ userId: Uuid, note: Text(200) });
 
 export const ProgressChange = z.strictObject({ to: z.enum(['in_progress', 'on_hold', 'work_complete']), note: Text(500), occurredAt: UtcTimestamp.optional() });
 export const ReviewRequest = z.strictObject({ note: Text(500) });

@@ -2,7 +2,7 @@ import type { EntityDef } from '../../platform/entity-registry.js';
 
 /**
  * Registered at startup so M10 (sync) and M11 (Excel) can act on org data without importing this module.
- * Reference data is hub-written and replicated fleet-wide; locations are written by the installation that holds the site.
+ * Reference data is hub-written and replicated fleet-wide; locations and ship sections are written by the installation that holds the ship or site.
  */
 export const ORG_ENTITIES: readonly EntityDef[] = [
   { type: 'org.fleet', module: 'M01', table: 'org_fleet', recordClass: 'hub_reference', distribution: 'fleet' },
@@ -12,6 +12,7 @@ export const ORG_ENTITIES: readonly EntityDef[] = [
   { type: 'org.department', module: 'M01', table: 'org_department', recordClass: 'hub_reference', distribution: 'fleet' },
   { type: 'org.workshop', module: 'M01', table: 'org_workshop', recordClass: 'hub_reference', requires: ['org.command', 'org.ship'], distribution: 'fleet' },
   { type: 'org.external_provider', module: 'M01', table: 'org_external_provider', recordClass: 'hub_reference', distribution: 'fleet' },
+  { type: 'org.ship_section', module: 'M01', table: 'org_ship_section', recordClass: 'owner_mutable', requires: ['org.ship'], distribution: 'record' },
   { type: 'org.location', module: 'M01', table: 'org_location', recordClass: 'owner_mutable', requires: ['org.ship', 'org.workshop'], distribution: 'record' },
   // Operational status (D66): events from any installation (Command, NHQ or the ship), scoped to the ship so they reach it and the hub.
   { type: 'org.ship_status_event', module: 'M01', table: 'org_ship_status_event', recordClass: 'event', requires: ['org.ship'], distribution: 'record' },

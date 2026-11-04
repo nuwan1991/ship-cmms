@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { availableActions, normalizeTag, PROGRESS_TARGET, type Axes } from './actions';
+import { availableActions, departmentsFor, normalizeTag, PROGRESS_TARGET, UI_PARTY_KINDS, uiPartyKind, wirePartyKind, workOrderDefaults, type Axes } from './actions';
 import { wrkLabelsEn } from './labels.en';
 import { wrkNav } from './index';
 
@@ -27,6 +27,45 @@ describe('work order actions follow the axes', () => {
   it('tidies a typed equipment tag', () => expect(normalizeTag('  sln-eq-00000001 ')).toBe('SLN-EQ-00000001'));
 });
 
+describe('new work order defaults come from the signed-in user', () => {
+  const home = (o: Partial<Parameters<typeof workOrderDefaults>[0] & object> = {}) => ({ sectionId: null, sectionOwnerKind: null, shipId: null, commandId: null, ...o });
+  it('a ship section member gets their ship and their section', () => {
+    expect(workOrderDefaults(home({ sectionId: 'sec-1', sectionOwnerKind: 'ship', shipId: 'ship-1' }))).toEqual({ shipId: 'ship-1', executingKind: 'ship_section', executingId: 'sec-1' });
+  });
+  it('without a section the ship itself is the party', () => {
+    expect(workOrderDefaults(home({ shipId: 'ship-1' }))).toEqual({ shipId: 'ship-1', executingKind: 'ship', executingId: 'ship-1' });
+  });
+  it('command staff get their command department, then their command', () => {
+    expect(workOrderDefaults(home({ sectionId: 'd-1', sectionOwnerKind: 'command', commandId: 'c-1' }))).toEqual({ shipId: '', executingKind: 'command_department', executingId: 'd-1' });
+    expect(workOrderDefaults(home({ commandId: 'c-1' }))).toEqual({ shipId: '', executingKind: 'command', executingId: 'c-1' });
+  });
+  it('nothing known: nothing pre-filled', () => {
+    expect(workOrderDefaults(null)).toEqual({ shipId: '', executingKind: '', executingId: '' });
+  });
+});
+
+describe('ship sections and command departments', () => {
+  const rows = [
+    { id: 'a', ownerKind: 'ship', ownerId: 'ship-1' }, { id: 'b', ownerKind: 'ship', ownerId: 'ship-2' },
+    { id: 'c', ownerKind: 'command', ownerId: 'cmd-1' }, { id: 'd', ownerKind: null, ownerId: null },
+  ];
+  it('lists only the chosen ship\'s sections', () => {
+    expect(departmentsFor(rows, 'ship_section', 'ship-1').map((r) => r.id)).toEqual(['a']);
+    expect(departmentsFor(rows, 'ship_section').map((r) => r.id)).toEqual(['a', 'b']);
+  });
+  it('command departments include ones not yet attached', () => {
+    expect(departmentsFor(rows, 'command_department').map((r) => r.id)).toEqual(['c', 'd']);
+  });
+  it('both are a department on the wire, and read back by their owner', () => {
+    expect(wirePartyKind('ship_section')).toBe('department');
+    expect(wirePartyKind('command_department')).toBe('department');
+    expect(wirePartyKind('workshop')).toBe('workshop');
+    expect(uiPartyKind('department', 'ship')).toBe('ship_section');
+    expect(uiPartyKind('department', 'command')).toBe('command_department');
+    expect(uiPartyKind('ship')).toBe('ship');
+  });
+});
+
 describe('labels', () => {
   it('has a label for every nav item, every permission prefix is wrk', () => {
     for (const n of wrkNav) { expect(wrkLabelsEn[n.labelKey]).toBeTruthy(); expect(n.requiredPermission).toMatch(/^wrk\./); }
@@ -46,7 +85,7 @@ describe('labels', () => {
       rts: ['not_assessed', 'restricted', 'cleared', 'withheld'], closure: ['open', 'closed', 'reopened'], jstatus: ['draft', 'issued', 'completed', 'void'],
       severity: ['minor', 'major', 'critical', 'info', 'caution', 'warning'], priority: ['low', 'normal', 'high', 'urgent'], wtype: ['corrective', 'preventive', 'inspection', 'modification'],
       dstatus: ['open', 'converted', 'dismissed'], fkind: ['observation', 'cause', 'recommendation', 'additional_defect'], result: ['pass', 'fail', 'not_applicable'],
-      party: ['command', 'ship', 'department', 'workshop', 'external_provider'], axis: ['progress', 'approval', 'returnToService', 'closure'], decision: ['accepted', 'rejected'],
+      party: ['command', 'ship', 'department', 'workshop', 'external_provider', ...UI_PARTY_KINDS], axis: ['progress', 'approval', 'returnToService', 'closure'], decision: ['accepted', 'rejected'],
     };
     for (const [f, vals] of Object.entries(families)) for (const v of vals) expect(wrkLabelsEn[`wrk.${f}.${v}`], `wrk.${f}.${v}`).toBeTruthy();
   });

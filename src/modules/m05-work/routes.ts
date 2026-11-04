@@ -124,7 +124,19 @@ export function mountWorkRoutes(ctx: AppContext, app: FastifyInstance): void {
       jobCards: all('SELECT * FROM wrk_job_card WHERE work_order_id = ? AND deleted_at IS NULL ORDER BY seq'),
       handovers: all('SELECT * FROM wrk_v_handover_state WHERE work_order_id = ? ORDER BY occurred_at, offer_id'),
       acceptances: all('SELECT * FROM wrk_acceptance WHERE work_order_id = ? ORDER BY occurred_at, id'),
+      crew: V.crewOf(ctx.db, id),
     };
+  });
+  // ---- crew of a work order
+  app.get(`${base}/work-orders/:id/crew`, async (req) => {
+    const w = get('work_order', idParam(req), 'work order');
+    authorize(actor(req), perm('work_order', 'view'), scopeOfRow(w));
+    return { items: V.crewOf(ctx.db, w.id as string), nextCursor: null, freshness: [freshnessFor(ctx, scopeOfRow(w))] };
+  });
+  app.post(`${base}/work-orders/:id/crew`, async (req, reply) => reply.status(201).send(V.addCrewMember(actor(req), idParam(req), req.body)));
+  app.post(`${base}/work-orders/:id/crew/:crewId/tombstone`, async (req) => {
+    const p = parse(z.object({ id: z.uuid(), crewId: z.uuid() }), req.params);
+    return V.removeCrewMember(actor(req), p.id, p.crewId, req.body);
   });
   app.patch(`${base}/work-orders/:id`, async (req) => V.updateWorkOrder(actor(req), idParam(req), req.body));
   app.post(`${base}/work-orders/:id/tombstone`, async (req) => V.tombstoneWorkOrder(actor(req), idParam(req), req.body));

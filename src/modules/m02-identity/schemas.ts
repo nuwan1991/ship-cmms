@@ -25,7 +25,7 @@ export const Tombstone = z.strictObject({ expectedVersion: Version, reason: z.st
 
 export const PERSONNEL_CATEGORIES = ['officer', 'sailor'] as const;
 const PersonnelCategory = z.enum(PERSONNEL_CATEGORIES).nullable().optional();
-const UserDetails = { rank: Text(60), tradeBranch: Text(60), serviceNumber: Text(40), personnelCategory: PersonnelCategory, status: ActiveStatus.optional() };
+const UserDetails = { rank: Text(60), tradeBranch: Text(60), serviceNumber: Text(40), personnelCategory: PersonnelCategory, status: ActiveStatus.optional(), sectionId: Uuid.nullable().optional() };
 export const UserCreate = z.strictObject({ displayName: Name, ...UserDetails });
 export const UserUpdate = z.strictObject({ expectedVersion: Version, displayName: Name.optional(), ...UserDetails });
 
