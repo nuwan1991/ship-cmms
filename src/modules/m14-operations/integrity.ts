@@ -60,6 +60,10 @@ export function runIntegrity(ctx: AppContext, userId: string): { id: string; ok:
     const r = one(ctx, 'SELECT * FROM org_v_assignment_overlap LIMIT 1000');
     add({ code: 'assignment_overlap', title: 'A ship is attached to two commands at the same time', severity: 'warning', count: r.length, sample: r.slice(0, SAMPLE) });
   }
+  if (exists(ctx, 'org_v_deployment_overlap')) {
+    const r = one(ctx, 'SELECT * FROM org_v_deployment_overlap LIMIT 1000');
+    add({ code: 'deployment_overlap', title: 'A ship has two sea deployments at the same time (entered at two places)', severity: 'warning', count: r.length, sample: r.slice(0, SAMPLE) });
+  }
   if (exists(ctx, 'ast_v_position_conflicts')) {
     const r = one(ctx, 'SELECT * FROM ast_v_position_conflicts LIMIT 1000');
     add({ code: 'position_conflict', title: 'A position holds more than one asset', severity: 'warning', count: r.length, sample: r.slice(0, SAMPLE) });

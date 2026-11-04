@@ -22,4 +22,5 @@ export { createWorkOrder, advisoriesForAsset, WORK_ORDER_SEQUENCE, REPAIR_CASE_S
 export { WRK_PERMISSIONS, GATE_APPROVE, GATE_ACCEPT, perm as wrkPermission } from './permissions.js';
 export type { Actor as WrkActor } from './actor.js';
 export { WRK_ENTITIES } from './entities.js';
+export { ensureDefectCategories, categoriseExistingDefects, suggestCategory, findCategoryByCode, STANDARD_CATEGORIES } from './categories.js';
 export { WRK_API_PREFIX } from './routes.js';

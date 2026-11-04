@@ -3,6 +3,7 @@
  * Runs at the hub through the normal services, so ownership, audit and change log are exercised.
  */
 import { createEntity, reassignShip } from './service.js';
+import { createDeployment, recordShipStatus } from './operations.js';
 import type { Actor } from './actor.js';
 import { allowAllAuthorizer } from './seed-authz.js';
 
@@ -59,5 +60,24 @@ export function seedDemoOrganization(actor: Actor): DemoSeedResult {
     loc(sid, 'ER-PS', 'Engine Room Port Side', 'space', er);
     loc(sid, 'GEN', 'Generator Room', 'compartment', lower);
   }
+  seedDemoOperations(a, ships.map(id));
   return { commands: commands.length, ships: ships.length, locations };
+}
+
+/** Demo operational status and deployments over the last 90 days, so the fleet dashboard has something to show. */
+function seedDemoOperations(a: Actor, [p101, p102, a201]: string[]): void {
+  const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+  const status = (shipId: string, days: number, status: string, reason?: string, authority = 'Demo Command A') =>
+    recordShipStatus(a, shipId, { status, effectiveFrom: ago(days), authority, ...(reason ? { reason } : {}) });
+  status(p101!, 90, 'operational');
+  status(p101!, 38, 'semi_operational', 'Gyro compass unserviceable');
+  status(p101!, 22, 'operational');
+  createDeployment(a, { shipId: p101!, name: 'Demo patrol North', area: 'Northern patrol area', sailedAt: ago(85), returnedAt: ago(60) });
+  createDeployment(a, { shipId: p101!, name: 'Demo patrol East', area: 'Eastern patrol area', sailedAt: ago(18) });
+  status(p102!, 90, 'operational', undefined, 'Demo Command C');
+  status(p102!, 30, 'non_operational', 'Docking: shaft seal renewal', 'NHQ');
+  status(p102!, 6, 'semi_operational', 'Surveillance radar 2 unserviceable', 'Demo Command C');
+  createDeployment(a, { shipId: p102!, name: 'Demo exercise', area: 'Western exercise area', sailedAt: ago(70), returnedAt: ago(55) });
+  status(a201!, 90, 'operational', undefined, 'Demo Command B');
+  status(a201!, 49, 'non_operational', 'Refit', 'NHQ');
 }

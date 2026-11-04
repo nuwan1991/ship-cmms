@@ -16,5 +16,6 @@ export { RPT_PERMISSIONS, perm as rptPermission } from './permissions.js';
 export type { Actor as RptActor } from './actor.js';
 export { RPT_API_PREFIX } from './routes.js';
 export { REPORTS, runReport, dashboard, toCsv } from './reports.js';
+export { fleetStatus, windowOf } from './fleet.js';
 export { refreshNotifications, listNotifications } from './notifications.js';
 export { localFreshness } from './freshness.js';

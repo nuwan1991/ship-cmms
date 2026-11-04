@@ -2,6 +2,7 @@ import { registerLabels } from '../../platform/i18n';
 import type { NavItem } from '../../platform/nav';
 import { CasesScreen } from './CasesScreen';
 import { DefectsScreen } from './DefectsScreen';
+import { DefectCategoriesScreen } from './DefectCategoriesScreen';
 import { WorkOrdersScreen } from './WorkOrdersScreen';
 import { WrkResourceScreen } from './binding';
 import { wrkLabelsEn } from './labels.en';
@@ -14,6 +15,7 @@ export const wrkNav: NavItem[] = [
   { module: 'wrk', path: '/wrk/cases', labelKey: 'wrk.nav.cases', requiredPermission: 'wrk.repair_case.view', order: 420 },
   { module: 'wrk', path: '/wrk/workorders', labelKey: 'wrk.nav.workorders', requiredPermission: 'wrk.work_order.view', order: 430 },
   { module: 'wrk', path: '/wrk/advisories', labelKey: 'wrk.nav.advisories', requiredPermission: 'wrk.advisory.view', order: 440 },
+  { module: 'wrk', path: '/wrk/defect-categories', labelKey: 'wrk.nav.categories', requiredPermission: 'wrk.defect_category.view', order: 450 },
 ];
 
 export const wrkRoutes = [
@@ -21,4 +23,5 @@ export const wrkRoutes = [
   { path: '/wrk/cases', element: <CasesScreen /> },
   { path: '/wrk/workorders', element: <WorkOrdersScreen /> },
   { path: '/wrk/advisories', element: <WrkResourceScreen config={advisoryConfig} /> },
+  { path: '/wrk/defect-categories', element: <DefectCategoriesScreen /> },
 ];

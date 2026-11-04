@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import type { AppContext } from '../../platform/app-context.js';
 import { AppError } from '../../platform/errors.js';
+import { FLEET_REPORTS } from './fleet.js';
 import { localFreshness, staleAfterMs } from './freshness.js';
 
 export type Row = Record<string, unknown>;
@@ -14,14 +15,20 @@ export interface ReportDef {
   title: string;
   description: string;
   columns: Column[];
-  filters: Array<{ key: string; label: string; kind: 'ship' | 'text' | 'number' | 'select'; options?: string[] }>;
+  filters: Array<{ key: string; label: string; kind: 'ship' | 'command' | 'category' | 'subcategory' | 'date' | 'text' | 'number' | 'select'; options?: string[] }>;
   run(ctx: AppContext, f: Filters): Row[];
 }
-export interface Filters { shipId?: string | undefined; workType?: string | undefined; priority?: string | undefined; olderThanDays?: number | undefined; basis?: string | undefined; source?: string | undefined }
+export interface Filters {
+  shipId?: string | undefined; workType?: string | undefined; priority?: string | undefined; olderThanDays?: number | undefined; basis?: string | undefined; source?: string | undefined;
+  commandId?: string | undefined; from?: string | undefined; to?: string | undefined; categoryId?: string | undefined; subcategoryId?: string | undefined; severity?: string | undefined; status?: string | undefined;
+}
+const LocalDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'use YYYY-MM-DD').refine((s) => new Date(`${s}T00:00:00.000Z`).toISOString().startsWith(s), 'not a real date');
 
 export const FilterSchema = z.strictObject({
   shipId: z.uuid().optional(), workType: z.enum(['corrective', 'preventive', 'inspection', 'modification']).optional(), priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
   olderThanDays: z.coerce.number().int().min(0).max(3650).optional(), source: z.enum(['plan', 'calibration']).optional(), format: z.enum(['csv']).optional(),
+  commandId: z.uuid().optional(), from: LocalDate.optional(), to: LocalDate.optional(), categoryId: z.union([z.uuid(), z.literal('none')]).optional(), subcategoryId: z.uuid().optional(),
+  severity: z.enum(['minor', 'major', 'critical']).optional(), status: z.enum(['operational', 'semi_operational', 'non_operational']).optional(),
 });
 
 const PRIORITY_RANK = "CASE o.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END";
@@ -33,23 +40,29 @@ const backlog: ReportDef = {
   code: 'backlog', title: 'Maintenance backlog', description: 'Every work order not yet closed, oldest and most urgent first.',
   columns: [
     { key: 'woNo', label: 'Work order' }, { key: 'title', label: 'Title' }, { key: 'shipName', label: 'Ship' }, { key: 'assetTag', label: 'Equipment tag' }, { key: 'assetName', label: 'Equipment' },
-    { key: 'workType', label: 'Type' }, { key: 'priority', label: 'Priority' }, { key: 'progress', label: 'Progress' }, { key: 'approval', label: 'Approval' }, { key: 'returnToService', label: 'Return to service' },
+    { key: 'categoryName', label: 'Category' }, { key: 'workType', label: 'Type' }, { key: 'priority', label: 'Priority' }, { key: 'progress', label: 'Progress' }, { key: 'approval', label: 'Approval' }, { key: 'returnToService', label: 'Return to service' },
     { key: 'ageDays', label: 'Age (days)', kind: 'number' }, { key: 'requestedDue', label: 'Requested due', kind: 'date' }, { key: 'overdue', label: 'Overdue', kind: 'flag' }, { key: 'labourMinutes', label: 'Labour (min)', kind: 'number' },
   ],
-  filters: [{ key: 'shipId', label: 'Ship', kind: 'ship' }, { key: 'workType', label: 'Type', kind: 'select', options: ['corrective', 'preventive', 'inspection', 'modification'] }, { key: 'priority', label: 'Priority', kind: 'select', options: ['urgent', 'high', 'normal', 'low'] }, { key: 'olderThanDays', label: 'Older than (days)', kind: 'number' }],
+  filters: [{ key: 'shipId', label: 'Ship', kind: 'ship' }, { key: 'categoryId', label: 'Category', kind: 'category' }, { key: 'subcategoryId', label: 'Subcategory', kind: 'subcategory' }, { key: 'workType', label: 'Type', kind: 'select', options: ['corrective', 'preventive', 'inspection', 'modification'] }, { key: 'priority', label: 'Priority', kind: 'select', options: ['urgent', 'high', 'normal', 'low'] }, { key: 'olderThanDays', label: 'Older than (days)', kind: 'number' }],
   run(ctx, f) {
     const where = ["o.closure <> 'closed'"], p: unknown[] = [];
     if (f.shipId) { where.push('o.ship_id = ?'); p.push(f.shipId); }
     if (f.workType) { where.push('o.work_type = ?'); p.push(f.workType); }
     if (f.priority) { where.push('o.priority = ?'); p.push(f.priority); }
     if (f.olderThanDays !== undefined) { where.push('julianday(\'now\') - julianday(o.created_at) >= ?'); p.push(f.olderThanDays); }
+    if (f.categoryId === 'none') where.push('wc.category_id IS NULL');
+    else if (f.categoryId) { where.push('wc.category_id = ?'); p.push(f.categoryId); }
+    if (f.subcategoryId) { where.push('wc.subcategory_id = ?'); p.push(f.subcategoryId); }
     return all(ctx, `
       SELECT o.work_order_id AS id, o.wo_no AS woNo, o.title, o.ship_id AS shipId, s.ship_name AS shipName, a.asset_tag AS assetTag, a.name AS assetName, o.work_type AS workType, o.priority,
              o.progress, o.approval, o.return_to_service AS returnToService, CAST(julianday('now') - julianday(o.created_at) AS INTEGER) AS ageDays, o.requested_due AS requestedDue,
-             (o.requested_due IS NOT NULL AND substr(o.requested_due, 1, 10) < date('now')) AS overdue, o.labour_minutes AS labourMinutes
+             (o.requested_due IS NOT NULL AND substr(o.requested_due, 1, 10) < date('now')) AS overdue, o.labour_minutes AS labourMinutes,
+             wc.category_id AS categoryId, COALESCE(c.name, 'Uncategorised') AS categoryName, c.color AS categoryColor
       FROM wrk_v_work_order_overview o
       LEFT JOIN org_v_ship_current_command s ON s.ship_id = o.ship_id
       LEFT JOIN ast_v_asset_overview a ON a.asset_id = o.asset_id
+      LEFT JOIN wrk_v_work_order_category wc ON wc.work_order_id = o.work_order_id
+      LEFT JOIN wrk_v_defect_category c ON c.category_id = wc.category_id
       WHERE ${where.join(' AND ')} ORDER BY ${PRIORITY_RANK}, o.created_at LIMIT 5000`, ...p).map((r) => ({ ...r, overdue: flag(r.overdue) }));
   },
 };
@@ -101,12 +114,18 @@ const stockLow: ReportDef = {
 
 const recurring: ReportDef = {
   code: 'recurring_faults', title: 'Recurring faults', description: 'Equipment with three or more defects or corrective jobs in the last 90 days.',
-  columns: [{ key: 'assetTag', label: 'Equipment tag' }, { key: 'assetName', label: 'Equipment' }, { key: 'shipName', label: 'Ship' }, { key: 'occurrences', label: 'Occurrences', kind: 'number' }, { key: 'firstAt', label: 'First', kind: 'datetime' }, { key: 'lastAt', label: 'Last', kind: 'datetime' }],
-  filters: [{ key: 'shipId', label: 'Ship', kind: 'ship' }],
+  columns: [{ key: 'assetTag', label: 'Equipment tag' }, { key: 'assetName', label: 'Equipment' }, { key: 'shipName', label: 'Ship' }, { key: 'categoryName', label: 'Category' }, { key: 'occurrences', label: 'Occurrences', kind: 'number' }, { key: 'firstAt', label: 'First', kind: 'datetime' }, { key: 'lastAt', label: 'Last', kind: 'datetime' }],
+  filters: [{ key: 'shipId', label: 'Ship', kind: 'ship' }, { key: 'categoryId', label: 'Category', kind: 'category' }],
   run(ctx, f) {
-    return all(ctx, `SELECT r.asset_id AS id, a.asset_tag AS assetTag, a.name AS assetName, r.ship_id AS shipId, s.ship_name AS shipName, r.occurrences, r.first_at AS firstAt, r.last_at AS lastAt
+    // Category of the equipment = category of its most recent categorised defect.
+    const rows = all(ctx, `SELECT r.asset_id AS id, a.asset_tag AS assetTag, a.name AS assetName, r.ship_id AS shipId, s.ship_name AS shipName, r.occurrences, r.first_at AS firstAt, r.last_at AS lastAt,
+        (SELECT d.category_id FROM wrk_v_defect_overview d WHERE d.asset_id = r.asset_id AND d.category_id IS NOT NULL ORDER BY d.reported_at DESC LIMIT 1) AS categoryId
       FROM wrk_v_recurring_faults r LEFT JOIN ast_v_asset_overview a ON a.asset_id = r.asset_id LEFT JOIN org_v_ship_current_command s ON s.ship_id = r.ship_id
       ${f.shipId ? 'WHERE r.ship_id = ?' : ''} ORDER BY r.occurrences DESC LIMIT 1000`, ...(f.shipId ? [f.shipId] : []));
+    const names = new Map(all(ctx, 'SELECT category_id, name, color FROM wrk_v_defect_category').map((c) => [c.category_id, c]));
+    return rows
+      .filter((r) => !f.categoryId || (f.categoryId === 'none' ? !r.categoryId : r.categoryId === f.categoryId))
+      .map((r) => ({ ...r, categoryName: r.categoryId ? names.get(r.categoryId)?.name ?? 'Uncategorised' : 'Uncategorised', categoryColor: r.categoryId ? names.get(r.categoryId)?.color ?? null : null }));
   },
 };
 
@@ -125,7 +144,7 @@ const syncHealth: ReportDef = {
   },
 };
 
-export const REPORTS: readonly ReportDef[] = [backlog, pendingReviews, maintenanceDue, stockLow, recurring, syncHealth];
+export const REPORTS: readonly ReportDef[] = [...FLEET_REPORTS, backlog, pendingReviews, maintenanceDue, stockLow, recurring, syncHealth];
 export const reportByCode = (code: string): ReportDef => {
   const r = REPORTS.find((x) => x.code === code);
   if (!r) throw new AppError('NOT_FOUND', `No report ${code}`);

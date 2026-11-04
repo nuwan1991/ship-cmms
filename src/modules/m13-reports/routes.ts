@@ -8,6 +8,7 @@ import { localFreshness } from './freshness.js';
 import { acknowledge, listNotifications, refreshNotifications } from './notifications.js';
 import { perm } from './permissions.js';
 import { dashboard, FilterSchema, REPORTS, runReport, toCsv, reportByCode } from './reports.js';
+import { fleetStatus } from './fleet.js';
 
 export const RPT_API_PREFIX = '/api/v1/reports';
 
@@ -45,6 +46,11 @@ export function mountReportRoutes(ctx: AppContext, app: FastifyInstance): void {
   });
 
   app.get(`${base}/dashboard`, async (req) => { authorize(actorFromRequest(ctx, req), perm('dashboard', 'view')); return dashboard(ctx); });
+  app.get(`${base}/fleet-status`, async (req) => {
+    authorize(actorFromRequest(ctx, req), perm('dashboard', 'view'));
+    const q = parse(z.strictObject({ commandId: z.uuid().optional(), days: z.coerce.number().int().min(7).max(730).optional() }), req.query);
+    return fleetStatus(ctx, q);
+  });
 
   app.get(`${base}/notifications`, async (req) => {
     authorize(actorFromRequest(ctx, req), perm('notification', 'view'));

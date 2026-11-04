@@ -16,4 +16,13 @@ export type OrgAction = (typeof ORG_ACTIONS)[number];
 
 export const perm = (noun: OrgNoun, action: OrgAction): string => `org.${noun}.${action}`;
 
-export const ORG_PERMISSIONS: readonly string[] = ORG_NOUNS.flatMap((n) => ORG_ACTIONS.map((a) => perm(n, a)));
+/**
+ * Operational status and sea deployments (D66). Recording a status is `org.ship_status.record`; withdrawing a mistaken entry is
+ * `org.ship_status.void`. Grant them to Command and NHQ roles (command- or fleet-scoped); during roll-out they may be granted to anyone.
+ */
+export const ORG_OPS_PERMISSIONS: readonly string[] = [
+  'org.ship_status.view', 'org.ship_status.record', 'org.ship_status.void',
+  'org.deployment.view', 'org.deployment.create', 'org.deployment.update', 'org.deployment.remove',
+];
+
+export const ORG_PERMISSIONS: readonly string[] = [...ORG_NOUNS.flatMap((n) => ORG_ACTIONS.map((a) => perm(n, a))), ...ORG_OPS_PERMISSIONS];

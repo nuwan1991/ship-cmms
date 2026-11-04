@@ -3,7 +3,9 @@ import type { EntityDef } from '../../platform/entity-registry.js';
 /** Work records are written by the installation that holds them; status, labour, findings, tests, acceptance and hand-over are append-only events from any installation. */
 export const WRK_ENTITIES: readonly EntityDef[] = [
   { type: 'wrk.advisory', module: 'M05', table: 'wrk_advisory', recordClass: 'hub_reference', requires: ['ast.classification'], distribution: 'fleet' },
-  { type: 'wrk.defect', module: 'M05', table: 'wrk_defect', recordClass: 'owner_mutable', requires: ['ast.asset', 'ast.position'], distribution: 'record' },
+  // Defect categories (D67): fleet reference list maintained at the hub; defects point at it.
+  { type: 'wrk.defect_category', module: 'M05', table: 'wrk_defect_category', recordClass: 'hub_reference', distribution: 'fleet' },
+  { type: 'wrk.defect', module: 'M05', table: 'wrk_defect', recordClass: 'owner_mutable', requires: ['ast.asset', 'ast.position', 'wrk.defect_category'], distribution: 'record' },
   { type: 'wrk.repair_case', module: 'M05', table: 'wrk_repair_case', recordClass: 'owner_mutable', requires: ['ast.asset', 'ast.position'], distribution: 'record' },
   { type: 'wrk.work_order', module: 'M05', table: 'wrk_work_order', recordClass: 'owner_mutable', requires: ['wrk.repair_case', 'ast.asset', 'ast.position', 'org.workshop'], distribution: 'record' },
   { type: 'wrk.job_card', module: 'M05', table: 'wrk_job_card', recordClass: 'owner_mutable', requires: ['wrk.work_order'], distribution: 'record' },

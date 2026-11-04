@@ -8,11 +8,12 @@ export const AST = '/api/v1/assets';
 export const ORG = '/api/v1/org';
 export type WrkConfig = Omit<BaseConfig, 'apiBase' | 'permPrefix' | 'editKey' | 'removeKey'>;
 
-export function WrkResourceScreen({ config, rowActions }: { config: WrkConfig; rowActions?: (row: Rec, reload: () => void) => ReactNode }) {
+export function WrkResourceScreen({ config, rowActions, headerExtra }: { config: WrkConfig; rowActions?: (row: Rec, reload: () => void) => ReactNode; headerExtra?: ReactNode }) {
   return (
     <BaseResourceScreen
       config={{ ...config, apiBase: WRK, permPrefix: 'wrk', editKey: 'wrk.edit.record', removeKey: 'wrk.remove.record' }}
       {...(rowActions ? { rowActions } : {})}
+      {...(headerExtra ? { headerExtra } : {})}
     />
   );
 }

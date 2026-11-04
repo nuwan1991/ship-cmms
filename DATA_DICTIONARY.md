@@ -39,7 +39,10 @@ All rows carry the standard sync columns (CONTRACTS §2). No foreign keys; servi
 | org_external_provider | H | code, name, contact_*, notes, status | Executing party only; no site |
 | org_location | O | site_kind (`ship|workshop`), home_scope_id (= site id), parent_id, code, name, kind, sort_order, status | Tree per site, depth ≤ `LOCATION_MAX_DEPTH`; parent in same site; no cycles; code unique per parent; owner = installation that entered it; ship/workshop installations enter only their own site |
 
-Published read model: **`org_v_ship_current_command`** (ship + command attached now). Service operation `reassignShip` closes the assignment in force and opens the next atomically; it changes no ship, location or asset owner.
+| org_ship_status_event | E | ship_id (= home scope), kind (`set`/`void`), status (`operational`/`semi_operational`/`non_operational`), reason, authority, opdef_ref, opdef_category, voids_event_id; `occurred_at` = when the status takes effect | Migration `0003_ship_operations` (D66). A `set` starts a period until the next live `set`; a `void` (reason required) withdraws one. Reason required unless operational; at most 120 days ahead; repeat of the status in force is refused. Permissions `org.ship_status.view|record|void` |
+| org_deployment | O | ship_id (= home scope), name, area, sailed_at, returned_at (NULL = at sea), remarks | Migration `0003` (D66). No overlap per ship (service rule; replicated overlaps shown by `org_v_deployment_overlap`); changed only where entered. Permissions `org.deployment.view|create|update|remove` |
+
+Published read models: **`org_v_ship_status_period`** (status periods with `effective_from`/`effective_to`), **`org_v_ship_status_current`** (each ship with its command, status and deployment now), **`org_v_deployment`** (live deployments with ship and command), **`org_v_deployment_overlap`** (for M14). Published read model: **`org_v_ship_current_command`** (ship + command attached now). Service operation `reassignShip` closes the assignment in force and opens the next atomically; it changes no ship, location or asset owner.
 
 ## M02 `idn_` — implemented in migration `m02-identity/0001_identity`
 
@@ -93,7 +96,8 @@ View: **`qr_v_survey_summary`** (per survey: item, scanned, pending and converte
 
 | Table | Class | Key columns / rules |
 |---|---|---|
-| wrk_defect | O | defect_no (`SLN-DF-########`, range `defect_no`), title, description, severity (`minor`/`major`/`critical`), asset_id, position_id, status (`open`/`converted`/`dismissed`), repair_case_id, reported_at, dismiss_reason; home scope = ship |
+| wrk_defect | O | defect_no (`SLN-DF-########`, range `defect_no`), title, description, severity (`minor`/`major`/`critical`), asset_id, position_id, status (`open`/`converted`/`dismissed`), repair_case_id, reported_at, dismiss_reason, category_id, subcategory_id (migration `0002`, D67); home scope = ship |
+| wrk_defect_category | H | code (unique, permanent), name, parent_id (NULL = main category; one level), department_codes (comma list suggesting a main category), color (`#RRGGBB`, main categories), sort_order, status (D67) |
 | wrk_repair_case | O | case_no (`SLN-RC-…`), title, description, asset_id, position_id, priority, opened_at |
 | wrk_work_order | O | wo_no (`SLN-WO-…`), repair_case_id, title, work_type (`corrective`/`preventive`/`inspection`/`modification`), priority, asset_id, position_id, operating party (kind+id), executing party (kind+id), requested_due (local date). The owner is the installation that entered it |
 | wrk_job_card | O | work_order_id, seq, title, instructions, checklist_json (`[{text,done}]`), status (`draft`/`issued`/`completed`/`void`), completed_at |
@@ -105,7 +109,7 @@ View: **`qr_v_survey_summary`** (per survey: item, scanned, pending and converte
 | wrk_handover | E | work_order_id, kind (`offer`/`accept`/`decline`/`withdraw`), offer_id, to party (kind+id), note |
 | wrk_advisory | H | code (unique), title, body, severity, classification_id, status, issued_at |
 
-Views (derived, never synchronized): **`wrk_v_status_current`** (latest value per subject and axis, ordered by `occurred_at` then id), **`wrk_v_handover_state`** (each offer: pending/accepted/declined/withdrawn), **`wrk_v_work_order_overview`** (one row per work order with the four axes, effective executing party, labour minutes, hand-over pending; for lists and M13) and **`wrk_v_recurring_faults`** (assets with 3 or more defects or standalone corrective orders in 90 days; `wrk_recurrence` from the plan is a view, so it cannot go stale).
+Views (derived, never synchronized): **`wrk_v_status_current`** (latest value per subject and axis, ordered by `occurred_at` then id), **`wrk_v_handover_state`** (each offer: pending/accepted/declined/withdrawn), **`wrk_v_work_order_overview`** (one row per work order with the four axes, effective executing party, labour minutes, hand-over pending; for lists and M13) **`wrk_v_defect_category`** (categories with their main category and colour), **`wrk_v_defect_overview`** (defects with category names and `is_open`), **`wrk_v_work_order_category`** (category of a work order through its repair case) and **`wrk_v_recurring_faults`** (assets with 3 or more defects or standalone corrective orders in 90 days; `wrk_recurrence` from the plan is a view, so it cannot go stale).
 
 Axes and rules: progress `planned → in_progress ⇄ on_hold → work_complete`; approval `not_required → pending_review → approved/rejected`; return to service `not_assessed → restricted/cleared/withheld`; closure `open → closed ⇄ reopened`. Starting work is blocked by a `mandatory_prior` approval gate until approved; `review_pending_allowed` lets work start with the review pending. Closing needs work complete, no review pending or rejected, a return-to-service decision for corrective work (not withheld) and every job card completed or void. A rejected acceptance withholds return to service and sends the order back to `in_progress`. Gate codes: `wrk.work_order.approve` and `wrk.acceptance.accept` (permission codes too).
 
@@ -187,7 +191,7 @@ Rules: an upload saves nothing. The preview applies every row inside one transac
 
 `rpt_notification_rule` and `rpt_readiness_snapshot` from the plan are not built: R1 rules are fixed in code (overdue work orders, reviews waiting 3 days or more, maintenance overdue or due soon, stock below minimum, recurring faults, installations out of date, clock differences, open sync conflicts) and readiness is R2. A condition that stays true keeps one notification; when it clears the notification resolves itself; if it returns it is raised again as new and unacknowledged.
 
-Reports read only published views (`wrk_v_work_order_overview`, `pm_v_due`, `stk_v_stock`, `wrk_v_recurring_faults`, `idn_v_approval_status`, `syn_v_peer_health`, `syn_v_health`, `ast_v_asset_overview`, `org_v_ship_current_command`); a test fails if M13 reads anything else.
+Reports read only published views (`org_v_ship_status_current`, `org_v_ship_status_period`, `org_v_deployment`, `wrk_v_defect_overview`, `wrk_v_defect_category`, `wrk_v_work_order_category`, `wrk_v_work_order_overview`, `pm_v_due`, `stk_v_stock`, `wrk_v_recurring_faults`, `idn_v_approval_status`, `syn_v_peer_health`, `syn_v_health`, `ast_v_asset_overview`, `org_v_ship_current_command`); a test fails if M13 reads anything else.
 
 ## M14 `ops_`
 

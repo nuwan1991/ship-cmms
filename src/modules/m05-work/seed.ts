@@ -9,6 +9,7 @@ import type { WriteContext } from '../../platform/records.js';
 import { findPartyByCode } from '../m01-organization/index.js';
 import { findAssetByName } from '../m03-assets/index.js';
 import type { Actor } from './actor.js';
+import { ensureDefectCategories, findCategoryByCode } from './categories.js';
 import {
   addFinding, addLabour, addTestRecord, changeProgress, convertDefect, createAdvisory, createJobCard, createWorkOrder, DEFECT_SEQUENCE,
   offerHandover, REPAIR_CASE_SEQUENCE, reportDefect, WORK_ORDER_SEQUENCE,
@@ -59,8 +60,27 @@ export function seedDemoWork(actor: Actor): DemoWorkResult {
   if (alt.classificationId) {
     createAdvisory(a, { code: 'ADV-ALT-001', title: 'Check drive-end bearing grease after rewinding', body: 'After an alternator rewind, re-grease the drive-end bearing and record the vibration reading.', severity: 'caution', classificationId: alt.classificationId });
   }
-  reportDefect(a, { title: 'Hot smell from generator room', description: 'Noticed during rounds, no alarm.', severity: 'minor', shipId: ship.id });
-  const d = reportDefect(a, { title: 'Alternator vibration high at 1500 rpm', description: 'Vibration above normal; bearing noise.', severity: 'major', assetId: alt.id });
+  ensureDefectCategories(a.wctx);
+  const cat = (code: string) => String(findCategoryByCode(db, code)!.id);
+  reportDefect(a, { title: 'Hot smell from generator room', description: 'Noticed during rounds, no alarm.', severity: 'minor', shipId: ship.id, subcategoryId: cat('ELEC-GEN') });
+  const d = reportDefect(a, { title: 'Alternator vibration high at 1500 rpm', description: 'Vibration above normal; bearing noise.', severity: 'major', assetId: alt.id, subcategoryId: cat('ELEC-GEN') });
+  // A spread of categories over the demo ships, for the fleet dashboard.
+  const ship102 = findPartyByCode(db, 'ship', 'DEMO-102');
+  const ship201 = findPartyByCode(db, 'ship', 'DEMO-201');
+  reportDefect(a, { title: 'Gyro compass repeater drifting', severity: 'major', shipId: ship.id, subcategoryId: cat('ELEC-NAVCOM') });
+  reportDefect(a, { title: 'Forward gun training motor overheating', severity: 'major', shipId: ship.id, subcategoryId: cat('WPN-GUN') });
+  let extra = 2;
+  if (ship102) {
+    reportDefect(a, { title: 'Shaft seal weeping', severity: 'critical', shipId: ship102.id, subcategoryId: cat('ME-SHAFT') });
+    reportDefect(a, { title: 'Surveillance radar 2 no transmit', severity: 'major', shipId: ship102.id, subcategoryId: cat('WPN-SENS') });
+    extra += 2;
+  }
+  if (ship201) {
+    reportDefect(a, { title: 'Hull plating corrosion, frame 42 starboard', severity: 'major', shipId: ship201.id, subcategoryId: cat('ME-HULL') });
+    reportDefect(a, { title: 'Main switchboard breaker trips', severity: 'major', shipId: ship201.id, subcategoryId: cat('ELEC-DIST') });
+    reportDefect(a, { title: 'Fire main pump low pressure', severity: 'minor', shipId: ship201.id, subcategoryId: cat('ME-FIRE') });
+    extra += 3;
+  }
   const { repairCase } = convertDefect(a, id(d), { expectedVersion: 1 });
   const wo = createWorkOrder(a, { title: 'Replace alternator drive-end bearing', repairCaseId: id(repairCase), workType: 'corrective', priority: 'high', operatingParty: { kind: 'ship', id: ship.id }, executingParty: { kind: 'ship', id: ship.id } });
   createJobCard(a, { workOrderId: id(wo), title: 'Bearing replacement', instructions: 'Isolate, lock out, remove end shield, replace bearing, re-grease.', checklist: ['Isolated and tagged out', 'Old bearing removed', 'New bearing fitted', 'Grease applied'] });
@@ -70,5 +90,5 @@ export function seedDemoWork(actor: Actor): DemoWorkResult {
   addTestRecord(a, id(wo), { testName: 'Vibration at 1500 rpm', result: 'pass', measuredValue: '2.1 mm/s' });
   
   offerHandover(a, id(wo), { toParty: { kind: 'workshop', id: workshop.id }, note: 'Rewinding needs the specialist workshop' });
-  return { defects: 2, repairCases: 1, workOrders: 1, advisories: alt.classificationId ? 1 : 0 };
+  return { defects: 2 + extra, repairCases: 1, workOrders: 1, advisories: alt.classificationId ? 1 : 0 };
 }
