@@ -2,18 +2,38 @@
 
 A fresh installation of the CMMS on a **Windows** computer on board, done by ship's staff. No programming knowledge is needed: follow the steps in order and compare what you see with the **You should see** lines. If something looks different, stop and see [If something goes wrong](#if-something-goes-wrong).
 
-There are two parts:
+**This guide on the web:** https://github.com/nuwan1991/ship-cmms/blob/master/SHIP_INSTALL.md
 
-- **Part A** is done **at HQ** by the system administrator, before the ship starts.
-- **Part B** is done **on board** by ship's staff.
+## Which route?
 
-Part C is the test run. Part D is an AI prompt to use if you get stuck.
+| Route | When | Ship's staff do |
+|---|---|---|
+| **Internet route** (recommended when the ship has internet) | The ship computer can open github.com and nodejs.org | [Part G](#part-g-on-board-directly-from-github-internet-route): download and install everything on board |
+| **USB route** | No or poor internet on board | [Part B](#part-b-on-board-from-a-usb-drive-usb-route): install from a USB drive prepared at HQ |
+
+Either way, HQ first does the hub steps [A9–A11](#prepare-the-ship-at-the-hub) and sends the ship two things that are **not** on GitHub: the **package file** for the ship (a one-time secret) and the **information box** (hub address, user name). Send them by secure e-mail or hand them over; the password goes separately.
+
+The other parts:
+
+- **Part A** is done **at HQ** by the system administrator (A1–A8 only for the USB route).
+- **Part C** is the test run checklist. **Part D** is an AI prompt to use if you get stuck.
+
+### Download links
+
+| What | Link |
+|---|---|
+| This program (ZIP, latest) | https://github.com/nuwan1991/ship-cmms/archive/refs/heads/master.zip |
+| Program page on GitHub | https://github.com/nuwan1991/ship-cmms |
+| Node.js 22 for Windows (choose the file ending in `-x64.msi`) | https://nodejs.org/dist/latest-v22.x/ |
+| Node.js download page (choose version 22, Windows Installer .msi, x64) | https://nodejs.org/en/download |
+| Git for Windows (HQ only, USB route) | https://git-scm.com/download/win |
+| Claude, for the AI help prompt | https://claude.ai |
 
 ---
 
 ## Part A: prepared at HQ (administrator)
 
-The ship receives one USB drive with everything on it, so nothing has to be built on board. Part A has two jobs:
+Part A has two jobs. For the **internet route** only A9–A11 are needed; A1–A8 are for the **USB route**, where the ship receives one USB drive with everything on it so nothing has to be built on board.
 
 - **A1–A8: build the program and copy it to a USB drive**, together with the Node.js installer.
 - **A9–A11: prepare the ship at the hub**: the package file, the users and the information box.
@@ -22,14 +42,14 @@ Allow about an hour the first time, mostly waiting for downloads and copying.
 
 ### Build the USB drive step by step
 
-**What you need:** a Windows 10 or 11 computer, **64-bit**, with internet. Use the same kind of Windows as the ship computer, because the program contains parts made for 64-bit Windows. You also need a USB drive of at least **4 GB** (8 GB or more is easier), and a GitHub account that can read `nuwan1991/ship-cmms`.
+**What you need:** a Windows 10 or 11 computer, **64-bit**, with internet. Use the same kind of Windows as the ship computer, because the program contains parts made for 64-bit Windows. You also need a USB drive of at least **4 GB** (8 GB or more is easier). The repository is public, so no GitHub account is needed.
 
 #### A1. Install the tools on the HQ computer (first time only)
 
-1. **Node.js 22:** go to `https://nodejs.org/en/download`, choose version **22** (the "LTS" line that starts with `v22.`), **Windows Installer (.msi), x64**. Check that it is **22.23.4 or newer, but still 22.x**. Not 23 or 24.
+1. **Node.js 22:** go to https://nodejs.org/dist/latest-v22.x/ and download the file ending in `-x64.msi` (or https://nodejs.org/en/download: version **22**, **Windows Installer (.msi), x64**). Check that it is **22.23.4 or newer, but still 22.x**. Not 23 or 24.
    Run it and click **Next** through all pages, keeping the defaults.
    **Keep the downloaded `.msi` file**: it also goes on the USB drive (A7).
-2. **Git:** go to `https://git-scm.com/download/win`, download **64-bit Git for Windows Setup** and install it with the default choices.
+2. **Git:** go to https://git-scm.com/download/win, download **64-bit Git for Windows Setup** and install it with the default choices.
 3. **Restart the computer** so that Windows finds both programs.
 4. Check: open the Start menu, type `powershell`, open **Windows PowerShell** and type:
    ```
@@ -54,7 +74,6 @@ cd C:\build
 git clone https://github.com/nuwan1991/ship-cmms.git
 cd C:\build\ship-cmms
 ```
-Windows asks you to sign in to GitHub in a browser window the first time: sign in with the account that can read the repository.
 
 **Later times** (the folder already exists):
 ```
@@ -175,7 +194,97 @@ The package file holds a one-time secret: hand the USB drive over in person and 
 
 ---
 
-## Part B: on board (ship's staff)
+## Part G: on board, directly from GitHub (internet route)
+
+Time needed: about 45 minutes, mostly downloading. You need: internet on the ship computer, a Windows user that can install programs, about 2 GB of free disk space, and from HQ the **package file** (`ship-package.json`) and the **information box** (step A11).
+
+### G1. Install Node.js 22
+
+1. Open https://nodejs.org/dist/latest-v22.x/ in Chrome or Edge.
+2. Click the file whose name ends in **`-x64.msi`** (for example `node-v22.23.4-x64.msi`) to download it. It must start with `node-v22`; do not use 23 or 24.
+3. Open the downloaded file. Click **Next** on every page, accept the licence and keep all the defaults. Click **Install**, then **Finish**.
+4. If a black window opens afterwards asking to install "tools for native modules", close it; they are not needed.
+5. **Restart the computer.**
+
+### G2. Download the program
+
+1. Open https://github.com/nuwan1991/ship-cmms/archive/refs/heads/master.zip. The file `ship-cmms-master.zip` downloads.
+   (Or open https://github.com/nuwan1991/ship-cmms, click the green **Code** button, then **Download ZIP**.)
+2. In **Downloads**, right-click `ship-cmms-master.zip` > **Extract All…**, and extract to `C:\`.
+3. You now have `C:\ship-cmms-master`. Rename it to **`ship-cmms`**, so that it is `C:\ship-cmms`.
+4. Open `C:\ship-cmms`: you should see `package.json`, `src`, `web` and this guide, `SHIP_INSTALL.md`.
+5. Copy the **package file** from HQ, `ship-package.json`, into `C:\ship-cmms`.
+
+### G3. Open PowerShell in the program folder
+
+1. Open `C:\ship-cmms` in File Explorer.
+2. Click in the address bar at the top, type `powershell` and press **Enter**.
+3. Type and press **Enter**:
+   ```
+   node -v
+   ```
+   **You should see** `v22.` followed by numbers. "Not recognized": restart the computer and try again.
+
+All later commands are typed in this window. Copy each command exactly.
+
+### G4. Download the program's parts
+
+```
+npm ci
+```
+This takes 2–10 minutes. **You should see** `added … packages` at the end and no `npm ERR!`. Lines starting with `npm warn` are normal.
+
+**If it fails** with `better-sqlite3` and "Windows SDK … was not found" (or "gyp ERR!"), type these two instead and continue:
+```
+npm ci --ignore-scripts
+npm rebuild esbuild
+```
+
+### G5. Download the screens' parts and build
+
+Type one at a time and wait for each to finish:
+```
+npm run web:install
+npm run web:build
+npm run build:server
+```
+**You should see** no `ERR!` and no `error`. `web:build` ends with `built in …`.
+
+Check:
+```
+npm run ops -- check
+```
+**You should see** the list of checks without errors.
+
+> **Important:** never run `setup` on a ship computer. The ship *joins* the hub instead (next step).
+
+### G6. Join the hub and synchronize
+
+Replace `HUB-ADDRESS` with the hub address from the information box (for example `http://10.1.2.3:8080`):
+```
+npm run sync -- join --package ship-package.json --url HUB-ADDRESS
+```
+**You should see** `Joined as installation …`. Do this **only once**.
+
+```
+npm run sync -- run
+```
+**You should see** a block of text ending with `}` and no word `Error`. Then **delete `ship-package.json`** from `C:\ship-cmms`, from Downloads and from the e-mail.
+
+### G7. Start and sign in
+
+```
+npm start
+```
+**You should see** `CMMS listening on 127.0.0.1:8080 (…), web app served`. **Leave this window open**; Ctrl+C stops the program.
+
+Open `http://localhost:8080` in Chrome or Edge and sign in with the user from HQ. Then do the [test run checklist (Part C)](#part-c-test-run-checklist).
+
+**Starting again later:** open PowerShell in `C:\ship-cmms` (G3) and type `npm start`. Do **not** repeat G6.
+
+---
+
+## Part B: on board, from a USB drive (USB route)
 
 Time needed: about 30 minutes. You need the USB drive, the information box from HQ (step A11) and a Windows user that can install programs.
 
@@ -276,7 +385,7 @@ Problems or remarks: ______________________________________________
 | `'node' is not recognized` / `'npm' is not recognized` | Restart the computer, then B3 again. If it continues, install Node.js again (B1). |
 | `node -v` shows `v23…` or `v24…` | Wrong version. Uninstall Node.js (Windows Settings > Apps) and install the one from the USB drive. |
 | "running scripts is disabled on this system" | Type `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, answer `Y`, then repeat the command. |
-| `Cannot find module` or `ENOENT` | The folder was not copied completely, or PowerShell is not in `C:\ship-cmms`. Copy the folder again (B2). |
+| `Cannot find module` or `ENOENT` | The folder was not copied completely, or PowerShell is not in `C:\ship-cmms`. Copy the folder again (B2), or on the internet route repeat G4 and G5. |
 | Join or synchronization: `fetch failed`, `ECONNREFUSED`, timeout | No connection to the hub. Check the internet, the hub address (including `http://` and `:8080`), and ask HQ whether the hub is running. Then repeat the same step. |
 | Join: the package was already used / refused | Do not try again with the same file. Ask HQ for a new package file. |
 | `npm start`: port 8080 already in use | The program is already running in another window. Use that one, or close it and start again. |
@@ -295,8 +404,12 @@ I am not a programmer. Please help me one step at a time, with exact commands to
 type in PowerShell, and tell me what I should see after each one.
 
 The setup:
-- The program folder is C:\ship-cmms. It was prepared at HQ and copied from a USB
-  drive, already built (node_modules, dist and web\dist are included).
+- The program folder is C:\ship-cmms. Either it was copied from a USB drive
+  already built (USB route), or I downloaded it as a ZIP from
+  https://github.com/nuwan1991/ship-cmms and build it on board with
+  npm ci, npm run web:install, npm run web:build, npm run build:server
+  (internet route; the guide is SHIP_INSTALL.md in that repository).
+  My route is: ___
 - It needs Node.js 22.x (22.23.4 or later 22.x, not 23 or 24).
 - This computer is a SHIP installation that joins an existing HUB at HQ.
   It must NEVER run "npm run ops -- setup" (that is only for a hub).
@@ -307,7 +420,8 @@ The setup:
   4. npm run sync -- run          (first synchronization)
   5. npm start                    (keep the window open)
   6. open http://localhost:8080 in the browser and sign in
-- Do not tell me to run npm ci or npm install, delete the data folder, or use
+- On the USB route, do not tell me to run npm ci or npm install. Never tell me
+  to delete the data folder, or use
   --allow-other-installation, unless HQ has told me to. If a fix needs that, tell
   me to contact HQ instead.
 

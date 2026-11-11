@@ -2,6 +2,8 @@
 
 Offline-first computerized maintenance management for a navy fleet. Every ship (and, where needed, workshop or command) runs its own complete installation — one Node.js process and one SQLite file — and keeps working with no internet, including approvals. Installations exchange changes with a central hub over the network or by signed USB file.
 
+**Installing on a ship computer? Follow [SHIP_INSTALL.md](SHIP_INSTALL.md)** — step by step for ship's staff, with download links, a test checklist and an AI help prompt.
+
 **Start here: [Architecture in diagrams](ARCHITECTURE_DIAGRAMS.md)** — fleet topology, inside an installation, modules, request flow, synchronization, maintenance workflow, data model and deployment options.
 
 ## Documents
