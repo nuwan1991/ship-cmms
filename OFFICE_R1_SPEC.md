@@ -325,12 +325,28 @@ Daily completion checklist (copied into BUILD_STATUS each day): ☐ migrations a
 
 ## 8. Assumptions (to confirm). Noncritical ones are used as the default until corrected
 
-- A1 The office is one M01 unit under its naval command. Sections/workshops are its departments or sections. Names are to be supplied.
+- A1 **Organisation (confirmed by the user, 20 Nov 2026).** Levels, from the top:
+  1. **Dockyard**, headed by the Commodore/Captain Superintendent. This is the M01 command.
+  2. **Department** (Fleet, Utility, Electronic, ...), headed by a senior officer.
+  3. **Section**, headed by a senior-level officer. *Optional*: a small department may have no sections.
+  4. **Workshop**, headed by an in-charge (senior sailor or civilian technical officer). Depending on size and importance,
+     one or two officers (a senior and a junior).
+  5. **Sub-section**, only inside a large workshop. Its in-charge is a petty officer or technical supervisor.
+  6. **Staff**: sailors and labourers (currently civilian), sometimes junior technical ratings (Artificers).
+  The **Supply department works outside this chain**. It appears as an external party (e.g. awaiting spares), not as a unit
+  in the tree. M01 departments are flat (no parent), so M15 adds an office unit tree, `ofc_org_unit` (level, parent, head,
+  deputy), anchored to the M01 command. Reports and dashboards roll up the tree. Unit names will be supplied later.
+- A1a **Computer literacy differs by level.** Staff (basic literacy) get a simple *My work* screen: their tasks and work
+  orders, large buttons, one-tap "Started / Need info / Done", photo upload. No registers or filters. Sub-section
+  in-charges (moderate literacy) get lists for their own unit. Full screens go to workshop level and above.
 - A2 Reference number formats follow the examples in FR-C1 until the office gives its own format.
 - A3 The classification markers are as listed in FR-K2. **The system is not accredited for classified material.** Only enter what local
   security instructions permit (critical point, see Q1).
+- A3a Local install hardening: BitLocker full-disk encryption, a Windows account password and screen lock, the server bound to localhost only (no LAN exposure until multi-user is approved), encrypted backups on removable media held securely, and no AI features over Restricted content.
 - A4 One accountable assignee per task. Others are involved through subtasks.
-- A5 "Verification" of a task is done by the supervisor of the section or by the OIC. Formal approval powers are not assumed (Q3).
+- A5 **Verification (confirmed by the user).** A task or work order is verified and closed by the **in-charge of the owning unit, or the
+  officer over that unit**, according to its size and importance. Verification is never done by the assignee. Configurable per unit:
+  the in-charge alone, or the officer required. Further approval powers are not assumed.
 - A6 The Sys Admin does not work the records by default.
 - A7 PDF is produced by printing the print layout to PDF (no separate PDF engine in R1).
 - A8 Due-soon window is 7 days. "Immediate attention" is priority Immediate or more than 14 days overdue.
@@ -338,9 +354,9 @@ Daily completion checklist (copied into BUILD_STATUS each day): ☐ migrations a
 
 ## Open questions for the office (needed by Day 2)
 
-- Q1 Which security classification may be stored? Should attachments of Restricted letters be stored, or only the register entry?
-- Q2 What are the section/workshop names, the personnel list and the appointments (for seed data)?
-- Q3 Who is authorised to verify/close tasks and verify work orders (appointments)?
+- Q1 *(Answered: up to Restricted, on a local single-user computer.)* Local hardening is in A3a. Restricted content must not be sent to cloud/AI services without authorisation.
+- Q2 *(Structure answered, see A1.)* The unit names, the personnel list and the appointments will come later.
+- Q3 *(Answered, see A5.)*
 - Q4 Can you send a sample of the existing handover annex and the correspondence register (spreadsheet or scan), so the import templates match them?
 - Q5 Are there existing reference number formats for letters and minute sheets?
 - Q6 Is a specific report format required by higher authority (letterhead, signature blocks)?
