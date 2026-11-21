@@ -1,6 +1,6 @@
 # OFFICE_R1_SPEC — SLE (E&T) II – North: Office, Engineering & Technical Management, Release 1
 
-Status: **draft for approval** (Day 1 deliverable). Nothing is built yet.
+Status: **Release 1 built (Version 1.0, 22 Nov 2026)**. Office sign-off is pending (OFFICE_GUIDE.md §7). See OFFICE_RELEASE.md for what was delivered, its known limits and the deferred-feature register. Where the build differs from this spec, DECISIONS.md D71–D74 explain why (notably D73: office equipment and work orders are M15 records linked to M03/M05).
 Source: the "Master AI Development Prompt" requirements supplied by the user (Nov 2026).
 Scope rule: Release 1 (R1) mandatory features only. Everything else is in §9 (deferred register).
 
