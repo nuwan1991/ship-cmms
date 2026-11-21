@@ -13,7 +13,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](ofc\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person)\.(view|create|update|remove|cancel|comment|assign|reassign)$/;
+    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings)\.(view|create|update|remove|cancel|comment|assign|reassign|record)$/;
     expect([...used].filter((k) => !(k in ofcLabelsEn) && !perms.test(k) && k !== 'ofc.commandId')).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {
@@ -25,9 +25,12 @@ describe('labels', () => {
       cat: ['responsibility', 'project', 'pending_work', 'unresolved', 'correspondence', 'equipment', 'other'],
       tstatus: ['not_started', 'assigned', 'in_progress', 'awaiting_info', 'awaiting_approval', 'on_hold', 'completed', 'closed', 'cancelled'], tview: ['active', 'overdue', 'due_soon', 'attention', 'awaiting_verification', 'done', 'all'],
       duty: ['available', 'on_leave', 'temporary_duty', 'course', 'sick', 'transferred'], tto: ['in_progress', 'awaiting_info', 'awaiting_approval', 'on_hold'],
+      wstatus: ['requested', 'under_review', 'approved', 'assigned', 'in_progress', 'awaiting_spares', 'awaiting_external', 'completed', 'verified', 'closed', 'cancelled'],
+      wto: ['under_review', 'requested', 'in_progress', 'awaiting_spares', 'awaiting_external'], estate: ['in_store', 'in_workshop', 'at_external', 'awaiting_collection', 'returned', 'on_issue'],
+      cond: ['serviceable', 'unserviceable', 'repairable', 'ber', 'unknown'], move: ['registered', 'received_for_repair', 'sent_out', 'returned_from_external', 'repair_completed', 'ready_for_collection', 'collected', 'issued', 'returned_from_issue', 'condition', 'correction'],
       ev: ['comment', 'progress', 'status', 'assign', 'target_date', 'correction', 'attachment', 'link', 'cancel', 'reopen'],
       link: ['originated_from', 'reply_to', 'relates_to', 'supersedes'], new: ['incoming', 'outgoing', 'minute', 'signal', 'other'],
-      field: ['annexRef', 'category', 'subject', 'description', 'previousStatus', 'priority', 'urgent', 'targetDate', 'remarks', 'originalRef'],
+      field: ['supplyRef', 'demandDate', 'item', 'partNo', 'quantity', 'unitOfIssue', 'demandingUnit', 'stage', 'stageDate', 'expectedDate', 'remarks', 'annexRef', 'category', 'subject', 'description', 'previousStatus', 'priority', 'urgent', 'targetDate', 'remarks', 'originalRef'],
     };
     for (const [f, vals] of Object.entries(families)) for (const v of vals) expect(ofcLabelsEn[`ofc.${f}.${v}`], `ofc.${f}.${v}`).toBeTruthy();
   });

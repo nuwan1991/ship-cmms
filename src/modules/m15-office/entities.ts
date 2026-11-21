@@ -15,4 +15,9 @@ export const OFC_ENTITIES: readonly EntityDef[] = [
   { type: 'ofc.responsibility', module: 'M15', table: 'ofc_responsibility', recordClass: 'owner_mutable', requires: ['ofc.person'], distribution: 'record' },
   { type: 'ofc.duty_period', module: 'M15', table: 'ofc_duty_period', recordClass: 'owner_mutable', requires: ['ofc.person'], distribution: 'record' },
   { type: 'ofc.task', module: 'M15', table: 'ofc_task', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.equipment', module: 'M15', table: 'ofc_equipment', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.equipment_movement', module: 'M15', table: 'ofc_equipment_movement', recordClass: 'event', requires: ['ofc.equipment'], distribution: 'record' },
+  { type: 'ofc.work_order', module: 'M15', table: 'ofc_work_order', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.setting', module: 'M15', table: 'ofc_setting', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.supply_demand', module: 'M15', table: 'ofc_supply_demand', recordClass: 'owner_mutable', distribution: 'record' },
 ];

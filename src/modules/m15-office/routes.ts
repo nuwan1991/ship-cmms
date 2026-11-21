@@ -17,6 +17,12 @@ import { mustGet } from './common.js';
 import { addDutyPeriod, addResponsibility, createPerson, dutyToday, endResponsibility, listPersons, personDetail, reassignAll, updatePerson } from './persons.js';
 import { assignTask, cancelTask, closeTask, completeTask, createTask, getTask, listTasks, reopenTask, setTaskStatus, updateTask } from './tasks.js';
 import { personOfUser } from './scope.js';
+import { createEquipment, equipmentDetail, listEquipment, recordMovement, updateEquipment } from './equipment.js';
+import {
+  approveWorkOrder, assignWorkOrder, cancelWorkOrder, closeWorkOrder, completeWorkOrder, createWorkOrder, getWorkOrderDetail, listWorkOrders, reopenWorkOrder, setWorkOrderStatus,
+  updateWorkOrder, verifyWorkOrder,
+} from './workorders.js';
+import { bulkDemands, createDemand, listDemands, setStage, setSupplyStages, supplyStages, updateDemand } from './supply.js';
 
 export const OFC_API_PREFIX = '/api/v1/office';
 
@@ -157,4 +163,47 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
   app.post(`${base}/tasks/:id/close`, async (req) => toApi(closeTask(actorFromRequest(ctx, req), idParam(req), req.body)));
   app.post(`${base}/tasks/:id/reopen`, async (req) => toApi(reopenTask(actorFromRequest(ctx, req), idParam(req), req.body)));
   app.post(`${base}/tasks/:id/cancel`, async (req) => toApi(cancelTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- equipment
+  app.get(`${base}/equipment`, async (req) => { const r = listEquipment(actorFromRequest(ctx, req), req.query); return { total: r.total, items: r.items.map(toApi) }; });
+  app.post(`${base}/equipment`, async (req, reply) => reply.status(201).send(toApi(createEquipment(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/equipment/:id`, async (req) => {
+    const d = equipmentDetail(actorFromRequest(ctx, req), idParam(req));
+    return { ...toApi(d.equipment), movements: d.movements.map(toApi), workOrders: d.workOrders.map(toApi), asset: d.asset };
+  });
+  app.patch(`${base}/equipment/:id`, async (req) => toApi(updateEquipment(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/equipment/:id/movements`, async (req) => toApi(recordMovement(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- office work orders
+  app.get(`${base}/work-orders`, async (req) => { const r = listWorkOrders(actorFromRequest(ctx, req), req.query); return { total: r.total, items: r.items.map(toApi) }; });
+  app.post(`${base}/work-orders`, async (req, reply) => reply.status(201).send(toApi(createWorkOrder(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/work-orders/:id`, async (req) => {
+    const r = getWorkOrderDetail(actorFromRequest(ctx, req), idParam(req));
+    return { ...toApi(r), equipment: r.equipment ? toApi(r.equipment as Record<string, unknown>) : null };
+  });
+  app.patch(`${base}/work-orders/:id`, async (req) => toApi(updateWorkOrder(actorFromRequest(ctx, req), idParam(req), req.body)));
+  const woAct: Record<string, (a: ReturnType<typeof actorFromRequest>, id: string, body: unknown) => Record<string, unknown>> = {
+    approve: approveWorkOrder, assign: assignWorkOrder, status: setWorkOrderStatus, complete: completeWorkOrder, verify: verifyWorkOrder, close: closeWorkOrder, reopen: reopenWorkOrder, cancel: cancelWorkOrder,
+  };
+  for (const [name, fn] of Object.entries(woAct)) app.post(`${base}/work-orders/:id/${name}`, async (req) => toApi(fn(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- supply demands
+  app.get(`${base}/supply`, async (req) => { const r = listDemands(actorFromRequest(ctx, req), req.query); return { total: r.total, stages: r.stages, items: r.items.map(toApi) }; });
+  app.post(`${base}/supply`, async (req, reply) => reply.status(201).send(toApi(createDemand(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/supply/:id`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    const r = mustGet(ctx.db, 'ofc_supply_demand', idParam(req), 'Supply demand');
+    authorize(a, perm('supply', 'view'), commandScope(r.command_id as string));
+    return toApi(r);
+  });
+  app.patch(`${base}/supply/:id`, async (req) => toApi(updateDemand(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/supply/:id/stage`, async (req) => toApi(setStage(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/supply/bulk`, { bodyLimit: 16_000_000 }, async (req) => bulkDemands(actorFromRequest(ctx, req), req.body));
+  app.get(`${base}/settings/supply-stages`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    const commandId = cmdQuery(req.query);
+    authorize(a, perm('supply', 'view'), commandScope(commandId));
+    return { stages: supplyStages(a, commandId) };
+  });
+  app.put(`${base}/settings/supply-stages`, async (req) => ({ stages: setSupplyStages(actorFromRequest(ctx, req), cmdQuery(req.query), req.body) }));
 }

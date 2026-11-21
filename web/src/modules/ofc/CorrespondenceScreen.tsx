@@ -10,6 +10,7 @@ import { ErrorNotice, Modal, StatusChip } from '../../platform/ui';
 import { DueCell, OFC, OfficePicker, priorityOptions, show, todayIso, useGet, useOffice, usePersons, type Page } from './binding';
 import { RecordPanel } from './RecordPanel';
 import { NewTaskModal } from './TasksScreen';
+import { NewWorkOrderModal } from './WorkOrdersScreen';
 
 export const KINDS = ['incoming', 'outgoing', 'minute', 'signal', 'other'] as const;
 export const STATUS: Record<string, string[]> = {
@@ -154,6 +155,7 @@ export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, o
   const [editing, setEditing] = useState(false);
   const [reasonFor, setReasonFor] = useState<'cancel' | 'noreply' | null>(null);
   const [newTask, setNewTask] = useState(false);
+  const [newWo, setNewWo] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
   const r = rec.data;
@@ -200,6 +202,7 @@ export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, o
               {can('ofc.correspondence.update') ? (STATUS[String(r.kind)] ?? []).filter((s) => s !== r.status).map((s) => <button key={s} onClick={() => void setStatus(s)}>{t(`ofc.to.${s}`)}</button>) : null}
               {can('ofc.correspondence.create') && r.kind !== 'outgoing' ? <button className="primary" onClick={() => onReply(r)}>{t('ofc.act.reply')}</button> : null}
               {can('ofc.task.assign') && !r.masked ? <button onClick={() => setNewTask(true)}>{t('ofc.act.make_task')}</button> : null}
+              {can('ofc.work_order.create') && !r.masked && r.kind !== 'outgoing' ? <button onClick={() => setNewWo(true)}>{t('ofc.act.raise_wo')}</button> : null}
               {r.pending && can('ofc.correspondence.update') ? <button onClick={() => setReasonFor('noreply')}>{t('ofc.act.no_reply')}</button> : null}
               {can('ofc.correspondence.cancel') ? <button className="danger" onClick={() => setReasonFor('cancel')}>{t('ofc.act.cancel')}</button> : null}
             </div>
@@ -212,6 +215,7 @@ export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, o
           record={r} tz={tz} onClose={() => setEditing(false)} onFetchLatest={() => api<Rec>('GET', `${OFC}/correspondence/${id}`)}
           onSubmit={async (body) => { const { kind: _k, ...rest } = body; await api('PATCH', `${OFC}/correspondence/${id}`, rest); refresh(); }} />
       ) : null}
+      {newWo && r ? <NewWorkOrderModal commandId={String(r.commandId)} sourceLetterId={id} defaults={{ unitId: String(r.unitId ?? '') }} onClose={() => setNewWo(false)} onCreated={() => refresh()} /> : null}
       {newTask && r ? <NewTaskModal commandId={String(r.commandId)} source={{ type: 'ofc.correspondence', id }} defaults={{ assigneePersonId: String(r.actionUserId ?? ''), unitId: String(r.unitId ?? '') }} onClose={() => setNewTask(false)} onCreated={() => refresh()} /> : null}
       {reasonFor && r ? (
         <ReasonModal title={t(reasonFor === 'cancel' ? 'ofc.act.cancel_title' : 'ofc.act.no_reply_title', { name: String(r.refNo) })} confirmKey={reasonFor === 'cancel' ? 'ofc.act.cancel' : 'ofc.act.no_reply'} onClose={() => setReasonFor(null)}

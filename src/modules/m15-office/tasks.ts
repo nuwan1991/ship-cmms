@@ -75,7 +75,7 @@ function checkPerson(a: Actor, commandId: string, personId: string | null | unde
 function checkUnit(a: Actor, commandId: string, unitId: string | null | undefined): void {
   if (unitId && !a.wctx.db.prepare('SELECT 1 FROM ofc_org_unit WHERE id = ? AND command_id = ? AND deleted_at IS NULL').get(unitId, commandId)) throw new AppError('VALIDATION_FAILED', 'Unit not found in this office');
 }
-const myPersonId = (a: Actor, commandId: string): string | null => (personOfUser(a, commandId)?.id as string | undefined) ?? null;
+export const myPersonId = (a: Actor, commandId: string): string | null => (personOfUser(a, commandId)?.id as string | undefined) ?? null;
 
 /** FR-T1: manual, from a letter, from a handover item, from a work order, or as a subtask. The source is linked and its details carried over. */
 export function createTask(a: Actor, input: unknown): Row {
@@ -239,22 +239,27 @@ export function completeTask(a: Actor, id: string, input: unknown): Row {
  * may always verify; closing their own task needs a self-closure note. Returns null when allowed, else the reason.
  */
 function verifierCheck(a: Actor, t: Row, note?: string | null): string | null {
-  const scope = commandScopeOf(t);
-  if (!holds(a, perm('task', 'verify'), scope)) return 'You do not hold the task verification permission';
-  const me = myPersonId(a, t.command_id as string);
+  return checkVerifier(a, 'task', t.command_id as string, t.unit_id as string | null, [t.assignee_person_id as string | null], note);
+}
+
+/** Shared by tasks and work orders. `workers` are the people who did the work: none of them may verify it. */
+export function checkVerifier(a: Actor, noun: 'task' | 'work_order', commandId: string, unitId: string | null, workers: Array<string | null>, note?: string | null): string | null {
+  const scope = commandScope(commandId);
+  if (!holds(a, perm(noun, 'verify'), scope)) return 'You do not hold the verification permission';
+  const me = myPersonId(a, commandId);
   const oic = holds(a, 'ofc.scope.all', scope);
-  if (me && t.assignee_person_id === me) return oic && note ? null : 'You cannot verify your own task';
+  if (me && workers.includes(me)) return oic && note ? null : 'You cannot verify your own work';
   if (oic) return null;
   const uid = a.principal.userId;
-  let unit = t.unit_id ? (mustGet(a.wctx.db, 'ofc_org_unit', t.unit_id as string, 'Unit')) : undefined;
-  if (!unit) return 'The task has no section or workshop; only the officer in charge can verify it';
+  let unit = unitId ? mustGet(a.wctx.db, 'ofc_org_unit', unitId, 'Unit') : undefined;
+  if (!unit) return 'No section or workshop is set; only the officer in charge can verify it';
   const own = unit;
   if (own.verify_rule === 'officer_required' ? own.deputy_user_id === uid || (!own.deputy_user_id && own.head_user_id === uid) : own.head_user_id === uid || own.deputy_user_id === uid) return null;
   for (let guard = 0; unit.parent_id && guard < 10; guard++) {
     unit = mustGet(a.wctx.db, 'ofc_org_unit', unit.parent_id as string, 'Unit');
     if (unit.head_user_id === uid || unit.deputy_user_id === uid) return null;
   }
-  return own.verify_rule === 'officer_required' ? `The officer of ${own.name as string} or someone above must verify this task` : `The in-charge of ${own.name as string} or someone above must verify this task`;
+  return own.verify_rule === 'officer_required' ? `The officer of ${own.name as string} or someone above must verify this` : `The in-charge of ${own.name as string} or someone above must verify this`;
 }
 
 export function closeTask(a: Actor, id: string, input: unknown): Row {

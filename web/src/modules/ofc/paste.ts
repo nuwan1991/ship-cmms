@@ -66,3 +66,30 @@ export function parseHandoverPaste(text: string): { headings: Array<{ heading: s
   });
   return { headings: head.map((h, i) => ({ heading: h, field: fields[i] ?? null })), rows };
 }
+
+export const SUPPLY_COLUMNS: ColumnMap = {
+  supplyref: 'supplyRef', demandno: 'supplyRef', demandref: 'supplyRef', logisticsref: 'supplyRef', refno: 'supplyRef', reference: 'supplyRef', voucherno: 'supplyRef', ivno: 'supplyRef',
+  demanddate: 'demandDate', date: 'demandDate', item: 'item', description: 'item', itemdescription: 'item', nomenclature: 'item',
+  partno: 'partNo', patternno: 'partNo', pattern: 'partNo', qty: 'quantity', quantity: 'quantity', unit: 'unitOfIssue', ui: 'unitOfIssue', unitofissue: 'unitOfIssue',
+  demandingunit: 'demandingUnit', requestedby: 'demandingUnit', stage: 'stage', status: 'stage', stagedate: 'stageDate', statusdate: 'stageDate',
+  expecteddate: 'expectedDate', eta: 'expectedDate', remarks: 'remarks',
+};
+
+/** Rows copied from the logistics system screen or export. Unknown columns are ignored; quantities and dates are normalised. */
+export function parseSupplyPaste(text: string, map: ColumnMap = SUPPLY_COLUMNS): { headings: Array<{ heading: string; field: string | null }>; rows: Array<Record<string, unknown>> } {
+  const [head, ...body] = splitRows(text);
+  if (!head) return { headings: [], rows: [] };
+  const fields = head.map((h) => map[norm(h)] ?? null);
+  const rows = body.map((cells) => {
+    const r: Record<string, unknown> = {};
+    fields.forEach((f, i) => {
+      const v = cells[i]?.trim() ?? '';
+      if (!f || v === '') return;
+      if (f === 'quantity') { const n = Number(v.replace(/,/g, '')); r.quantity = Number.isFinite(n) ? n : v; }
+      else if (/Date$/.test(f)) r[f] = toIsoDate(v);
+      else r[f] = v;
+    });
+    return r;
+  });
+  return { headings: head.map((h, i) => ({ heading: h, field: fields[i] ?? null })), rows };
+}

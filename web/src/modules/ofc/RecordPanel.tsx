@@ -11,7 +11,7 @@ import { fileToBase64, OFC, useGet, useOffice, usePersons } from './binding';
 
 interface Bundle { links: Rec[]; attachments: Rec[]; timeline: Rec[] }
 const TYPE_LABEL: Record<string, string> = {
-  'ofc.correspondence': 'ofc.type.correspondence', 'ofc.matter': 'ofc.type.matter', 'ofc.handover_item': 'ofc.type.handover_item', 'ofc.handover_packet': 'ofc.type.handover_packet', 'ofc.org_unit': 'ofc.type.org_unit',
+  'ofc.correspondence': 'ofc.type.correspondence', 'ofc.matter': 'ofc.type.matter', 'ofc.handover_item': 'ofc.type.handover_item', 'ofc.handover_packet': 'ofc.type.handover_packet', 'ofc.org_unit': 'ofc.type.org_unit', 'ofc.task': 'ofc.type.task', 'ofc.work_order': 'ofc.type.work_order', 'ofc.equipment': 'ofc.type.equipment', 'ofc.supply_demand': 'ofc.type.supply_demand',
 };
 
 export function RecordPanel({ type, id, reloadKey = 0 }: { type: string; id: string; reloadKey?: number }) {

@@ -11,7 +11,8 @@ export const OFFICE_SEQUENCES = [
   { code: 'ofc_matter', prefix: 'MAT', width: 5, description: 'Correspondence matter (file thread)' },
   { code: 'ofc_handover', prefix: 'HOV', width: 4, description: 'Handover packet' },
   { code: 'ofc_handover_item', prefix: 'HOI', width: 5, description: 'Handover item' },
-  { code: 'ofc_equipment', prefix: 'EQM', width: 5, description: 'Office equipment movement' },
+  { code: 'ofc_equipment', prefix: 'EQM', width: 5, description: 'Office equipment record' },
+  { code: 'ofc_wo', prefix: 'OWO', width: 5, description: 'Office work order' },
   { code: 'ofc_supply', prefix: 'SUP', width: 5, description: 'Supply demand' },
 ] as const;
 export type OfficeSequence = (typeof OFFICE_SEQUENCES)[number]['code'];
