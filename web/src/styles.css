@@ -182,3 +182,25 @@ details pre { overflow: auto; max-height: 240px; background: var(--muted-bg, #ee
 .changes li { display: grid; grid-template-columns: 96px 1fr; gap: 8px; font-size: 14px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 .changes li:last-child { border-bottom: 0; }
 .changes small { color: var(--muted); }
+
+/* M15 office */
+.plain { list-style: none; padding: 0; margin: 4px 0 10px; display: grid; gap: 4px; }
+.timeline { list-style: none; padding: 0 0 0 10px; margin: 4px 0 10px; border-left: 2px solid var(--line, #cfd6de); display: grid; gap: 8px; }
+.timeline li { padding-left: 8px; }
+.record-panel { border-top: 1px solid var(--line, #cfd6de); margin-top: 14px; padding-top: 6px; }
+.record-panel h3 { font-size: 15px; margin: 10px 0 4px; }
+.comment { display: grid; gap: 6px; margin: 8px 0; }
+.comment textarea, textarea.paste { min-height: 70px; width: 100%; }
+textarea.paste { min-height: 180px; font-family: ui-monospace, monospace; font-size: 12px; }
+label.button { display: inline-block; padding: 4px 10px; border: 1px solid var(--line, #cfd6de); border-radius: 6px; cursor: pointer; }
+.actions.wrap { flex-wrap: wrap; margin: 8px 0; }
+.report table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
+.report th, .report td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
+.report-head { text-align: center; margin-bottom: 12px; }
+.report-head h1 { margin: 4px 0; font-size: 20px; }
+.signatures { display: flex; justify-content: space-between; margin-top: 40px; }
+@media print {
+  .no-print, nav, .topbar { display: none !important; }
+  .report { color: #000; background: #fff; }
+  @page { size: A4; margin: 15mm; }
+}

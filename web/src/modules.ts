@@ -15,11 +15,12 @@ import { stkNav, stkRoutes } from './modules/stk';
 import { synNav, synRoutes } from './modules/sync';
 import { xlsNav, xlsRoutes } from './modules/xls';
 import { wrkNav, wrkRoutes } from './modules/wrk';
+import { ofcNav, ofcRoutes } from './modules/ofc';
 
 export interface ModuleRoute {
   path: string;
   element: ReactElement;
 }
 
-export const NAV: readonly NavItem[] = [...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...pmNav, ...stkNav, ...xlsNav, ...rptNav, ...synNav, ...opsNav];
-export const ROUTES: readonly ModuleRoute[] = [...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...pmRoutes, ...stkRoutes, ...xlsRoutes, ...rptRoutes, ...synRoutes, ...opsRoutes];
+export const NAV: readonly NavItem[] = [...ofcNav, ...orgNav, ...idnNav, ...astNav, ...qrNav, ...wrkNav, ...pmNav, ...stkNav, ...xlsNav, ...rptNav, ...synNav, ...opsNav];
+export const ROUTES: readonly ModuleRoute[] = [...ofcRoutes, ...orgRoutes, ...idnRoutes, ...astRoutes, ...qrRoutes, ...wrkRoutes, ...pmRoutes, ...stkRoutes, ...xlsRoutes, ...rptRoutes, ...synRoutes, ...opsRoutes];

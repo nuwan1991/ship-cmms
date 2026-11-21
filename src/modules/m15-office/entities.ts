@@ -7,4 +7,8 @@ export const OFC_ENTITIES: readonly EntityDef[] = [
   { type: 'ofc.attachment', module: 'M15', table: 'ofc_attachment', recordClass: 'owner_mutable', distribution: 'record' },
   { type: 'ofc.attachment_link', module: 'M15', table: 'ofc_attachment_link', recordClass: 'owner_mutable', requires: ['ofc.attachment'], distribution: 'record' },
   { type: 'ofc.record_event', module: 'M15', table: 'ofc_record_event', recordClass: 'event', distribution: 'record' },
+  { type: 'ofc.matter', module: 'M15', table: 'ofc_matter', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.correspondence', module: 'M15', table: 'ofc_correspondence', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.handover_packet', module: 'M15', table: 'ofc_handover_packet', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.handover_item', module: 'M15', table: 'ofc_handover_item', recordClass: 'owner_mutable', requires: ['ofc.handover_packet'], distribution: 'record' },
 ];

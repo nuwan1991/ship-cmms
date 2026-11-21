@@ -9,6 +9,11 @@ import { MAX_ATTACHMENT_BYTES, parse, RecordRef } from './schemas.js';
 import {
   addComment, attachExisting, commandScope, createLink, createUnit, detachAttachment, readAttachment, removeLink, scopeOfRecord, updateUnit, uploadAttachment,
 } from './service.js';
+import {
+  createCorrespondence, createMatter, getCorrespondence, listCorrespondence, markNoReplyNeeded, matterThread, setCorrespondenceStatus, updateCorrespondence, updateMatter,
+} from './correspondence.js';
+import { addItemAction, bulkItems, createItem, createPacket, getPacket, handoverReport, listItems, listPackets, updateItem, updatePacket } from './handover.js';
+import { mustGet } from './common.js';
 
 export const OFC_API_PREFIX = '/api/v1/office';
 
@@ -61,4 +66,53 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
   });
 
   app.post(`${base}/comments`, async (req, reply) => reply.status(201).send(toApi(addComment(actorFromRequest(ctx, req), req.body))));
+
+  // ---- matters and correspondence
+  const cmdQuery = (q: unknown) => parse(z.object({ commandId: z.uuid() }).passthrough(), q).commandId;
+  app.get(`${base}/matters`, async (req) => {
+    const commandId = cmdQuery(req.query);
+    authorize(actorFromRequest(ctx, req), perm('correspondence', 'view'), commandScope(commandId));
+    const rows = ctx.db.prepare(
+      `SELECT m.*, COUNT(c.id) AS letter_count, MAX(COALESCE(c.letter_date, c.received_date, c.sent_date)) AS latest_date,
+              SUM(CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END) AS pending_count
+         FROM ofc_matter m LEFT JOIN ofc_correspondence c ON c.matter_id = m.id AND c.deleted_at IS NULL
+         LEFT JOIN ofc_v_correspondence_pending p ON p.id = c.id
+        WHERE m.command_id = ? AND m.deleted_at IS NULL GROUP BY m.id ORDER BY m.status, latest_date DESC, m.ref_no DESC`,
+    ).all(commandId);
+    return { items: (rows as Array<Record<string, unknown>>).map(toApi) };
+  });
+  app.post(`${base}/matters`, async (req, reply) => reply.status(201).send(toApi(createMatter(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/matters/:id`, async (req) => { const r = matterThread(actorFromRequest(ctx, req), idParam(req)); return { matter: toApi(r.matter), letters: r.letters.map(toApi) }; });
+  app.patch(`${base}/matters/:id`, async (req) => toApi(updateMatter(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  app.get(`${base}/correspondence`, async (req) => { const r = listCorrespondence(actorFromRequest(ctx, req), req.query); return { total: r.total, items: r.items.map(toApi) }; });
+  app.post(`${base}/correspondence`, async (req, reply) => reply.status(201).send(toApi(createCorrespondence(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/correspondence/:id`, async (req) => {
+    const r = getCorrespondence(actorFromRequest(ctx, req), idParam(req));
+    return { ...toApi(r), replies: (r.replies as Array<Record<string, unknown>>).map(toApi) };
+  });
+  app.patch(`${base}/correspondence/:id`, async (req) => toApi(updateCorrespondence(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/correspondence/:id/status`, async (req) => toApi(setCorrespondenceStatus(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/correspondence/:id/no-reply`, async (req) => toApi(markNoReplyNeeded(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- handover
+  app.get(`${base}/handovers`, async (req) => ({ items: listPackets(actorFromRequest(ctx, req), cmdQuery(req.query)).map(toApi) }));
+  app.post(`${base}/handovers`, async (req, reply) => reply.status(201).send(toApi(createPacket(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/handovers/:id`, async (req) => toApi(getPacket(actorFromRequest(ctx, req), idParam(req))));
+  app.patch(`${base}/handovers/:id`, async (req) => toApi(updatePacket(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.get(`${base}/handovers/:id/items`, async (req) => { const r = listItems(actorFromRequest(ctx, req), idParam(req), req.query); return { total: r.total, items: r.items.map(toApi) }; });
+  app.post(`${base}/handovers/:id/items`, async (req, reply) => reply.status(201).send(toApi(createItem(actorFromRequest(ctx, req), idParam(req), req.body))));
+  app.post(`${base}/handovers/:id/items/bulk`, { bodyLimit: 8_000_000 }, async (req) => bulkItems(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.get(`${base}/handovers/:id/report`, async (req) => {
+    const r = handoverReport(actorFromRequest(ctx, req), idParam(req));
+    return { ...r, packet: toApi(r.packet), attention: r.attention.map(toApi), byStatus: r.byStatus.map(toApi), byCategory: r.byCategory.map(toApi) };
+  });
+  app.get(`${base}/handover-items/:id`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    const r = mustGet(ctx.db, 'ofc_handover_item', idParam(req), 'Handover item');
+    authorize(a, perm('handover', 'view'), commandScope(r.command_id as string));
+    return toApi(r);
+  });
+  app.patch(`${base}/handover-items/:id`, async (req) => toApi(updateItem(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/handover-items/:id/actions`, async (req) => toApi(addItemAction(actorFromRequest(ctx, req), idParam(req), req.body)));
 }
