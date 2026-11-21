@@ -7,9 +7,9 @@ import { can } from '../../platform/permissions';
 import { ReasonModal } from '../../platform/reason';
 import { useSystem } from '../../platform/system';
 import { ErrorNotice, Modal, StatusChip } from '../../platform/ui';
-import { usePeople } from '../wrk/people';
-import { DueCell, OFC, OfficePicker, priorityOptions, show, todayIso, useGet, useOffice, type Page } from './binding';
+import { DueCell, OFC, OfficePicker, priorityOptions, show, todayIso, useGet, useOffice, usePersons, type Page } from './binding';
 import { RecordPanel } from './RecordPanel';
+import { NewTaskModal } from './TasksScreen';
 
 export const KINDS = ['incoming', 'outgoing', 'minute', 'signal', 'other'] as const;
 export const STATUS: Record<string, string[]> = {
@@ -17,7 +17,7 @@ export const STATUS: Record<string, string[]> = {
   minute: ['open', 'filed'], signal: ['received', 'under_action', 'replied', 'filed'], other: ['open', 'filed'],
 };
 
-function corrFields(kind: string, matters: Rec[], units: Rec[], people: ReturnType<typeof usePeople>): FieldDef[] {
+function corrFields(kind: string, matters: Rec[], units: Rec[], people: ReturnType<typeof usePersons>): FieldDef[] {
   const out = kind === 'outgoing';
   return [
     { key: 'kind', labelKey: 'ofc.field.kind', type: 'select', required: true, createOnly: true, options: KINDS.map((k) => ({ value: k, label: t(`ofc.kind.${k}`) })) },
@@ -44,7 +44,7 @@ function corrFields(kind: string, matters: Rec[], units: Rec[], people: ReturnTy
 export function CorrespondenceScreen() {
   const { tz } = useSystem();
   const office = useOffice();
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const C = office.commandId;
   const [kind, setKind] = useState('');
   const [status, setStatus] = useState('');
@@ -149,10 +149,11 @@ export function CorrespondenceScreen() {
 
 export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, onReply, onOpen }: { id: string; matters: Rec[]; units: Rec[]; onClose(): void; onChanged(): void; onReply(r: Rec): void; onOpen(id: string): void }) {
   const { tz } = useSystem();
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const rec = useGet<Rec>(`${OFC}/correspondence/${id}`);
   const [editing, setEditing] = useState(false);
   const [reasonFor, setReasonFor] = useState<'cancel' | 'noreply' | null>(null);
+  const [newTask, setNewTask] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
   const r = rec.data;
@@ -198,6 +199,7 @@ export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, o
               {editable ? <button onClick={() => setEditing(true)}>{t('common.edit')}</button> : null}
               {can('ofc.correspondence.update') ? (STATUS[String(r.kind)] ?? []).filter((s) => s !== r.status).map((s) => <button key={s} onClick={() => void setStatus(s)}>{t(`ofc.to.${s}`)}</button>) : null}
               {can('ofc.correspondence.create') && r.kind !== 'outgoing' ? <button className="primary" onClick={() => onReply(r)}>{t('ofc.act.reply')}</button> : null}
+              {can('ofc.task.assign') && !r.masked ? <button onClick={() => setNewTask(true)}>{t('ofc.act.make_task')}</button> : null}
               {r.pending && can('ofc.correspondence.update') ? <button onClick={() => setReasonFor('noreply')}>{t('ofc.act.no_reply')}</button> : null}
               {can('ofc.correspondence.cancel') ? <button className="danger" onClick={() => setReasonFor('cancel')}>{t('ofc.act.cancel')}</button> : null}
             </div>
@@ -210,6 +212,7 @@ export function CorrespondenceDetail({ id, matters, units, onClose, onChanged, o
           record={r} tz={tz} onClose={() => setEditing(false)} onFetchLatest={() => api<Rec>('GET', `${OFC}/correspondence/${id}`)}
           onSubmit={async (body) => { const { kind: _k, ...rest } = body; await api('PATCH', `${OFC}/correspondence/${id}`, rest); refresh(); }} />
       ) : null}
+      {newTask && r ? <NewTaskModal commandId={String(r.commandId)} source={{ type: 'ofc.correspondence', id }} defaults={{ assigneePersonId: String(r.actionUserId ?? ''), unitId: String(r.unitId ?? '') }} onClose={() => setNewTask(false)} onCreated={() => refresh()} /> : null}
       {reasonFor && r ? (
         <ReasonModal title={t(reasonFor === 'cancel' ? 'ofc.act.cancel_title' : 'ofc.act.no_reply_title', { name: String(r.refNo) })} confirmKey={reasonFor === 'cancel' ? 'ofc.act.cancel' : 'ofc.act.no_reply'} onClose={() => setReasonFor(null)}
           onConfirm={async (reason) => {

@@ -7,7 +7,7 @@ import { ReasonModal } from '../../platform/reason';
 import { useSystem } from '../../platform/system';
 import { toLocalDisplay } from '../../platform/time';
 import { ErrorNotice } from '../../platform/ui';
-import { fileToBase64, OFC, useGet } from './binding';
+import { fileToBase64, OFC, useGet, useOffice, usePersons } from './binding';
 
 interface Bundle { links: Rec[]; attachments: Rec[]; timeline: Rec[] }
 const TYPE_LABEL: Record<string, string> = {
@@ -16,6 +16,10 @@ const TYPE_LABEL: Record<string, string> = {
 
 export function RecordPanel({ type, id, reloadKey = 0 }: { type: string; id: string; reloadKey?: number }) {
   const { tz } = useSystem();
+  const persons = usePersons(useOffice().commandId);
+  /** Person ids in history entries are shown as names. */
+  const val = (field: unknown, v: unknown): string => (v == null ? '—' : /_(person|user)_id$/.test(String(field ?? '')) ? persons.name(v) : String(v));
+  const FIELD: Record<string, string> = { assignee_person_id: 'ofc.field.assignee', action_user_id: 'ofc.field.actionOfficer', responsible_user_id: 'ofc.field.responsible', status: 'ofc.field.status', target_date: 'ofc.field.targetDate', reply_due: 'ofc.field.replyDue' };
   const b = useGet<Bundle>(`${OFC}/record`, { type, id });
   const { reload } = b;
   useEffect(() => { if (reloadKey) reload(); }, [reloadKey, reload]);
@@ -80,8 +84,8 @@ export function RecordPanel({ type, id, reloadKey = 0 }: { type: string; id: str
             <small className="muted">{toLocalDisplay(String(e.occurredAt), tz)} · {String(e.actorName ?? '')}</small>
             <div>
               <strong>{t(`ofc.ev.${String(e.kind)}`)}</strong>
-              {e.field ? ` ${String(e.field)}` : ''}
-              {e.fromValue != null || e.toValue != null ? `: ${String(e.fromValue ?? '—')} → ${String(e.toValue ?? '—')}` : ''}
+              {e.field ? ` · ${FIELD[String(e.field)] ? t(FIELD[String(e.field)]!) : String(e.field)}` : ''}
+              {e.fromValue != null || e.toValue != null ? `: ${val(e.field, e.fromValue)} → ${val(e.field, e.toValue)}` : ''}
               {e.note ? <div>{String(e.note)}</div> : null}
             </div>
           </li>

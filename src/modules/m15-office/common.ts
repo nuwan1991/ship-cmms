@@ -51,7 +51,7 @@ export function updateWithHistory(
     const next = updateRecord(withReason(a, reason).wctx, entityType, cur.id as string, expectedVersion, patch);
     for (const c of corrections) recordEvent(a, ref, scope, { kind: 'correction', field: c, from: cur[c], to: patch[c], note: reason ?? null });
     if (changed.includes('status')) recordEvent(a, ref, scope, { kind: patch.status === 'cancelled' ? 'cancel' : 'status', field: 'status', from: cur.status, to: patch.status, note: reason ?? null });
-    for (const c of ['action_user_id', 'responsible_user_id', 'assignee_user_id']) if (changed.includes(c)) recordEvent(a, ref, scope, { kind: 'assign', field: c, from: cur[c], to: patch[c], note: reason ?? null });
+    for (const c of ['action_user_id', 'responsible_user_id', 'assignee_person_id']) if (changed.includes(c)) recordEvent(a, ref, scope, { kind: 'assign', field: c, from: cur[c], to: patch[c], note: reason ?? null });
     for (const c of ['reply_due', 'target_date']) if (changed.includes(c) && !corrections.includes(c)) recordEvent(a, ref, scope, { kind: 'target_date', field: c, from: cur[c], to: patch[c], note: reason ?? null });
     return next;
   })();

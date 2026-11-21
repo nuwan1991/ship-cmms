@@ -14,6 +14,9 @@ import {
 } from './correspondence.js';
 import { addItemAction, bulkItems, createItem, createPacket, getPacket, handoverReport, listItems, listPackets, updateItem, updatePacket } from './handover.js';
 import { mustGet } from './common.js';
+import { addDutyPeriod, addResponsibility, createPerson, dutyToday, endResponsibility, listPersons, personDetail, reassignAll, updatePerson } from './persons.js';
+import { assignTask, cancelTask, closeTask, completeTask, createTask, getTask, listTasks, reopenTask, setTaskStatus, updateTask } from './tasks.js';
+import { personOfUser } from './scope.js';
 
 export const OFC_API_PREFIX = '/api/v1/office';
 
@@ -115,4 +118,43 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
   });
   app.patch(`${base}/handover-items/:id`, async (req) => toApi(updateItem(actorFromRequest(ctx, req), idParam(req), req.body)));
   app.post(`${base}/handover-items/:id/actions`, async (req) => toApi(addItemAction(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- personnel
+  app.get(`${base}/persons`, async (req) => {
+    const q = parse(z.strictObject({ commandId: z.uuid(), includeInactive: z.enum(['true', 'false']).optional(), unitId: z.uuid().optional() }), req.query);
+    const a = actorFromRequest(ctx, req);
+    return { items: listPersons(a, q.commandId, { includeInactive: q.includeInactive === 'true', ...(q.unitId ? { unitId: q.unitId } : {}) }).map((p) => toApi({ ...p, duty_today: dutyToday(a, p) })) };
+  });
+  app.get(`${base}/persons/me`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    const p = personOfUser(a, cmdQuery(req.query));
+    return p ? toApi(p) : null;
+  });
+  app.post(`${base}/persons`, async (req, reply) => reply.status(201).send(toApi(createPerson(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/persons/:id`, async (req) => {
+    const a = actorFromRequest(ctx, req);
+    const d = personDetail(a, idParam(req));
+    const m = (rs: Array<Record<string, unknown>>) => rs.map(toApi);
+    return { person: toApi({ ...d.person, duty_today: dutyToday(a, d.person) }), responsibilities: m(d.responsibilities), duty: m(d.duty), tasks: m(d.tasks), formerly: m(d.formerly), handoverItems: m(d.handoverItems), correspondence: m(d.correspondence) };
+  });
+  app.patch(`${base}/persons/:id`, async (req) => toApi(updatePerson(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/persons/:id/responsibilities`, async (req, reply) => reply.status(201).send(toApi(addResponsibility(actorFromRequest(ctx, req), idParam(req), req.body))));
+  app.post(`${base}/responsibilities/:id/end`, async (req) => toApi(endResponsibility(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/persons/:id/duty`, async (req, reply) => reply.status(201).send(toApi(addDutyPeriod(actorFromRequest(ctx, req), idParam(req), req.body))));
+  app.post(`${base}/persons/:id/reassign`, async (req) => reassignAll(actorFromRequest(ctx, req), idParam(req), req.body));
+
+  // ---- tasks
+  app.get(`${base}/tasks`, async (req) => { const r = listTasks(actorFromRequest(ctx, req), req.query); return { total: r.total, items: r.items.map(toApi) }; });
+  app.post(`${base}/tasks`, async (req, reply) => reply.status(201).send(toApi(createTask(actorFromRequest(ctx, req), req.body))));
+  app.get(`${base}/tasks/:id`, async (req) => {
+    const t = getTask(actorFromRequest(ctx, req), idParam(req));
+    return { ...toApi(t), subtasks: (t.subtasks as Array<Record<string, unknown>>).map(toApi), source: t.source ? toApi(t.source as Record<string, unknown>) : null, parent: t.parent ? toApi(t.parent as Record<string, unknown>) : null };
+  });
+  app.patch(`${base}/tasks/:id`, async (req) => toApi(updateTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/assign`, async (req) => toApi(assignTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/status`, async (req) => toApi(setTaskStatus(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/complete`, async (req) => toApi(completeTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/close`, async (req) => toApi(closeTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/reopen`, async (req) => toApi(reopenTask(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.post(`${base}/tasks/:id/cancel`, async (req) => toApi(cancelTask(actorFromRequest(ctx, req), idParam(req), req.body)));
 }

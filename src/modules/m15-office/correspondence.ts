@@ -8,6 +8,7 @@ import { nextRef, type OfficeSequence } from './numbering.js';
 import { perm } from './permissions.js';
 import { CORR_STATUS, CorrCreate, CorrList, CorrNoReply, CorrStatus, CorrUpdate, MatterCreate, MatterUpdate, parse } from './schemas.js';
 import { commandScope, recordEvent } from './service.js';
+import { assertVisible, visibility, visibleWhere } from './scope.js';
 
 const T = 'ofc_correspondence';
 const DEFAULT_STATUS = { incoming: 'received', outgoing: 'draft', minute: 'open', signal: 'received', other: 'open' } as const;
@@ -106,6 +107,7 @@ export function createCorrespondence(a: Actor, input: unknown): Row {
 export function getCorrespondence(a: Actor, id: string): Row {
   const r = mustGet(a.wctx.db, T, id, 'Correspondence');
   authorize(a, perm('correspondence', 'view'), commandScopeOf(r));
+  assertVisible(a, r, 'unit_id', ['action_user_id'], 'This letter');
   const replies = a.wctx.db.prepare(`SELECT id, ref_no, kind, status, sent_date, subject, classification, command_id FROM ${T} WHERE reply_to_id = ? AND deleted_at IS NULL ORDER BY created_at`).all(id) as Row[];
   const pending = a.wctx.db.prepare('SELECT 1 FROM ofc_v_correspondence_pending WHERE id = ?').get(id) !== undefined;
   return { ...maskRow(a, r), pending, overdue: pending && !!r.reply_due && (r.reply_due as string) < todayLocal(), replies: replies.map((x) => maskRow(a, x)) };
@@ -159,8 +161,9 @@ const SORT: Record<string, string> = { refNo: 'ref_no', date: 'COALESCE(letter_d
 export function listCorrespondence(a: Actor, raw: unknown) {
   const v = parse(CorrList, raw);
   authorize(a, perm('correspondence', 'view'), commandScope(v.commandId));
-  const where: string[] = ['command_id = ?'];
-  const params: unknown[] = [v.commandId];
+  const lim = visibleWhere(visibility(a, v.commandId), 'unit_id', ['action_user_id']);
+  const where: string[] = ['command_id = ?', ...lim.where];
+  const params: unknown[] = [v.commandId, ...lim.params];
   const eq: Array<[unknown, string]> = [[v.kind, 'kind'], [v.status, 'status'], [v.matterId, 'matter_id'], [v.actionUserId, 'action_user_id'], [v.unitId, 'unit_id'], [v.priority, 'priority']];
   for (const [val, col] of eq) if (val !== undefined) { where.push(`${col} = ?`); params.push(val); }
   if (v.pending !== undefined) where.push(`id ${v.pending ? '' : 'NOT '}IN (SELECT id FROM ofc_v_correspondence_pending)`);

@@ -204,3 +204,11 @@ label.button { display: inline-block; padding: 4px 10px; border: 1px solid var(-
   .report { color: #000; background: #fff; }
   @page { size: A4; margin: 15mm; }
 }
+.mywork { max-width: 640px; }
+.mywork .card { border: 1px solid var(--line, #cfd6de); border-radius: 10px; padding: 12px 14px; margin: 12px 0; background: var(--panel, #fff); display: grid; gap: 8px; }
+.mywork .card.late { border-left: 6px solid var(--warn, #b45309); }
+.mywork h2 { margin: 0; font-size: 20px; }
+.mywork textarea, .mywork input { width: 100%; font-size: 16px; }
+.big-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.big-buttons button, .big-buttons label.button { font-size: 18px; padding: 12px 18px; min-width: 120px; text-align: center; }
+.empty.big { font-size: 18px; }

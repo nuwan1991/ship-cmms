@@ -74,3 +74,22 @@ export function DueCell({ date, overdue }: { date: unknown; overdue: unknown }) 
   if (!date) return <>—</>;
   return overdue ? <span className="chip warn">{String(date)} · {t('ofc.overdue')}</span> : <>{String(date)}</>;
 }
+
+/** People of the office (personnel register), for assigning work. Labels show rank and service number. */
+export function usePersons(commandId: string) {
+  const list = useGet<Page>(commandId ? `${OFC}/persons` : null, { commandId });
+  const items = list.data?.items ?? [];
+  const label = (r: Rec) => `${r.rank ? `${String(r.rank)} ` : ''}${String(r.name)}${r.serviceNo ? ` (${String(r.serviceNo)})` : ''}`;
+  const options = items.map((r) => ({ value: r.id, label: label(r) }));
+  const name = (id: unknown): string => {
+    if (!id) return '—';
+    const r = items.find((u) => u.id === id);
+    return r ? label(r) : String(id).slice(-8);
+  };
+  return { items, options, name, error: list.error, reload: list.reload };
+}
+
+/** The signed-in user's own person record in this office (null when they are not in the register). */
+export function useMe(commandId: string) {
+  return useGet<Rec | null>(commandId ? `${OFC}/persons/me` : null, { commandId }).data ?? null;
+}

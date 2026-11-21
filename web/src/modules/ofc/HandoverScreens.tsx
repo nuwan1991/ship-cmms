@@ -7,10 +7,10 @@ import { t } from '../../platform/i18n';
 import { can } from '../../platform/permissions';
 import { useSystem } from '../../platform/system';
 import { ErrorNotice, Modal, StatusChip } from '../../platform/ui';
-import { usePeople } from '../wrk/people';
-import { DueCell, OFC, OfficePicker, priorityOptions, show, useGet, useOffice, type Page } from './binding';
+import { DueCell, OFC, OfficePicker, priorityOptions, show, useGet, useOffice, usePersons, type Page } from './binding';
 import { parseHandoverPaste } from './paste';
 import { RecordPanel } from './RecordPanel';
+import { NewTaskModal } from './TasksScreen';
 
 export const CATEGORIES = ['responsibility', 'project', 'pending_work', 'unresolved', 'correspondence', 'equipment', 'other'] as const;
 export const ITEM_STATUS = ['open', 'in_progress', 'completed', 'not_applicable'] as const;
@@ -18,7 +18,7 @@ export const ITEM_STATUS = ['open', 'in_progress', 'completed', 'not_applicable'
 export function HandoversScreen() {
   const { tz } = useSystem();
   const office = useOffice();
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const C = office.commandId;
   const list = useGet<Page>(C ? `${OFC}/handovers` : null, { commandId: C });
   const [creating, setCreating] = useState(false);
@@ -71,7 +71,7 @@ export function HandoversScreen() {
   );
 }
 
-function itemFields(people: ReturnType<typeof usePeople>, units: Rec[], editing: boolean): FieldDef[] {
+function itemFields(people: ReturnType<typeof usePersons>, units: Rec[], editing: boolean): FieldDef[] {
   return [
     { key: 'annexRef', labelKey: 'ofc.field.annexRef', type: 'text', maxLength: 80 },
     { key: 'category', labelKey: 'ofc.field.category', type: 'select', required: true, options: CATEGORIES.map((c) => ({ value: c, label: t(`ofc.cat.${c}`) })) },
@@ -93,7 +93,7 @@ function itemFields(people: ReturnType<typeof usePeople>, units: Rec[], editing:
 export function HandoverDetailScreen() {
   const { id = '' } = useParams();
   const { tz } = useSystem();
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const packet = useGet<Rec>(`${OFC}/handovers/${id}`);
   const p = packet.data;
   const units = useGet<Page>(p ? `${OFC}/units` : null, { commandId: String(p?.commandId ?? '') });
@@ -197,12 +197,13 @@ export function HandoverDetailScreen() {
 }
 
 function ItemDetail({ id, units, onEdit, onClose, onChanged }: { id: string; units: Rec[]; onEdit(r: Rec): void; onClose(): void; onChanged(): void }) {
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const item = useGet<Rec>(`${OFC}/handover-items/${id}`);
   const [note, setNote] = useState('');
   const [status, setStatus] = useState('');
   const [error, setError] = useState<Error | null>(null);
   const [tick, setTick] = useState(0);
+  const [newTask, setNewTask] = useState(false);
   const r = item.data;
   async function act() {
     if (!r) return;
@@ -228,7 +229,7 @@ function ItemDetail({ id, units, onEdit, onClose, onChanged }: { id: string; uni
           </dl>
           {can('ofc.handover.update') ? (
             <>
-              <div className="actions"><button onClick={() => onEdit(r)}>{t('common.edit')}</button></div>
+              <div className="actions"><button onClick={() => onEdit(r)}>{t('common.edit')}</button>{can('ofc.task.assign') ? <button onClick={() => setNewTask(true)}>{t('ofc.act.make_task')}</button> : null}</div>
               <form className="comment" onSubmit={(e) => { e.preventDefault(); void act(); }}>
                 <label htmlFor="hoi-action">{t('ofc.act.record_action')}</label>
                 <textarea id="hoi-action" value={note} maxLength={4000} onChange={(e) => setNote(e.target.value)} placeholder={t('ofc.hint.action')} />
@@ -242,6 +243,7 @@ function ItemDetail({ id, units, onEdit, onClose, onChanged }: { id: string; uni
             </>
           ) : null}
           <RecordPanel type="ofc.handover_item" id={id} reloadKey={tick} />
+          {newTask ? <NewTaskModal commandId={String(r.commandId)} source={{ type: 'ofc.handover_item', id }} defaults={{ assigneePersonId: String(r.responsibleUserId ?? ''), unitId: String(r.unitId ?? '') }} onClose={() => setNewTask(false)} onCreated={() => setTick((x) => x + 1)} /> : null}
         </>
       ) : null}
     </Modal>
@@ -297,7 +299,7 @@ function PasteImport({ packetId, onClose, onDone }: { packetId: string; onClose(
 interface Report { packet: Rec; asOf: string; total: number; done: number; percentComplete: number; byStatus: Rec[]; byCategory: Rec[]; attention: Rec[] }
 
 function HandoverReport({ id, onBack }: { id: string; onBack(): void }) {
-  const people = usePeople();
+  const people = usePersons(useOffice().commandId);
   const r = useGet<Report>(`${OFC}/handovers/${id}/report`);
   const d = r.data;
   return (

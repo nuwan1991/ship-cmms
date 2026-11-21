@@ -9,6 +9,7 @@ import { nextRef } from './numbering.js';
 import { perm } from './permissions.js';
 import { ItemAction, ItemBulk, ItemCreate, ItemList, ItemUpdate, PacketCreate, PacketUpdate, parse } from './schemas.js';
 import { commandScope, recordEvent } from './service.js';
+import { visibility, visibleWhere } from './scope.js';
 import type { z } from 'zod';
 
 const P = 'ofc_handover_packet';
@@ -95,8 +96,9 @@ const ISORT: Record<string, string> = { refNo: 'ref_no', annexRef: 'annex_ref', 
 export function listItems(a: Actor, packetId: string, raw: unknown) {
   const packet = getPacket(a, packetId);
   const v = parse(ItemList, raw);
-  const where = ['packet_id = ?'];
-  const params: unknown[] = [packet.id];
+  const lim = visibleWhere(visibility(a, packet.command_id as string), 'unit_id', ['responsible_user_id']);
+  const where = ['packet_id = ?', ...lim.where];
+  const params: unknown[] = [packet.id, ...lim.params];
   for (const [val, col] of [[v.status, 'status'], [v.category, 'category'], [v.responsibleUserId, 'responsible_user_id'], [v.priority, 'priority']] as const) if (val !== undefined) { where.push(`${col} = ?`); params.push(val); }
   if (v.urgent !== undefined) { where.push('urgent = ?'); params.push(v.urgent ? 1 : 0); }
   if (v.open !== undefined) where.push(`status ${v.open ? 'NOT ' : ''}IN ${DONE}`);

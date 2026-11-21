@@ -13,7 +13,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](ofc\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link)\.(view|create|update|remove|cancel|comment)$/;
+    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person)\.(view|create|update|remove|cancel|comment|assign|reassign)$/;
     expect([...used].filter((k) => !(k in ofcLabelsEn) && !perms.test(k) && k !== 'ofc.commandId')).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {
@@ -23,6 +23,8 @@ describe('labels', () => {
       to: ['received', 'under_action', 'replied', 'filed', 'draft', 'signed', 'dispatched', 'acknowledged', 'open'],
       istatus: ['open', 'in_progress', 'completed', 'not_applicable'], pstatus: ['draft', 'signed', 'in_progress', 'completed'],
       cat: ['responsibility', 'project', 'pending_work', 'unresolved', 'correspondence', 'equipment', 'other'],
+      tstatus: ['not_started', 'assigned', 'in_progress', 'awaiting_info', 'awaiting_approval', 'on_hold', 'completed', 'closed', 'cancelled'], tview: ['active', 'overdue', 'due_soon', 'attention', 'awaiting_verification', 'done', 'all'],
+      duty: ['available', 'on_leave', 'temporary_duty', 'course', 'sick', 'transferred'], tto: ['in_progress', 'awaiting_info', 'awaiting_approval', 'on_hold'],
       ev: ['comment', 'progress', 'status', 'assign', 'target_date', 'correction', 'attachment', 'link', 'cancel', 'reopen'],
       link: ['originated_from', 'reply_to', 'relates_to', 'supersedes'], new: ['incoming', 'outgoing', 'minute', 'signal', 'other'],
       field: ['annexRef', 'category', 'subject', 'description', 'previousStatus', 'priority', 'urgent', 'targetDate', 'remarks', 'originalRef'],
