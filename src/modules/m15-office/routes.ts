@@ -22,6 +22,8 @@ import {
   approveWorkOrder, assignWorkOrder, cancelWorkOrder, closeWorkOrder, completeWorkOrder, createWorkOrder, getWorkOrderDetail, listWorkOrders, reopenWorkOrder, setWorkOrderStatus,
   updateWorkOrder, verifyWorkOrder,
 } from './workorders.js';
+import { writeXlsx, XLSX_TYPE } from '../m11-excel/index.js';
+import { dashboard, REPORTS, reportSheets, runReport } from './reports.js';
 import { bulkDemands, createDemand, listDemands, setStage, setSupplyStages, supplyStages, updateDemand } from './supply.js';
 
 export const OFC_API_PREFIX = '/api/v1/office';
@@ -206,4 +208,20 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
     return { stages: supplyStages(a, commandId) };
   });
   app.put(`${base}/settings/supply-stages`, async (req) => ({ stages: setSupplyStages(actorFromRequest(ctx, req), cmdQuery(req.query), req.body) }));
+
+  // ---- dashboard and reports
+  app.get(`${base}/dashboard`, async (req) => {
+    const d = dashboard(actorFromRequest(ctx, req), req.query);
+    return { ...d, people: d.people.map(toApi), upcoming: d.upcoming.map(toApi), recent: d.recent.map(toApi) };
+  });
+  app.get(`${base}/reports`, async () => ({ reports: REPORTS }));
+  const codeParam = (req: { params: unknown }): string => parse(z.object({ code: z.string().regex(/^[a-z_]{3,40}$/) }), req.params).code;
+  app.get(`${base}/reports/:code`, async (req) => runReport(actorFromRequest(ctx, req), codeParam(req), req.query));
+  app.get(`${base}/reports/:code/xlsx`, async (req, reply) => {
+    const a = actorFromRequest(ctx, req);
+    const r = runReport(a, codeParam(req), req.query);
+    const who = (a.principal as { displayName?: string }).displayName ?? a.principal.userId;
+    const bytes = writeXlsx(reportSheets(r, who, ''));
+    return reply.header('content-type', XLSX_TYPE).header('content-disposition', `attachment; filename="${r.code}-${r.asOf}.xlsx"`).send(Buffer.from(bytes));
+  });
 }

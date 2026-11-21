@@ -49,7 +49,7 @@ export function CorrespondenceScreen() {
   const C = office.commandId;
   const [kind, setKind] = useState('');
   const [status, setStatus] = useState('');
-  const [view, setView] = useState<'all' | 'pending' | 'overdue'>('all');
+  const [view, setView] = useState<'all' | 'pending' | 'overdue'>(() => (new URLSearchParams(window.location.search).get('view') as 'pending' | 'overdue' | null) ?? 'all');
   const [q, setQ] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');

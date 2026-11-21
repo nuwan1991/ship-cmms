@@ -18,7 +18,7 @@ Source of truth for the mechanical parts is `src/platform/modules.ts`; `test/bou
 | M12 | Monitoring, alarms, operating readings | m12-monitoring | `mon_` | /api/v1/monitoring | M01, M03 | R2 (PLC R3) |
 | M13 | Reports, readiness, notifications | m13-reports | `rpt_` | /api/v1/reports | — (views) | R1 limited |
 | M14 | Integration, deployment, backup, recovery | m14-operations | `ops_` | /api/v1/ops | — | R1 |
-| M15 | Office management: SLE (E&T) II – North (OFFICE_R1_SPEC.md) | m15-office | `ofc_` | /api/v1/office | M01, M03, M05 | R1 (office) |
+| M15 | Office management: SLE (E&T) II – North (OFFICE_R1_SPEC.md) | m15-office | `ofc_` | /api/v1/office | M01, M03, M05, M11 | R1 (office) |
 
 Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 
@@ -44,7 +44,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M08 | capability/skill/capacity lookups | — | — |
 | M09 | window/plan API | — | read models |
 | M10 | `syncOnce`, `syncStatus`, `freshness`, `provisionPeer`, `joinHub`, `exportBundle`, `importBundle`, `retryQuarantined`, event `sys.sync.applied`, `synPermission` | views `syn_v_*` for M13 and M14 | entity registry, schema versions, change log (`sys_change_log`) |
-| M11 | — | — | `ImportExportPort` registry (`ctx.importExport`), filled by M01 (`locations`), M03 (`assets`, `classifications`, `classification-map`) and M07 (`parts`) in their `register()` |
+| M11 | `writeXlsx`, `XLSX_TYPE`, types `SheetOut`, `CellValue` (D74) | — | `ImportExportPort` registry (`ctx.importExport`), filled by M01 (`locations`), M03 (`assets`, `classifications`, `classification-map`) and M07 (`parts`) in their `register()` |
 | M12 | latest-state lookup | event publisher | M03 |
 | M13 | `runReport`, `dashboard`, `fleetStatus`, `windowOf`, `refreshNotifications`, `localFreshness`, `REPORTS` | — | `<prefix>_v_*` views of M01, M02, M03, M05, M06, M07, M10 |
 | M14 | `createBackup`, `verifyBackupFile`, `restoreBackup`, `upgradeWithBackup`, `runIntegrity`, `opsStatus`, `startBackupScheduler` | — | database file, entity registry, `org_v_assignment_overlap`, `org_v_deployment_overlap`, `ast_v_position_conflicts`, `stk_v_balance`, `syn_v_health` |

@@ -20,3 +20,8 @@ export { XLS_PERMISSIONS, perm as xlsPermission } from './permissions.js';
 export type { Actor as XlsActor } from './actor.js';
 export { XLS_ENTITIES } from './entities.js';
 export { XLS_API_PREFIX } from './routes.js';
+
+/** Plain xlsx writer for other modules' downloads (M15 office reports, D74). */
+export { writeXlsx } from './xlsx.js';
+export type { SheetOut, CellValue } from './xlsx.js';
+export { XLSX_TYPE } from './tabular.js';

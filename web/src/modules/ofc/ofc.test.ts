@@ -13,7 +13,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](ofc\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings)\.(view|create|update|remove|cancel|comment|assign|reassign|record)$/;
+    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings|report)\.(view|create|update|remove|cancel|comment|assign|reassign|record)$/;
     expect([...used].filter((k) => !(k in ofcLabelsEn) && !perms.test(k) && k !== 'ofc.commandId')).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {
@@ -28,6 +28,8 @@ describe('labels', () => {
       wstatus: ['requested', 'under_review', 'approved', 'assigned', 'in_progress', 'awaiting_spares', 'awaiting_external', 'completed', 'verified', 'closed', 'cancelled'],
       wto: ['under_review', 'requested', 'in_progress', 'awaiting_spares', 'awaiting_external'], estate: ['in_store', 'in_workshop', 'at_external', 'awaiting_collection', 'returned', 'on_issue'],
       cond: ['serviceable', 'unserviceable', 'repairable', 'ber', 'unknown'], move: ['registered', 'received_for_repair', 'sent_out', 'returned_from_external', 'repair_completed', 'ready_for_collection', 'collected', 'issued', 'returned_from_issue', 'condition', 'correction'],
+      tile: ['active_tasks', 'overdue_tasks', 'attention', 'due_soon', 'awaiting_decision', 'completed_period', 'pending_corr', 'overdue_corr', 'outstanding_wo', 'overdue_wo', 'equip_repair', 'equip_collection', 'equip_overdue', 'supply_open', 'supply_overdue', 'handover_open', 'handover_overdue'],
+      report: ['daily_outstanding', 'weekly_progress', 'monthly_summary', 'overdue_tasks', 'pending_correspondence', 'handover_completion', 'equipment_pending', 'workshop_progress', 'personnel_allocation', 'supply_status'],
       ev: ['comment', 'progress', 'status', 'assign', 'target_date', 'correction', 'attachment', 'link', 'cancel', 'reopen'],
       link: ['originated_from', 'reply_to', 'relates_to', 'supersedes'], new: ['incoming', 'outgoing', 'minute', 'signal', 'other'],
       field: ['supplyRef', 'demandDate', 'item', 'partNo', 'quantity', 'unitOfIssue', 'demandingUnit', 'stage', 'stageDate', 'expectedDate', 'remarks', 'annexRef', 'category', 'subject', 'description', 'previousStatus', 'priority', 'urgent', 'targetDate', 'remarks', 'originalRef'],

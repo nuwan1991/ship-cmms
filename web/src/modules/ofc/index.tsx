@@ -10,12 +10,16 @@ import { MyWorkScreen } from './MyWorkScreen';
 import { EquipmentScreen } from './EquipmentScreen';
 import { WorkOrdersScreen } from './WorkOrdersScreen';
 import { SupplyScreen } from './SupplyScreen';
+import { DashboardScreen } from './DashboardScreen';
+import { ReportsScreen } from './ReportsScreen';
 import { ofcLabelsEn } from './labels.en';
 
 registerLabels(ofcLabelsEn);
 
 /** Office menu (SLE (E&T) II – North). Order 50–90 puts it first in the menu for office users. */
 export const ofcNav: NavItem[] = [
+  { module: 'ofc', path: '/ofc/dashboard', labelKey: 'ofc.nav.dashboard', requiredPermission: 'ofc.report.view', order: 30 },
+  { module: 'ofc', path: '/ofc/reports', labelKey: 'ofc.nav.reports', requiredPermission: 'ofc.report.view', order: 85 },
   { module: 'ofc', path: '/ofc/my-work', labelKey: 'ofc.nav.mywork', requiredPermission: 'ofc.task.view', order: 40 },
   { module: 'ofc', path: '/ofc/tasks', labelKey: 'ofc.nav.tasks', requiredPermission: 'ofc.task.view', order: 45 },
   { module: 'ofc', path: '/ofc/correspondence', labelKey: 'ofc.nav.correspondence', requiredPermission: 'ofc.correspondence.view', order: 50 },
@@ -29,6 +33,8 @@ export const ofcNav: NavItem[] = [
 ];
 
 export const ofcRoutes = [
+  { path: '/ofc/dashboard', element: <DashboardScreen /> },
+  { path: '/ofc/reports', element: <ReportsScreen /> },
   { path: '/ofc/my-work', element: <MyWorkScreen /> },
   { path: '/ofc/tasks', element: <TasksScreen /> },
   { path: '/ofc/personnel', element: <PersonnelScreen /> },

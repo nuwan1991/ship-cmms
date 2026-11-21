@@ -14,7 +14,7 @@ export function SupplyScreen() {
   const { tz } = useSystem();
   const office = useOffice();
   const C = office.commandId;
-  const [view, setView] = useState('open');
+  const [view, setView] = useState(() => new URLSearchParams(window.location.search).get('view') ?? 'open');
   const [stage, setStage] = useState('');
   const [q, setQ] = useState('');
   const list = useGet<Page & { stages: string[] }>(C ? `${OFC}/supply` : null, { commandId: C, view, stage: stage || undefined, q: q || undefined, limit: '1000' });

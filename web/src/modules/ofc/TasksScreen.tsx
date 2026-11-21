@@ -53,7 +53,9 @@ export function TasksScreen({ mineOnly = false }: { mineOnly?: boolean }) {
   const [priority, setPriority] = useState('');
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
+  const [period] = useState(() => { const u = new URLSearchParams(window.location.search); return { from: u.get('from') ?? undefined, to: u.get('to') ?? undefined }; });
   const list = useGet<Page>(C ? `${OFC}/tasks` : null, {
+    ...period,
     commandId: C, view, assigneePersonId: assignee || undefined, unitId: unitId || undefined, priority: priority || undefined, status: status || undefined,
     q: q || undefined, mine: mineOnly ? 'true' : undefined, limit: '1000',
   });

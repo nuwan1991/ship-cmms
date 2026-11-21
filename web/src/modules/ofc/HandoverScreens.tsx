@@ -303,7 +303,7 @@ function HandoverReport({ id, onBack }: { id: string; onBack(): void }) {
   const r = useGet<Report>(`${OFC}/handovers/${id}/report`);
   const d = r.data;
   return (
-    <section className="report">
+    <section className="report print-area">
       <div className="tools no-print"><button onClick={onBack}>{t('ofc.back')}</button><button className="primary" onClick={() => window.print()}>{t('ofc.act.print')}</button></div>
       <ErrorNotice error={r.error} />
       {d ? (

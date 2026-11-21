@@ -202,6 +202,9 @@ label.button { display: inline-block; padding: 4px 10px; border: 1px solid var(-
 @media print {
   .no-print, nav, .topbar { display: none !important; }
   .report { color: #000; background: #fff; }
+  .report.print-area { position: static; }
+  .report .no-print { display: none !important; }
+  .shell, .body, main { display: block !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
   @page { size: A4; margin: 15mm; }
 }
 .mywork { max-width: 640px; }
@@ -212,3 +215,11 @@ label.button { display: inline-block; padding: 4px 10px; border: 1px solid var(-
 .big-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
 .big-buttons button, .big-buttons label.button { font-size: 18px; padding: 12px 18px; min-width: 120px; text-align: center; }
 .empty.big { font-size: 18px; }
+.group-title { font-size: 15px; margin: 14px 0 4px; color: var(--muted, #667); }
+a.tile { text-decoration: none; color: inherit; }
+a.tile:hover { border-color: var(--accent, #1f4e8c); }
+.dash-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.dash-cols table { width: 100%; }
+.report-section h2 { font-size: 16px; margin: 14px 0 4px; }
+.report td.late { color: var(--warn, #b45309); font-weight: 600; }
+@media print { .report-section { break-inside: auto; } .report thead { display: table-header-group; } .report tr { break-inside: avoid; } }

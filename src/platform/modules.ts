@@ -42,7 +42,7 @@ export const MODULES: readonly ModuleManifest[] = [
   { id: 'M12', dir: 'm12-monitoring', tablePrefix: 'mon', apiPrefix: '/api/v1/monitoring', dependsOn: ['M01', 'M03'] },
   { id: 'M13', dir: 'm13-reports', tablePrefix: 'rpt', apiPrefix: '/api/v1/reports', dependsOn: [] },
   { id: 'M14', dir: 'm14-operations', tablePrefix: 'ops', apiPrefix: '/api/v1/ops', dependsOn: [] },
-  { id: 'M15', dir: 'm15-office', tablePrefix: 'ofc', apiPrefix: '/api/v1/office', dependsOn: ['M01', 'M03', 'M05'] },
+  { id: 'M15', dir: 'm15-office', tablePrefix: 'ofc', apiPrefix: '/api/v1/office', dependsOn: ['M01', 'M03', 'M05', 'M11'] },
 ];
 
 export const moduleById = (id: ModuleId): ModuleManifest => {

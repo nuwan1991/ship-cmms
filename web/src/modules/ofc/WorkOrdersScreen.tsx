@@ -45,7 +45,7 @@ export function WorkOrdersScreen() {
   const office = useOffice();
   const C = office.commandId;
   const units = useGet<Page>(C ? `${OFC}/units` : null, { commandId: C });
-  const [view, setView] = useState('outstanding');
+  const [view, setView] = useState(() => new URLSearchParams(window.location.search).get('view') ?? 'outstanding');
   const [unitId, setUnitId] = useState('');
   const [q, setQ] = useState('');
   const list = useGet<Page>(C ? `${OFC}/work-orders` : null, { commandId: C, view, unitId: unitId || undefined, q: q || undefined, limit: '1000' });
