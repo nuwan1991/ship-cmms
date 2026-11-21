@@ -58,7 +58,7 @@ describe('M15 office foundation', () => {
     expect(nextRef(w, 'ofc_task')).toBe('TSK-00001');
     expect(nextRef(w, 'ofc_task')).toBe('TSK-00002');
     expect(nextRef(w, 'ofc_corr_in')).toBe('COR-IN-00001');
-    const known = (p: string) => OFC_PERMISSIONS.includes(p) || (p.endsWith('.*') && (OFC_PERMISSIONS.some((x) => x.startsWith(p.slice(0, -1))) || ['idn.*', 'ops.*', 'wrk.*'].includes(p)));
+    const known = (p: string) => OFC_PERMISSIONS.includes(p) || ['ofc.*', 'idn.*', 'ops.*', 'wrk.*'].includes(p);
     for (const r of OFFICE_ROLES) for (const p of r.permissions) expect(known(p), `${r.code}: ${p}`).toBe(true);
     // technical staff cannot verify or cancel (spec §3)
     const tech = OFFICE_ROLES.find((r) => r.code === 'OFC_TECH')!;

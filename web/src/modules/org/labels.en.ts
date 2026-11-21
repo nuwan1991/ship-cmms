@@ -198,7 +198,7 @@ export const orgLabelsEn: Record<string, string> = {
 
   'shell.dev_banner': 'Development sign-in: every permission is granted. Production requires the identity module.',
   'shell.installation': 'Installation',
-  'shell.zone': 'Times shown in {zone}',
+  'shell.menu': 'Menu', 'shell.zone': 'Times shown in {zone}',
   'shell.uninitialized': 'This installation is not initialized yet.',
   'shell.unreachable': 'Cannot reach the local CMMS server.',
   'shell.skip': 'Skip to content',

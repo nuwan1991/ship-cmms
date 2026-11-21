@@ -23,6 +23,7 @@ import {
   updateWorkOrder, verifyWorkOrder,
 } from './workorders.js';
 import { writeXlsx, XLSX_TYPE } from '../m11-excel/index.js';
+import { importCorrespondence, importEquipment, importPersons } from './imports.js';
 import { dashboard, REPORTS, reportSheets, runReport } from './reports.js';
 import { bulkDemands, createDemand, listDemands, setStage, setSupplyStages, supplyStages, updateDemand } from './supply.js';
 
@@ -224,4 +225,9 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
     const bytes = writeXlsx(reportSheets(r, who, ''));
     return reply.header('content-type', XLSX_TYPE).header('content-disposition', `attachment; filename="${r.code}-${r.asOf}.xlsx"`).send(Buffer.from(bytes));
   });
+
+  // ---- bulk import from existing registers (preview, then commit)
+  app.post(`${base}/import/correspondence`, { bodyLimit: 16_000_000 }, async (req) => importCorrespondence(actorFromRequest(ctx, req), req.body));
+  app.post(`${base}/import/persons`, { bodyLimit: 16_000_000 }, async (req) => importPersons(actorFromRequest(ctx, req), req.body));
+  app.post(`${base}/import/equipment`, { bodyLimit: 16_000_000 }, async (req) => importEquipment(actorFromRequest(ctx, req), req.body));
 }

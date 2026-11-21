@@ -1,4 +1,13 @@
 export const ofcLabelsEn: Record<string, string> = {
+  'ofc.nav.import': 'Import existing registers', 'ofc.title.import': 'Import existing registers', 'ofc.import.what': 'What to import',
+  'ofc.import.persons': 'Personnel list', 'ofc.import.correspondence': 'Correspondence register', 'ofc.import.equipment': 'Equipment register',
+  'ofc.import.help_persons': 'Columns: Service No, Rank, Name, Appointment, Section (code or name from Office structure), Supervisor (service no. or name), Contact, Remarks. Sign-in accounts are linked afterwards on each person.',
+  'ofc.import.help_correspondence': 'Columns: Type (incoming / outgoing / minute / signal), Reference, Date, Received, Sent, From, To, Subject, Reply required (Yes/No), Reply due, Action officer (service no. or name), Section, Status, Register no, Remarks. Dates as 20/11/2026 or 2026-11-20. The register number is kept as the original reference.',
+  'ofc.import.help_equipment': 'Columns: Equipment No, Name, Make/Model, Serial, Owner, Condition (serviceable / unserviceable / repairable / ber), State (in store / in workshop / at external / awaiting collection / on issue), Location, Expected return, Since, Responsible, Remarks.',
+  'ofc.import.order': 'Import in this order: Office structure first (by hand), then the personnel list, then letters and equipment, so names and sections can be matched. Nothing is saved until you press Register.',
+  'ofc.import.summary': '{rows} rows checked: {errors} with errors, {warnings} with warnings. Fix the errors in Excel and paste again; warnings can be accepted.',
+  'ofc.import.another': 'Import another sheet',
+
   'ofc.nav.dashboard': 'Dashboard', 'ofc.nav.reports': 'Reports', 'ofc.title.dashboard': 'Office dashboard', 'ofc.title.reports': 'Reports',
   'ofc.dash.group.tasks': 'Tasks', 'ofc.dash.group.correspondence': 'Correspondence', 'ofc.dash.group.work': 'Repair, equipment and supply', 'ofc.dash.group.handover': 'Handover',
   'ofc.dash.per_person': 'Tasks per person', 'ofc.dash.upcoming': 'Upcoming deadlines (7 days)', 'ofc.dash.recent': 'Recently completed', 'ofc.dash.completed_from': 'Completed from',

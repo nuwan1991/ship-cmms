@@ -10,7 +10,7 @@ import { OFFICE_ROLES, OFFICE_SEQUENCES, ensureOfficeSequences } from './modules
 import { loadConfig } from './platform/config.js';
 import { uuidv7 } from './platform/ids.js';
 import { grantRange, rangeRemaining } from './platform/ranges.js';
-import { createRecord, type WriteContext } from './platform/records.js';
+import { createRecord, tombstoneRecord, type WriteContext } from './platform/records.js';
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { numbers: { type: 'string' } } });
 const cmd = positionals[0];
@@ -31,6 +31,10 @@ function setup(w: WriteContext, numbers: number): void {
       console.log(`Created role ${r.code} (${r.name})`);
     }
     const have = new Set((w.db.prepare('SELECT permission FROM idn_role_permission WHERE role_id = ? AND deleted_at IS NULL').all(role.id) as Array<{ permission: string }>).map((x) => x.permission));
+    // Earlier versions wrote sub-module wildcards (ofc.equipment.*) that M02 does not accept: replace them with explicit codes.
+    const bad = w.db.prepare("SELECT id, version, permission FROM idn_role_permission WHERE role_id = ? AND deleted_at IS NULL AND permission LIKE 'ofc.%.*'").all(role.id) as Array<{ id: string; version: number; permission: string }>;
+    for (const b of bad) { tombstoneRecord(w, 'idn.role_permission', b.id, b.version, 'Replaced by explicit permission codes'); have.delete(b.permission); }
+    if (bad.length) console.log(`  ${r.code}: removed ${bad.map((b) => b.permission).join(', ')}`);
     const missing = r.permissions.filter((p) => !have.has(p));
     for (const p of missing) createRecord(w, 'idn.role_permission', { role_id: role.id, permission: p });
     if (missing.length) console.log(`  ${r.code}: added ${missing.join(', ')}`);

@@ -20,11 +20,14 @@ export const OFC_PERMISSIONS: readonly string[] = [
   'ofc.report.view', 'ofc.import.run',
 ];
 
+/** `ofc.<noun>.*` written out: M02 accepts only module-wide wildcards (`ofc.*`), so roles list every code. */
+const all = (noun: string): string[] => OFC_PERMISSIONS.filter((c) => c.startsWith(`ofc.${noun}.`));
+
 /** The five R1 roles (spec §3). Software permissions only: formal approval authority is recorded separately (M02 ApprovalPort). */
 export const OFFICE_ROLES: ReadonlyArray<{ code: string; name: string; description: string; permissions: readonly string[] }> = [
   {
     code: 'OFC_ADMIN', name: 'Office system administrator', description: 'Users, roles, units, settings, import. Does not work the records (A6).',
-    permissions: ['ofc.scope.all', 'ofc.org_unit.*', 'ofc.settings.update', 'ofc.import.run', 'ofc.person.view', 'ofc.person.view_contact', 'ofc.person.create', 'ofc.person.update', 'idn.*', 'ops.*'],
+    permissions: ['ofc.scope.all', ...all('org_unit'), 'ofc.settings.update', 'ofc.import.run', 'ofc.person.view', 'ofc.person.view_contact', 'ofc.person.create', 'ofc.person.update', 'idn.*', 'ops.*'],
   },
   {
     code: 'OFC_OIC', name: 'Officer in charge', description: 'Sees all office work, assigns, verifies within delegated authority, reviews reports.',
@@ -33,16 +36,16 @@ export const OFFICE_ROLES: ReadonlyArray<{ code: string; name: string; descripti
   {
     code: 'OFC_SUPERVISOR', name: 'Section officer / supervisor', description: 'Manages own unit: registers letters, allocates and verifies work, submits reports.',
     permissions: [
-      'ofc.org_unit.view', 'ofc.link.*', 'ofc.attachment.view', 'ofc.attachment.create', 'ofc.timeline.*',
+      'ofc.org_unit.view', ...all('link'), 'ofc.attachment.view', 'ofc.attachment.create', ...all('timeline'),
       'ofc.task.view', 'ofc.task.create', 'ofc.task.update', 'ofc.task.assign', 'ofc.task.verify', 'ofc.task.cancel', 'ofc.task.reopen',
       'ofc.correspondence.view', 'ofc.correspondence.create', 'ofc.correspondence.update',
-      'ofc.handover.view', 'ofc.handover.update', 'ofc.person.view', 'ofc.person.view_contact', 'ofc.person.update', 'ofc.person.reassign', 'ofc.equipment.*',
-      'ofc.work_order.view', 'ofc.work_order.create', 'ofc.work_order.update', 'ofc.work_order.assign', 'ofc.work_order.verify', 'ofc.work_order.cancel', 'ofc.supply.*', 'ofc.report.view',
+      'ofc.handover.view', 'ofc.handover.update', 'ofc.person.view', 'ofc.person.view_contact', 'ofc.person.update', 'ofc.person.reassign', ...all('equipment'),
+      'ofc.work_order.view', 'ofc.work_order.create', 'ofc.work_order.update', 'ofc.work_order.assign', 'ofc.work_order.verify', 'ofc.work_order.cancel', ...all('supply'), 'ofc.report.view',
     ],
   },
   {
     code: 'OFC_TECH', name: 'Technical staff', description: 'Own tasks and work orders: progress, observations, photos, completion.',
-    permissions: ['ofc.org_unit.view', 'ofc.link.view', 'ofc.attachment.view', 'ofc.attachment.create', 'ofc.timeline.*', 'ofc.task.view', 'ofc.task.update', 'ofc.task.create', 'ofc.handover.view', 'ofc.person.view', 'ofc.equipment.view', 'ofc.equipment.record', 'ofc.work_order.view', 'ofc.work_order.update'],
+    permissions: ['ofc.org_unit.view', 'ofc.link.view', 'ofc.attachment.view', 'ofc.attachment.create', ...all('timeline'), 'ofc.task.view', 'ofc.task.update', 'ofc.task.create', 'ofc.handover.view', 'ofc.person.view', 'ofc.equipment.view', 'ofc.equipment.record', 'ofc.work_order.view', 'ofc.work_order.update'],
   },
   {
     code: 'OFC_READONLY', name: 'Read-only user', description: 'Views authorised records and reports.',

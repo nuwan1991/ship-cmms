@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import { NAV, ROUTES } from './modules';
 import { Account } from './platform/Account';
@@ -13,6 +14,8 @@ function Shell() {
   const { info, tz, error } = useSystem();
   const { state, me } = useAuth();
   const items = visibleNav(NAV, can);
+  /** Phones: the menu folds away behind a button so the screen shows the work first. */
+  const [menuOpen, setMenuOpen] = useState(false);
   const first = items[0]?.path;
   const lease = me && !me.authority.hub ? me.authority : null;
 
@@ -43,7 +46,8 @@ function Shell() {
         <Login />
       ) : (
         <div className="body">
-          <nav aria-label="Main">
+          <button type="button" className="menu-toggle" aria-expanded={menuOpen} aria-controls="main-nav" onClick={() => setMenuOpen((x) => !x)}>☰ {t('shell.menu')}</button>
+          <nav id="main-nav" aria-label="Main" className={menuOpen ? 'open' : ''} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>
             {groupByModule(items).map((g) => (
               <section key={g.module}>
                 <h3>{t(`nav.group.${g.module}`)}</h3>

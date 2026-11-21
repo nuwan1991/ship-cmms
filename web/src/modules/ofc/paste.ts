@@ -93,3 +93,46 @@ export function parseSupplyPaste(text: string, map: ColumnMap = SUPPLY_COLUMNS):
   });
   return { headings: head.map((h, i) => ({ heading: h, field: fields[i] ?? null })), rows };
 }
+
+/** Generic paste: headings matched through a column map; booleans, numbers and dates normalised by field type. */
+export function parseWithMap(text: string, map: ColumnMap, types: Record<string, 'bool' | 'date' | 'lower'> = {}): { headings: Array<{ heading: string; field: string | null }>; rows: Array<Record<string, unknown>> } {
+  const [head, ...body] = splitRows(text);
+  if (!head) return { headings: [], rows: [] };
+  const fields = head.map((h) => map[norm(h)] ?? null);
+  const rows = body.map((cells) => {
+    const r: Record<string, unknown> = {};
+    fields.forEach((f, i) => {
+      const v = cells[i]?.trim() ?? '';
+      if (!f || v === '') return;
+      const ty = types[f];
+      r[f] = ty === 'bool' ? /^(y|yes|true|1|required)$/i.test(v) : ty === 'date' ? toIsoDate(v) : ty === 'lower' ? v.toLowerCase().replace(/[\s-]+/g, '_') : v;
+    });
+    return r;
+  });
+  return { headings: head.map((h, i) => ({ heading: h, field: fields[i] ?? null })), rows };
+}
+
+export const IMPORTS = {
+  persons: {
+    map: { serviceno: 'serviceNo', officialno: 'serviceNo', no: 'serviceNo', number: 'serviceNo', rank: 'rank', designation: 'rank', rankdesignation: 'rank', name: 'name', fullname: 'name', appointment: 'appointment',
+      section: 'unit', workshop: 'unit', unit: 'unit', sectionworkshop: 'unit', supervisor: 'supervisor', contact: 'contact', phone: 'contact', mobile: 'contact', remarks: 'remarks' } as ColumnMap,
+    types: {} as Record<string, 'bool' | 'date' | 'lower'>,
+    example: 'Service No\tRank\tName\tAppointment\tSection\tSupervisor\tContact',
+  },
+  correspondence: {
+    map: { type: 'kind', kind: 'kind', inout: 'kind', reference: 'officialRef', ref: 'officialRef', refno: 'officialRef', letterref: 'officialRef', officialref: 'officialRef', fileref: 'fileRef', fileno: 'fileRef',
+      date: 'letterDate', letterdate: 'letterDate', datereceived: 'receivedDate', received: 'receivedDate', receiveddate: 'receivedDate', datesent: 'sentDate', sent: 'sentDate', dispatched: 'sentDate',
+      from: 'originator', originator: 'originator', to: 'recipients', recipient: 'recipients', recipients: 'recipients', subject: 'subject', classification: 'classification', security: 'classification',
+      priority: 'priority', replyrequired: 'replyRequired', reply: 'replyRequired', replydue: 'replyDue', duedate: 'replyDue', actionofficer: 'actionOfficer', action: 'actionOfficer', actionby: 'actionOfficer',
+      section: 'unit', workshop: 'unit', status: 'status', registerno: 'originalRef', serialno: 'originalRef', sno: 'originalRef', regno: 'originalRef', remarks: 'remarks' } as ColumnMap,
+    types: { replyRequired: 'bool', letterDate: 'date', receivedDate: 'date', sentDate: 'date', replyDue: 'date', kind: 'lower', classification: 'lower', priority: 'lower', status: 'lower' } as Record<string, 'bool' | 'date' | 'lower'>,
+    example: 'Type\tReference\tDate\tReceived\tFrom\tSubject\tReply due\tAction officer\tRegister no',
+  },
+  equipment: {
+    map: { equipmentno: 'equipNo', equipno: 'equipNo', idno: 'equipNo', id: 'equipNo', name: 'name', equipment: 'name', description: 'name', makemodel: 'makeModel', make: 'makeModel', model: 'makeModel',
+      serial: 'serialNo', serialno: 'serialNo', owner: 'owningUnit', owningunit: 'owningUnit', unit: 'owningUnit', condition: 'condition', state: 'state', status: 'state', location: 'locationText', where: 'locationText',
+      custodian: 'locationText', expectedreturn: 'expectedReturn', returndate: 'expectedReturn', since: 'sinceDate', date: 'sinceDate', datereceived: 'sinceDate', responsible: 'responsible', remarks: 'remarks' } as ColumnMap,
+    types: { expectedReturn: 'date', sinceDate: 'date', condition: 'lower', state: 'lower' } as Record<string, 'bool' | 'date' | 'lower'>,
+    example: 'Equipment No\tName\tMake/Model\tSerial\tOwner\tCondition\tState\tLocation\tExpected return\tSince',
+  },
+};
