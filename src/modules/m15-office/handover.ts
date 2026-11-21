@@ -103,7 +103,7 @@ export function listItems(a: Actor, packetId: string, raw: unknown) {
   const today = todayLocal();
   if (v.overdue) { where.push(`status NOT IN ${DONE} AND target_date < ?`); params.push(today); }
   const { rows, total } = pageOf(a.wctx.db, I, where, params, v, ['ref_no', 'annex_ref', 'subject', 'description', 'remarks', 'latest_action', 'original_ref'], ISORT, 'COALESCE(annex_ref, ref_no)');
-  return { total, items: rows.map((r) => ({ ...r, overdue: !['completed', 'not_applicable'].includes(r.status as string) && !!r.target_date && (r.target_date as string) < today })) };
+  return { total, items: rows.map((r) => ({ ...r, overdue: !['completed', 'not_applicable'].includes(r.status as string) && !!r.target_date && (r.target_date as string) < today }) as Row) };
 }
 
 /**

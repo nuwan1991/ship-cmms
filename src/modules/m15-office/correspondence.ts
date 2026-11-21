@@ -177,7 +177,7 @@ export function listCorrespondence(a: Actor, raw: unknown) {
     total,
     items: rows.map((r) => {
       const pending = pendingIds.has(r.id as string);
-      return { ...maskRow(a, r), pending, overdue: pending && !!r.reply_due && (r.reply_due as string) < today };
+      return { ...maskRow(a, r), pending, overdue: pending && !!r.reply_due && (r.reply_due as string) < today } as Row;
     }),
   };
 }
