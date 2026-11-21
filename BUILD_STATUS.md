@@ -19,10 +19,11 @@ Updated by each module chat before it stops. Keep rows to one line.
 | M12 | Monitoring | R2 | not started | |
 | M13 | Reports, readiness, notifications | R1 | **done** | Fleet status dashboard and 4 fleet reports (status history, availability, sea deployments, defects by category), category filters (D68); 6 reports (backlog, pending reviews, maintenance due, stock below minimum, recurring faults, sync health), dashboard, CSV, "data as of" on every report, in-app notifications with self-clearing rules; reads views only (tested); web overview/reports/notifications. Readiness and cost reports are R2 |
 | M14 | Deployment, backup, recovery | R1 | **done** | consistent backups with manifest and SHA-256, verify, scheduled backups with pruning, backup before every upgrade, restore (stopped application, safety copy), integrity query set, system health, compiled production run, web app served by the same process, `npm run ops` installer; web health/backups/data checks; see OPERATIONS.md |
+| M15 | Office management (SLE (E&T) II – North) | R1 (office) | **in progress, Day 1 done** | Spec OFFICE_R1_SPEC.md; D71. Day 1: office unit tree (department > section optional > workshop > subsection, verify rule per unit), record links shown both ways, attachments (one copy per content hash, restricted files need `ofc.attachment.view_restricted`), append-only timeline and comments, 9 reference sequences, 5 office roles (`npm run office -- setup`). Next: Day 2 correspondence and handover |
 
 ## Verification
 
-`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M07 and M10–M14). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
+`npm run verify` → typecheck, `check:boundaries`, server tests (M00–M07, M10–M15). `npm run web:install` once, then `npm run verify:web` → web typecheck, tests, production build. Run `npm ci` first on a clean checkout.
 
 Demo: `npm run init-installation -- --kind hub --code HQ --name "Fleet HQ"`, `npm run seed:demo-org`, then `CMMS_DEV_AUTH=1 npm run dev` and `npm run web:dev` (port 5173, proxies `/api` to 8080).
 

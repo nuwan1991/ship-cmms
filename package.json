@@ -30,6 +30,7 @@
     "store": "tsx src/modules/m07-stores/store-cli.ts",
     "sync": "tsx src/sync-cli.ts",
     "ops": "tsx src/ops-cli.ts",
+    "office": "tsx src/office-cli.ts",
     "build:server": "tsc -p tsconfig.build.json && node tools/copy-sql.mjs",
     "start": "node dist/main.js",
     "create-admin": "tsx src/modules/m02-identity/bootstrap-cli.ts",

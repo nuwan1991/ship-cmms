@@ -18,6 +18,7 @@ Source of truth for the mechanical parts is `src/platform/modules.ts`; `test/bou
 | M12 | Monitoring, alarms, operating readings | m12-monitoring | `mon_` | /api/v1/monitoring | M01, M03 | R2 (PLC R3) |
 | M13 | Reports, readiness, notifications | m13-reports | `rpt_` | /api/v1/reports | — (views) | R1 limited |
 | M14 | Integration, deployment, backup, recovery | m14-operations | `ops_` | /api/v1/ops | — | R1 |
+| M15 | Office management: SLE (E&T) II – North (OFFICE_R1_SPEC.md) | m15-office | `ofc_` | /api/v1/office | M01, M03, M05 | R1 (office) |
 
 Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 
@@ -47,6 +48,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M12 | latest-state lookup | event publisher | M03 |
 | M13 | `runReport`, `dashboard`, `fleetStatus`, `windowOf`, `refreshNotifications`, `localFreshness`, `REPORTS` | — | `<prefix>_v_*` views of M01, M02, M03, M05, M06, M07, M10 |
 | M14 | `createBackup`, `verifyBackupFile`, `restoreBackup`, `upgradeWithBackup`, `runIntegrity`, `opsStatus`, `startBackupScheduler` | — | database file, entity registry, `org_v_assignment_overlap`, `org_v_deployment_overlap`, `ast_v_position_conflicts`, `stk_v_balance`, `syn_v_health` |
+| M15 | `OFC_PERMISSIONS`, `OFFICE_ROLES`, `ofcPermission`, `OFC_ENTITIES`, `OFFICE_SEQUENCES`, `ensureOfficeSequences`, `grantOfficeRanges`, `getUnit`, `unitTree`, `unitAndDescendants`, `linksOf`, `attachmentsOf`, `timelineOf` | entity registrations (`ofc.*`) | M01 `resolveParty`, Authorizer |
 
 ## API conventions per module
 

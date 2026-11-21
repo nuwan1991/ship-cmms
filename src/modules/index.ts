@@ -12,6 +12,7 @@ import { register as m10 } from './m10-sync/index.js';
 import { register as m11 } from './m11-excel/index.js';
 import { register as m13 } from './m13-reports/index.js';
 import { register as m14 } from './m14-operations/index.js';
+import { register as m15 } from './m15-office/index.js';
 
 /**
  * Composition root for modules. Each built module adds ONE line here:
@@ -38,4 +39,5 @@ export const moduleRegistrations: readonly ModuleRegistration[] = [
   { id: 'M11', register: m11 },
   { id: 'M13', register: m13 },
   { id: 'M14', register: m14 },
+  { id: 'M15', register: m15 },
 ];

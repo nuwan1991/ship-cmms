@@ -1,0 +1,10 @@
+import type { EntityDef } from '../../platform/entity-registry.js';
+
+/** Office records belong to the installation that holds the office (A9); timeline entries are append-only events. */
+export const OFC_ENTITIES: readonly EntityDef[] = [
+  { type: 'ofc.org_unit', module: 'M15', table: 'ofc_org_unit', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.link', module: 'M15', table: 'ofc_link', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.attachment', module: 'M15', table: 'ofc_attachment', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.attachment_link', module: 'M15', table: 'ofc_attachment_link', recordClass: 'owner_mutable', requires: ['ofc.attachment'], distribution: 'record' },
+  { type: 'ofc.record_event', module: 'M15', table: 'ofc_record_event', recordClass: 'event', distribution: 'record' },
+];
