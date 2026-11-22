@@ -13,7 +13,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](ofc\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings|report|import)\.(run|view|create|update|remove|cancel|comment|assign|reassign|record)$/;
+    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings|report|import)\.(run|view|create|update|remove|cancel|comment|assign|reassign|record|approve)$/;
     expect([...used].filter((k) => !(k in ofcLabelsEn) && !perms.test(k) && k !== 'ofc.commandId')).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {
@@ -51,5 +51,22 @@ describe('paste import', () => {
     expect(splitRows('a,"b, c",d\n1,"say ""hi""",3')).toEqual([['a', 'b, c', 'd'], ['1', 'say "hi"', '3']]);
     expect(toIsoDate('5.1.2026')).toBe('2026-01-05');
     expect(toIsoDate('Jan 5')).toBe('Jan 5');
+  });
+});
+
+describe('work order assignment', () => {
+  it('offers only the staff of the chosen workshop (and units under it), keeping people already on the job', async () => {
+    const { staffOfUnit } = await import('./WorkOrdersScreen');
+    const u = (id: string, parentId: string | null) => ({ id, version: 1, updatedAt: '', parentId });
+    const p = (id: string, unitId: string | null) => ({ id, version: 1, updatedAt: '', name: id.toUpperCase(), unitId });
+    const units = [u('sec', null), u('pabx', 'sec'), u('radar', 'sec'), u('sub', 'pabx')];
+    const people = [p('a', 'pabx'), p('b', 'radar'), p('c', 'sub'), p('d', null)];
+    expect(staffOfUnit(people, units, 'pabx', []).map((o) => o.value)).toEqual(['a', 'c']);
+    expect(staffOfUnit(people, units, 'radar', ['a']).map((o) => o.value)).toEqual(['a', 'b']);
+    expect(staffOfUnit(people, units, 'sec', []).map((o) => o.value)).toEqual(['a', 'b', 'c']);
+    expect(staffOfUnit(people, units, '', []).map((o) => o.value)).toEqual(['a', 'b', 'c', 'd']);
+    const all = staffOfUnit(people, units, 'pabx', [], true);
+    expect(all.map((o) => o.value)).toEqual(['a', 'b', 'c', 'd']);
+    expect(all.map((o) => o.label)).toEqual(['A', 'B – —', 'C', 'D – —']);
   });
 });

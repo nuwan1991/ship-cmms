@@ -1,5 +1,19 @@
 # OFFICE RELEASE NOTES: SLE (E&T) II – North
 
+## Version 1.1, 22 Nov 2026
+
+Changes made while setting up the office, on top of Version 1.0.
+
+| Area | Change |
+|---|---|
+| Sidebar | Shows only what the user's role allows (as before). New: **« Hide menu** folds it to a ☰ strip; each group folds, and only the current page's group opens; the sidebar scrolls on its own. Remembered per browser. Phones unchanged |
+| Work orders: assigning staff | Supervisor and crew lists show only the staff of the chosen workshop (and units under it), plus anyone already on the work order |
+| Work orders: borrowed staff | The server enforces the same rule. Staff from another workshop can be added by whoever assigns the work only with a reason (**Include staff from other workshops**); the reason is kept in the history. The work order lists borrowed staff separately under **From other workshops** |
+| Structure | The in-charge field reads **Officer In-charge** for departments and sections and **S/S In-charge (Senior Sailor)** for workshops |
+| Parts and stores | **New stock location** can now be given a workshop from Organization → Workshops, not only a ship |
+
+Tests: 357 server and 54 web tests pass (`test/modules/ofc-day4.test.ts` now covers borrowed staff).
+
 ## Version 1.0 (Release 1), 22 Nov 2026
 
 Release 1 is complete against OFFICE_R1_SPEC.md. The 12 acceptance criteria of the requirement (§11) are run automatically in `test/modules/ofc-acceptance.test.ts`, through the API with real sign-ins and the five office roles. They are **not yet signed off by the office**: that is the checklist in OFFICE_GUIDE.md §7.

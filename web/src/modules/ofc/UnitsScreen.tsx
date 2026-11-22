@@ -12,6 +12,9 @@ import { OFC, OfficePicker, useGet, useOffice, type Page } from './binding';
 const PARENT: Record<string, string[]> = { department: [], section: ['department'], workshop: ['department', 'section'], subsection: ['workshop'] };
 const LEVELS = ['department', 'section', 'workshop', 'subsection'];
 
+/** Departments and sections are led by an officer; workshops and their subsections by a senior sailor (S/S). */
+export const headLabelKey = (level: string): string => (level === 'workshop' || level === 'subsection' ? 'ofc.field.head_ss' : 'ofc.field.head_officer');
+
 export function UnitsScreen() {
   const { tz } = useSystem();
   const office = useOffice();
@@ -30,7 +33,7 @@ export function UnitsScreen() {
     },
     { key: 'code', labelKey: 'ofc.field.code', type: 'text', required: true, maxLength: 40 },
     { key: 'name', labelKey: 'ofc.field.name', type: 'text', required: true, maxLength: 160 },
-    { key: 'headUserId', labelKey: 'ofc.field.head', type: 'select', options: people.options },
+    { key: 'headUserId', labelKey: 'ofc.field.head', type: 'select', options: people.options, labelFor: (v) => t(headLabelKey(String(v.level || (editing as Rec | null)?.level || ''))) },
     { key: 'deputyUserId', labelKey: 'ofc.field.deputy', type: 'select', options: people.options, hintKey: 'ofc.hint.deputy' },
     { key: 'verifyRule', labelKey: 'ofc.field.verifyRule', type: 'select', options: ['in_charge', 'officer_required'].map((v) => ({ value: v, label: t(`ofc.verify.${v}`) })) },
     { key: 'sortOrder', labelKey: 'ofc.field.sortOrder', type: 'number' },
@@ -58,7 +61,7 @@ export function UnitsScreen() {
               <tr key={u.id}>
                 <td><span className="indent" style={{ width: `${Number(u.depth) * 20}px` }} />{String(u.code)} – {String(u.name)}</td>
                 <td>{t(`ofc.level.${String(u.level)}`)}</td>
-                <td>{people.name(u.headUserId)}</td><td>{people.name(u.deputyUserId)}</td>
+                <td>{u.headUserId ? <><span className="muted">{t(headLabelKey(String(u.level)) + '_short')}:</span> {people.name(u.headUserId)}</> : '—'}</td><td>{people.name(u.deputyUserId)}</td>
                 <td>{t(`ofc.verify.${String(u.verifyRule)}`)}</td>
                 <td><StatusChip value={String(u.status)} labelPrefix="ofc.ustatus" /></td>
                 <td className="actions-col">{can('ofc.org_unit.update') ? <button onClick={() => setEditing(u)}>{t('common.edit')}</button> : null}</td>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter, Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { NAV, ROUTES } from './modules';
 import { Account } from './platform/Account';
 import { t } from './platform/i18n';
@@ -10,6 +10,30 @@ import { AuthProvider, useAuth } from './platform/session';
 import { SystemProvider, useSystem } from './platform/system';
 import { toLocalDisplay } from './platform/time';
 
+/** Per-browser layout preference; storage can be unavailable (private window), so failures are ignored. */
+function stored<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : (JSON.parse(v) as T); } catch { return fallback; }
+}
+function store(key: string, value: unknown): void {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* not remembered */ }
+}
+
+/** Desktop: the menu can be hidden to a thin strip, and each group folds; only the current page's group starts open. */
+function useMenuLayout(groups: readonly string[], currentGroup: string | undefined) {
+  const [hidden, setHidden] = useState(() => stored('cmms.nav.hidden', false));
+  const [open, setOpen] = useState<string[]>(() => stored('cmms.nav.open', [] as string[]));
+  // Arriving on a page opens its group (it can still be folded afterwards).
+  useEffect(() => { if (currentGroup) setOpen((cur) => (cur.includes(currentGroup) ? cur : [...cur, currentGroup])); }, [currentGroup]);
+  const isOpen = (g: string) => groups.length === 1 || open.includes(g);
+  const toggleGroup = (g: string) => setOpen((cur) => {
+    const next = isOpen(g) ? cur.filter((x) => x !== g) : [...cur, g];
+    store('cmms.nav.open', next);
+    return next;
+  });
+  const toggleHidden = () => setHidden((h) => { store('cmms.nav.hidden', !h); return !h; });
+  return { hidden, toggleHidden, isOpen, toggleGroup };
+}
+
 function Shell() {
   const { info, tz, error } = useSystem();
   const { state, me } = useAuth();
@@ -18,6 +42,10 @@ function Shell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const first = items[0]?.path;
   const lease = me && !me.authority.hub ? me.authority : null;
+  const groups = groupByModule(items);
+  const { pathname } = useLocation();
+  const currentGroup = items.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`))?.module;
+  const layout = useMenuLayout(groups.map((g) => g.module), currentGroup);
 
   return (
     <div className="shell">
@@ -45,19 +73,30 @@ function Shell() {
       ) : state === 'anonymous' ? (
         <Login />
       ) : (
-        <div className="body">
+        <div className={`body${layout.hidden ? ' nav-hidden' : ''}`}>
           <button type="button" className="menu-toggle" aria-expanded={menuOpen} aria-controls="main-nav" onClick={() => setMenuOpen((x) => !x)}>☰ {t('shell.menu')}</button>
+          {layout.hidden ? (
+            <button type="button" className="nav-rail" title={t('shell.show_menu')} aria-label={t('shell.show_menu')} aria-controls="main-nav" aria-expanded={false} onClick={layout.toggleHidden}>☰</button>
+          ) : null}
           <nav id="main-nav" aria-label="Main" className={menuOpen ? 'open' : ''} onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setMenuOpen(false); }}>
-            {groupByModule(items).map((g) => (
-              <section key={g.module}>
-                <h3>{t(`nav.group.${g.module}`)}</h3>
-                <ul>
-                  {g.items.map((i) => (
-                    <li key={i.path}><NavLink to={i.path}>{t(i.labelKey)}</NavLink></li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+            <button type="button" className="nav-hide" title={t('shell.hide_menu')} aria-label={t('shell.hide_menu')} onClick={layout.toggleHidden}>«</button>
+            {groups.map((g) => {
+              const open = layout.isOpen(g.module);
+              return (
+                <section key={g.module}>
+                  <h3>
+                    <button type="button" className="nav-group" aria-expanded={open} aria-controls={`nav-${g.module}`} onClick={() => layout.toggleGroup(g.module)}>
+                      <span aria-hidden="true">{open ? '▾' : '▸'}</span> {t(`nav.group.${g.module}`)}
+                    </button>
+                  </h3>
+                  <ul id={`nav-${g.module}`} hidden={!open}>
+                    {g.items.map((i) => (
+                      <li key={i.path}><NavLink to={i.path}>{t(i.labelKey)}</NavLink></li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
           </nav>
           <main id="main" tabIndex={-1}>
             <Routes>

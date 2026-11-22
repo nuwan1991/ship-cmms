@@ -29,21 +29,31 @@ export const partConfig: StkConfig = {
 };
 
 /** Stock locations: a store, locker or workshop shelf at a ship, workshop or the fleet level. */
+/** Ships first, then workshops, each labelled so the two lists cannot be confused. */
+const sites = (refs: Record<string, Array<{ value: string; label: string }> | undefined>) => [
+  ...(refs.ships ?? []).map((o) => ({ value: o.value, label: `${t('stk.site.ship')}: ${o.label}` })),
+  ...(refs.workshops ?? []).map((o) => ({ value: o.value, label: `${t('stk.site.workshop')}: ${o.label}` })),
+];
+
 export const locationConfig: StkConfig = {
   noun: 'location', collection: 'locations', titleKey: 'stk.title.locations', newKey: 'stk.new.location', hubOnly: false, searchable: true,
   rowName: (r: Rec) => `${String(r.code)} – ${String(r.name)}`,
-  refs: { ships: { apiBase: ORG, collection: 'ships', label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` } },
+  refs: {
+    ships: { apiBase: ORG, collection: 'ships', label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` },
+    // Workshop stores (spares held by a shore workshop) belong to a workshop from Organization > Workshops; the server accepts either.
+    workshops: { apiBase: ORG, collection: 'workshops', label: (r: Rec) => `${String(r.code)} – ${String(r.name)}` },
+  },
   columns: [
     { key: 'code', labelKey: 'stk.field.code' }, { key: 'name', labelKey: 'stk.field.name' },
     { key: 'kind', labelKey: 'stk.field.kind', render: (r) => t(`stk.lkind.${String(r.kind)}`) },
-    { key: 'homeScopeId', labelKey: 'stk.field.site', render: (r, _tz, refs) => refs.ships?.find((o) => o.value === r.homeScopeId)?.label ?? (r.homeScopeId ? String(r.homeScopeId) : t('stk.site.fleet')) },
+    { key: 'homeScopeId', labelKey: 'stk.field.site', render: (r, _tz, refs) => sites(refs).find((o) => o.value === r.homeScopeId)?.label ?? (r.homeScopeId ? String(r.homeScopeId) : t('stk.site.fleet')) },
     cStatus,
   ],
   fields: (refs) => [
     { key: 'code', labelKey: 'stk.field.code', type: 'text', required: true, createOnly: true, maxLength: 40 },
     { key: 'name', labelKey: 'stk.field.name', type: 'text', required: true, maxLength: 160 },
     { key: 'kind', labelKey: 'stk.field.kind', type: 'select', options: ['store', 'locker', 'workshop', 'other'].map((k) => opt(k, `stk.lkind.${k}`)) },
-    { key: 'siteId', labelKey: 'stk.field.site', type: 'select', createOnly: true, hintKey: 'stk.hint.site', options: refs.ships ?? [] },
+    { key: 'siteId', labelKey: 'stk.field.site', type: 'select', createOnly: true, hintKey: 'stk.hint.site', options: sites(refs) },
     { key: 'status', labelKey: 'stk.field.status', type: 'select', options: [opt('active', 'status.active'), opt('inactive', 'status.inactive')] },
   ],
   defaults: { kind: 'store', status: 'active' },

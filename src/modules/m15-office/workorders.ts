@@ -9,6 +9,7 @@ import { addDays, commandScopeOf, holds, mustGet, pageOf, todayLocal, updateWith
 import { nextRef } from './numbering.js';
 import { perm } from './permissions.js';
 import { parse } from './schemas.js';
+import { unitAndDescendants } from './queries.js';
 import { assertVisible, visibility, visibleWhere } from './scope.js';
 import { commandScope, recordEvent } from './service.js';
 import { checkVerifier, myPersonId } from './tasks.js';
@@ -36,7 +37,7 @@ const woFields = {
 };
 export const WoCreate = z.strictObject({ commandId: z.uuid().optional(), ...woFields, title: woFields.title.optional(), sourceLetterId: z.uuid().optional(), sourceTaskId: z.uuid().optional() });
 export const WoUpdate = z.strictObject({ expectedVersion: Version, ...woFields, title: woFields.title.optional(), actionsTaken: Text(8000), delayReason: Text(1000), reason: Text(500) });
-export const WoAssign = z.strictObject({ expectedVersion: Version, unitId: z.uuid().optional(), supervisorPersonId: z.uuid().nullable().optional(), crew: z.array(z.uuid()).max(30).optional(), reason: Text(500) });
+export const WoAssign = z.strictObject({ expectedVersion: Version, unitId: z.uuid().optional(), supervisorPersonId: z.uuid().nullable().optional(), crew: z.array(z.uuid()).max(30).optional(), reason: Text(500), outsideReason: Text(500) });
 export const WoStatus = z.strictObject({ expectedVersion: Version, status: z.enum(['requested', 'under_review', 'assigned', 'in_progress', 'awaiting_spares', 'awaiting_external']), note: Text(2000), externalAgency: Text(200), delayReason: Text(1000) });
 export const WoApprove = z.strictObject({ expectedVersion: Version, approvalRef: Text(120), note: Text(2000) });
 export const WoComplete = z.strictObject({ expectedVersion: Version, completionDetails: z.string().trim().min(1).max(8000), actionsTaken: Text(8000), delayReason: Text(1000) });
@@ -154,6 +155,22 @@ export function approveWorkOrder(a: Actor, id: string, input: unknown): Row {
   return updateWithHistory(a, 'ofc.work_order', r, { expectedVersion: v.expectedVersion, status: 'approved', approvedBy: a.principal.userId, approvedAt: todayLocal(), approvalRef: v.approvalRef ?? null, reason: v.note ?? v.approvalRef ?? null });
 }
 
+/**
+ * Staff being newly put on the work order who are not in its workshop (or a unit below it), as display names.
+ * People already on the work order may stay, so changing the workshop or trimming the crew never fails on them.
+ */
+function outsideStaff(a: Actor, r: Row, unitId: string, ids: Array<string | null | undefined>): string[] {
+  const already = new Set([...crewOf(r), r.supervisor_person_id as string | null].filter(Boolean));
+  const inUnit = new Set(unitAndDescendants(a.wctx.db, unitId));
+  const out: string[] = [];
+  for (const id of new Set(ids)) {
+    if (!id || already.has(id)) continue;
+    const p = a.wctx.db.prepare('SELECT unit_id, rank, name, service_no FROM ofc_person WHERE id = ?').get(id) as Row | undefined;
+    if (p && !(p.unit_id && inUnit.has(p.unit_id as string))) out.push(`${p.rank ? `${String(p.rank)} ` : ''}${String(p.name)}${p.service_no ? ` (${String(p.service_no)})` : ''}`);
+  }
+  return out;
+}
+
 export function assignWorkOrder(a: Actor, id: string, input: unknown): Row {
   const v = parse(WoAssign, input);
   const r = getVisible(a, id);
@@ -165,14 +182,18 @@ export function assignWorkOrder(a: Actor, id: string, input: unknown): Row {
   const unitId = v.unitId ?? (r.unit_id as string | null);
   if (!unitId) throw new AppError('VALIDATION_FAILED', 'Choose the section or workshop');
   const crew = v.crew ?? crewOf(r);
+  const outside = outsideStaff(a, r, unitId, [v.supervisorPersonId, ...(v.crew ?? [])]);
+  // Borrowing staff from another workshop is allowed to whoever assigns the work, but always with a reason kept in the history.
+  if (outside.length && !v.outsideReason) throw new AppError('VALIDATION_FAILED', `Not in the chosen workshop: ${outside.join(', ')}. Give the reason for adding staff from another workshop`);
+  const why = [v.reason, outside.length ? `From another workshop (${outside.join(', ')}): ${v.outsideReason}` : null].filter(Boolean).join(' · ') || null;
   const changedPeople = r.status !== 'approved' && (v.crew !== undefined || v.supervisorPersonId !== undefined || (v.unitId && v.unitId !== r.unit_id));
   if (changedPeople && !v.reason) throw new AppError('VALIDATION_FAILED', 'Give the reason for reassigning the work');
   return a.wctx.db.transaction(() => {
     const next = updateWithHistory(a, 'ofc.work_order', r, {
       expectedVersion: v.expectedVersion, unitId, ...(v.supervisorPersonId !== undefined ? { supervisorPersonId: v.supervisorPersonId } : {}), crewJson: JSON.stringify([...new Set(crew)]),
-      status: r.status === 'approved' ? 'assigned' : (r.status as string), reason: v.reason ?? null,
+      status: r.status === 'approved' ? 'assigned' : (r.status as string), reason: why,
     });
-    if (v.crew) recordEvent(a, { type: 'ofc.work_order', id }, commandScopeOf(r), { kind: 'assign', field: 'crew', from: crewOf(r).length, to: crew.length, note: v.reason ?? null });
+    if (v.crew) recordEvent(a, { type: 'ofc.work_order', id }, commandScopeOf(r), { kind: 'assign', field: 'crew', from: crewOf(r).length, to: crew.length, note: why });
     return next;
   })();
 }

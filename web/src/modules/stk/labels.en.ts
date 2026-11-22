@@ -18,7 +18,7 @@ export const stkLabelsEn: Record<string, string> = {
   'stk.field.workOrder': 'Work order number', 'stk.field.usedFor': 'Used for (if no work order)', 'stk.field.note': 'Note', 'stk.field.onHand': 'On hand',
   'stk.field.reserved': 'Reserved', 'stk.field.available': 'Available', 'stk.field.min': 'Minimum', 'stk.field.number': 'Number', 'stk.field.from': 'From', 'stk.field.to': 'To',
   'stk.field.lines': 'Parts', 'stk.field.dispatchedAt': 'Dispatched',
-  'stk.hint.unit': 'For example each, m, kg, l, set.', 'stk.hint.site': 'Leave empty for a fleet or hub store.', 'stk.hint.quantity': 'Up to 3 decimal places.',
+  'stk.hint.unit': 'For example each, m, kg, l, set.', 'stk.hint.site': 'Choose the ship or workshop that holds this store. Leave empty for a fleet or hub store.', 'stk.site.ship': 'Ship', 'stk.site.workshop': 'Workshop', 'stk.hint.quantity': 'Up to 3 decimal places.',
   'stk.hint.delta': 'Positive adds stock, negative removes it. Record why below.', 'stk.hint.currency': 'Three letters, for example LKR.', 'stk.hint.receipt_ref': 'Purchase order, delivery note or similar.',
   'stk.hint.work_order': 'Type the number, for example SLN-WO-00000001. The order must be open and on the same ship.', 'stk.hint.used_for': 'Needed when there is no work order.',
   'stk.err.no_work_order': 'No work order {no} is known on this installation.', 'stk.err.number': '{field} must be a number.',

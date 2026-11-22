@@ -121,7 +121,10 @@ describe('M15 work orders', () => {
     expect(codeOf(() => getWorkOrderDetail(o.sup('u-po'), p.id as string))).toBe('FORBIDDEN');
     expect(listWorkOrders(o.oic, { commandId: o.C, view: 'overdue' }).total).toBe(1);
     approveWorkOrder(o.oic, r.id as string, { expectedVersion: 1 });
-    assignWorkOrder(o.oic, r.id as string, { expectedVersion: 2, crew: [o.people.pump] });
+    // staff from another workshop: the in-charge may add them, but only with a reason that is kept in the history
+    expect(codeOf(() => assignWorkOrder(o.sup('u-po'), r.id as string, { expectedVersion: 2, crew: [o.people.pump] }))).toBe('VALIDATION_FAILED');
+    assignWorkOrder(o.sup('u-po'), r.id as string, { expectedVersion: 2, crew: [o.people.pump], outsideReason: 'Radar staff on leave' });
+    expect(String(sql(o.env, "SELECT note FROM ofc_record_event WHERE record_id = ? AND kind = 'assign'", r.id)[0]!.note)).toContain('Radar staff on leave');
     // a crew member from another unit sees the job through the crew list
     expect(listWorkOrders(o.as('u-pumptech', 'ofc.scope.all'), { commandId: o.C }).items.map((x) => x.title).sort()).toEqual(['Pump job', 'Radar job']);
     expect(codeOf(() => setWorkOrderStatus(o.oic, r.id as string, { expectedVersion: 3, status: 'in_progress' }))).toBe('VALIDATION_FAILED');

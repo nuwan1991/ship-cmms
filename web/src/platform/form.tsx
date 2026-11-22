@@ -17,6 +17,8 @@ export interface FieldDef {
   /** Only on create (identity-defining fields). */
   createOnly?: boolean;
   showWhen?: (values: Values) => boolean;
+  /** A label that depends on other values in the form (e.g. on the unit level); wins over label and labelKey. */
+  labelFor?: (values: Values) => string;
   hintKey?: string;
   maxLength?: number;
 }
@@ -133,7 +135,7 @@ export function FormModal(props: {
           const v = values[f.key];
           const label = (
             <label htmlFor={id}>
-              {f.label ?? t(f.labelKey)}
+              {f.labelFor?.(values) ?? f.label ?? t(f.labelKey)}
               {f.required ? <span aria-hidden> *</span> : null}
             </label>
           );
@@ -142,7 +144,7 @@ export function FormModal(props: {
             <div className="field" key={f.key}>
               {f.type === 'checkbox' ? (
                 <label className="check">
-                  <input id={id} type="checkbox" checked={Boolean(v)} onChange={(e) => set(f.key, e.target.checked)} /> {f.label ?? t(f.labelKey)}
+                  <input id={id} type="checkbox" checked={Boolean(v)} onChange={(e) => set(f.key, e.target.checked)} /> {f.labelFor?.(values) ?? f.label ?? t(f.labelKey)}
                 </label>
               ) : (
                 label

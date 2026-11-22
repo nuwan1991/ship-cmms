@@ -92,6 +92,28 @@ export function WorkOrdersScreen() {
 
 type Act = 'approve' | 'assign' | 'complete' | 'verify' | 'close' | 'reopen' | 'cancel' | 'edit' | 'supply' | { status: string } | null;
 
+/** The unit and every unit under it (a section includes its workshops and their sub-sections). */
+function unitAndBelow(units: Rec[], unitId: string): Set<string> {
+  const out = new Set<string>([unitId]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const u of units) if (u.parentId && out.has(String(u.parentId)) && !out.has(u.id)) { out.add(u.id); grew = true; }
+  }
+  return out;
+}
+
+/**
+ * Assignable people for the chosen workshop: its own staff, plus anyone already on this work order so a reassignment never silently drops them.
+ * With `others` (the OIC's override) everyone is listed, and staff of other workshops are labelled with their own workshop.
+ */
+export function staffOfUnit(persons: Rec[], units: Rec[], unitId: string, keep: readonly string[], others = false): Array<{ value: string; label: string }> {
+  const inUnit = unitId ? unitAndBelow(units, unitId) : null;
+  const mine = (p: Rec) => !inUnit || Boolean(p.unitId && inUnit.has(String(p.unitId)));
+  const where = (p: Rec) => String(units.find((u) => u.id === p.unitId)?.path ?? units.find((u) => u.id === p.unitId)?.name ?? '—');
+  const label = (r: Rec) => `${r.rank ? `${String(r.rank)} ` : ''}${String(r.name)}${r.serviceNo ? ` (${String(r.serviceNo)})` : ''}${others && !mine(r) ? ` – ${where(r)}` : ''}`;
+  return persons.filter((p) => others || mine(p) || keep.includes(p.id)).map((p) => ({ value: p.id, label: label(p) }));
+}
+
 export function WorkOrderDetail({ id, onClose, onChanged }: { id: string; onClose(): void; onChanged(): void }) {
   const { tz } = useSystem();
   const d = useGet<Rec>(`${OFC}/work-orders/${id}`);
@@ -108,6 +130,11 @@ export function WorkOrderDetail({ id, onClose, onChanged }: { id: string; onClos
   const needDelay = Boolean(r?.overdue) && !r?.delayReason;
   const delay: FieldDef[] = needDelay ? [{ key: 'delayReason', labelKey: 'ofc.field.delayReason', type: 'text', required: true, maxLength: 1000 }] : [];
   const crew = (r?.crew as string[] | undefined) ?? [];
+  const assigned = [...crew, ...(r?.supervisorPersonId ? [String(r.supervisorPersonId)] : [])];
+  /** Staff on this work order who belong to another workshop (borrowed, with a reason in the history); listed apart so the officer sees them. */
+  const home = r?.unitId ? staffOfUnit(people.items, units.data?.items ?? [], String(r.unitId), []).map((o) => o.value) : null;
+  const borrowed = home ? crew.filter((c) => !home.includes(c)) : [];
+  const ownCrew = crew.filter((c) => !borrowed.includes(c));
   return (
     <Modal title={r ? `${String(r.refNo)} – ${String(r.title)}` : t('common.loading')} onClose={onClose} wide>
       <ErrorNotice error={d.error} />
@@ -120,7 +147,8 @@ export function WorkOrderDetail({ id, onClose, onChanged }: { id: string; onClos
             <dt>{t('ofc.field.defect')}</dt><dd>{show(r.reportedDefect)}</dd>
             <dt>{t('ofc.field.workshop')}</dt><dd>{show((units.data?.items ?? []).find((u) => u.id === r.unitId)?.path)}</dd>
             <dt>{t('ofc.field.supervisor')}</dt><dd>{people.name(r.supervisorPersonId)}</dd>
-            <dt>{t('ofc.field.crew')}</dt><dd>{crew.length ? crew.map((c) => people.name(c)).join(', ') : '—'}</dd>
+            <dt>{t('ofc.field.crew')}</dt><dd>{ownCrew.length ? ownCrew.map((c) => people.name(c)).join(', ') : '—'}</dd>
+            {borrowed.length ? <><dt>{t('ofc.field.borrowed')}</dt><dd><span className="chip warn">{t('ofc.borrowed.count', { n: borrowed.length })}</span> {borrowed.map((c) => `${people.name(c)} – ${String((units.data?.items ?? []).find((u) => u.id === people.items.find((p) => p.id === c)?.unitId)?.path ?? '—')}`).join(', ')}<br /><small className="muted">{t('ofc.hint.borrowed')}</small></dd></> : null}
             <dt>{t('ofc.field.targetDate')}</dt><dd>{show(r.targetDate)}</dd>
             <dt>{t('ofc.field.approval')}</dt><dd>{r.approvedAt ? `${String(r.approvedAt)}${r.approvalRef ? ` · ${String(r.approvalRef)}` : ''}` : '—'}</dd>
             <dt>{t('ofc.field.actionsTaken')}</dt><dd>{show(r.actionsTaken)}</dd><dt>{t('ofc.field.materials')}</dt><dd>{show(r.materialsRequired)}</dd>
@@ -152,12 +180,14 @@ export function WorkOrderDetail({ id, onClose, onChanged }: { id: string; onClos
       ) : null}
       {r && act === 'approve' ? <FormModal title={t('ofc.act.approve')} record={null} tz={tz} onClose={() => setAct(null)} onSubmit={(b) => post('approve', b)} submitKey="ofc.act.approve"
         extra={<p className="hint">{t('ofc.hint.approve')}</p>} fields={[{ key: 'approvalRef', labelKey: 'ofc.field.approvalRef', type: 'text', maxLength: 120 }, { key: 'note', labelKey: 'ofc.field.note', type: 'textarea', maxLength: 2000 }]} /> : null}
-      {r && act === 'assign' ? <FormModal title={t('ofc.act.assign')} record={null} tz={tz} onClose={() => setAct(null)} onSubmit={(b) => post('assign', b)}
+      {r && act === 'assign' ? <FormModal title={t('ofc.act.assign')} record={null} tz={tz} onClose={() => setAct(null)} onSubmit={({ otherStaff: _o, ...b }) => post('assign', b)}
         defaults={{ unitId: String(r.unitId ?? ''), supervisorPersonId: String(r.supervisorPersonId ?? ''), crew: crew.join(',') }}
         fields={[
           { key: 'unitId', labelKey: 'ofc.field.workshop', type: 'select', required: true, options: (units.data?.items ?? []).map((u) => ({ value: String(u.id), label: String(u.path) })) },
-          { key: 'supervisorPersonId', labelKey: 'ofc.field.supervisor', type: 'select', options: people.options },
-          { key: 'crew', labelKey: 'ofc.field.crew', type: 'multiselect', options: people.options },
+          { key: 'otherStaff', labelKey: 'ofc.field.otherStaff', type: 'checkbox', hintKey: 'ofc.hint.otherStaff' },
+          { key: 'supervisorPersonId', labelKey: 'ofc.field.supervisor', type: 'select', options: (v) => staffOfUnit(people.items, units.data?.items ?? [], String(v.unitId ?? ''), assigned, v.otherStaff === true) },
+          { key: 'crew', labelKey: 'ofc.field.crew', type: 'multiselect', options: (v) => staffOfUnit(people.items, units.data?.items ?? [], String(v.unitId ?? ''), assigned, v.otherStaff === true) },
+          { key: 'outsideReason', labelKey: 'ofc.field.outsideReason', type: 'text', required: true, maxLength: 500, showWhen: (v) => v.otherStaff === true },
           ...(r.status !== 'approved' ? [{ key: 'reason', labelKey: 'ofc.field.reason', type: 'text' as const, required: true, maxLength: 500 }] : []),
         ]} /> : null}
       {r && act && typeof act === 'object' ? <FormModal title={t(`ofc.wto.${act.status}`)} record={null} tz={tz} onClose={() => setAct(null)} onSubmit={(b) => post('status', { status: act.status, ...b })}
