@@ -26,6 +26,7 @@ import { writeXlsx, XLSX_TYPE } from '../m11-excel/index.js';
 import { importCorrespondence, importEquipment, importPersons } from './imports.js';
 import { dashboard, REPORTS, reportSheets, runReport } from './reports.js';
 import { bulkDemands, createDemand, listDemands, setStage, setSupplyStages, supplyStages, updateDemand } from './supply.js';
+import { attendanceSheet, attendanceSummary, markAttendance } from './attendance.js';
 
 export const OFC_API_PREFIX = '/api/v1/office';
 
@@ -189,6 +190,11 @@ export function mountOfficeRoutes(ctx: AppContext, app: FastifyInstance): void {
     approve: approveWorkOrder, assign: assignWorkOrder, status: setWorkOrderStatus, complete: completeWorkOrder, verify: verifyWorkOrder, close: closeWorkOrder, reopen: reopenWorkOrder, cancel: cancelWorkOrder,
   };
   for (const [name, fn] of Object.entries(woAct)) app.post(`${base}/work-orders/:id/${name}`, async (req) => toApi(fn(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- daily crew attendance: a unit's sheet for a day, saving the day's marks, and the roll-up by section and department
+  app.get(`${base}/attendance/sheet`, async (req) => attendanceSheet(actorFromRequest(ctx, req), req.query));
+  app.post(`${base}/attendance`, async (req) => markAttendance(actorFromRequest(ctx, req), req.body));
+  app.get(`${base}/attendance/summary`, async (req) => attendanceSummary(actorFromRequest(ctx, req), req.query));
 
   // ---- supply demands
   app.get(`${base}/supply`, async (req) => { const r = listDemands(actorFromRequest(ctx, req), req.query); return { total: r.total, stages: r.stages, items: r.items.map(toApi) }; });

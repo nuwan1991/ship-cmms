@@ -13,7 +13,7 @@ describe('labels', () => {
     for (const f of readdirSync(dir).filter((x) => /\.(tsx|ts)$/.test(x) && !x.endsWith('.test.ts') && x !== 'labels.en.ts')) {
       for (const m of readFileSync(dir + f, 'utf8').matchAll(/['"`](ofc\.[a-z_0-9]+(?:\.[a-zA-Z_]+)+)['"`]/g)) used.add(m[1]!);
     }
-    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings|report|import)\.(run|view|create|update|remove|cancel|comment|assign|reassign|record|approve)$/;
+    const perms = /^ofc\.(org_unit|correspondence|handover|attachment|timeline|link|task|person|equipment|work_order|supply|settings|report|import|attendance)\.(run|view|create|update|remove|cancel|comment|assign|reassign|record|approve)$/;
     expect([...used].filter((k) => !(k in ofcLabelsEn) && !perms.test(k) && k !== 'ofc.commandId')).toEqual([]);
   });
   it('covers every value of the dynamic label families', () => {
@@ -68,5 +68,17 @@ describe('work order assignment', () => {
     const all = staffOfUnit(people, units, 'pabx', [], true);
     expect(all.map((o) => o.value)).toEqual(['a', 'b', 'c', 'd']);
     expect(all.map((o) => o.label)).toEqual(['A', 'B – —', 'C', 'D – —']);
+  });
+});
+
+describe('daily attendance', () => {
+  it('saves unmarked rows with their suggestion and only the marks that changed', async () => {
+    const { pendingEntries, atWorkPercent } = await import('./AttendanceScreen');
+    const row = (personId: string, status: string | null, suggested: string, remarks: string | null = null) => ({ personId, rank: null, name: personId, serviceNo: null, unitId: 'u', unitPath: null, status, remarks, markedBy: null, suggested }) as never;
+    const rows = [row('a', null, 'present'), row('b', null, 'leave'), row('c', 'present', 'present'), row('d', 'sick', 'sick', 'Hospital')];
+    expect(pendingEntries(rows, {})).toEqual([{ personId: 'a', status: 'present', remarks: null }, { personId: 'b', status: 'leave', remarks: null }]);
+    expect(pendingEntries(rows, { c: { status: 'late' }, d: { remarks: ' Hospital ' } }).map((e) => e.personId)).toEqual(['a', 'b', 'c']);
+    expect(atWorkPercent({ atWork: 2, marked: 3 })).toBe('67%');
+    expect(atWorkPercent({ atWork: 0, marked: 0 })).toBe('—');
   });
 });

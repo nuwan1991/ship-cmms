@@ -1,5 +1,15 @@
 # OFFICE RELEASE NOTES: SLE (E&T) II – North
 
+## Version 1.2, 23 Nov 2026
+
+| Area | Change |
+|---|---|
+| Daily attendance (new) | **Office → Attendance.** *Mark the day*: the workshop in-charge marks each person Present, Late, Leave, Sick, On duty away, Course, Absent or Off duty, with remarks. Leave, sick, course and temporary duty periods from Personnel are filled in already. No future dates; past days can be corrected, with who marked them kept. *Summary*: one day or a period (man-days), by unit in structure order, each workshop rolled into its section and department, with strength, not marked and at-work %, and Print / Save as PDF |
+| Access | New permissions `ofc.attendance.view` and `ofc.attendance.record`. OFC_SUPERVISOR marks and sees its own unit and below; OFC_OIC everything; OFC_READONLY views. Run `npm run office -- setup` after upgrading to add them to existing roles |
+| Data | New table `ofc_attendance` (migration 0006), one mark per person per day, kept with the unit the person was in that day |
+
+Tests: 360 server (new `test/modules/ofc-attendance.test.ts`) and 55 web tests pass.
+
 ## Version 1.1, 22 Nov 2026
 
 Changes made while setting up the office, on top of Version 1.0.

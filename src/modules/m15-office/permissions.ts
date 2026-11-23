@@ -1,5 +1,5 @@
 /** Permission codes `ofc.<noun>.<action>` (CONTRACTS §7), announced at startup (D25). Checked at the office's command scope. */
-export type OfcNoun = 'settings' | 'scope' | 'org_unit' | 'link' | 'attachment' | 'timeline' | 'task' | 'correspondence' | 'handover' | 'person' | 'equipment' | 'work_order' | 'supply' | 'report' | 'import';
+export type OfcNoun = 'settings' | 'scope' | 'org_unit' | 'link' | 'attachment' | 'timeline' | 'task' | 'correspondence' | 'handover' | 'person' | 'equipment' | 'work_order' | 'supply' | 'report' | 'import' | 'attendance';
 export const perm = (noun: OfcNoun, action: string): string => `ofc.${noun}.${action}`;
 
 export const OFC_PERMISSIONS: readonly string[] = [
@@ -18,6 +18,8 @@ export const OFC_PERMISSIONS: readonly string[] = [
   'ofc.work_order.view', 'ofc.work_order.create', 'ofc.work_order.update', 'ofc.work_order.assign', 'ofc.work_order.approve', 'ofc.work_order.verify', 'ofc.work_order.cancel',
   'ofc.supply.view', 'ofc.supply.create', 'ofc.supply.update', 'ofc.settings.update',
   'ofc.report.view', 'ofc.import.run',
+  // Daily crew attendance: record = mark the day for the units the user may see; view = the sheets and the roll-up summary.
+  'ofc.attendance.view', 'ofc.attendance.record',
 ];
 
 /** `ofc.<noun>.*` written out: M02 accepts only module-wide wildcards (`ofc.*`), so roles list every code. */
@@ -41,6 +43,7 @@ export const OFFICE_ROLES: ReadonlyArray<{ code: string; name: string; descripti
       'ofc.correspondence.view', 'ofc.correspondence.create', 'ofc.correspondence.update',
       'ofc.handover.view', 'ofc.handover.update', 'ofc.person.view', 'ofc.person.view_contact', 'ofc.person.update', 'ofc.person.reassign', ...all('equipment'),
       'ofc.work_order.view', 'ofc.work_order.create', 'ofc.work_order.update', 'ofc.work_order.assign', 'ofc.work_order.verify', 'ofc.work_order.cancel', ...all('supply'), 'ofc.report.view',
+      ...all('attendance'),
     ],
   },
   {
@@ -49,6 +52,6 @@ export const OFFICE_ROLES: ReadonlyArray<{ code: string; name: string; descripti
   },
   {
     code: 'OFC_READONLY', name: 'Read-only user', description: 'Views authorised records and reports.',
-    permissions: ['ofc.scope.all', 'ofc.org_unit.view', 'ofc.link.view', 'ofc.attachment.view', 'ofc.timeline.view', 'ofc.task.view', 'ofc.person.view', 'ofc.correspondence.view', 'ofc.handover.view', 'ofc.equipment.view', 'ofc.work_order.view', 'ofc.supply.view', 'ofc.report.view'],
+    permissions: ['ofc.scope.all', 'ofc.org_unit.view', 'ofc.link.view', 'ofc.attachment.view', 'ofc.timeline.view', 'ofc.task.view', 'ofc.person.view', 'ofc.correspondence.view', 'ofc.handover.view', 'ofc.equipment.view', 'ofc.work_order.view', 'ofc.supply.view', 'ofc.report.view', 'ofc.attendance.view'],
   },
 ];

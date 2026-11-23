@@ -20,4 +20,5 @@ export const OFC_ENTITIES: readonly EntityDef[] = [
   { type: 'ofc.work_order', module: 'M15', table: 'ofc_work_order', recordClass: 'owner_mutable', distribution: 'record' },
   { type: 'ofc.setting', module: 'M15', table: 'ofc_setting', recordClass: 'owner_mutable', distribution: 'record' },
   { type: 'ofc.supply_demand', module: 'M15', table: 'ofc_supply_demand', recordClass: 'owner_mutable', distribution: 'record' },
+  { type: 'ofc.attendance', module: 'M15', table: 'ofc_attendance', recordClass: 'owner_mutable', requires: ['ofc.person'], distribution: 'record' },
 ];

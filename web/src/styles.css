@@ -242,3 +242,19 @@ a.tile:hover { border-color: var(--accent, #1f4e8c); }
 .report-section h2 { font-size: 16px; margin: 14px 0 4px; }
 .report td.late { color: var(--warn, #b45309); font-weight: 600; }
 @media print { .report-section { break-inside: auto; } .report thead { display: table-header-group; } .report tr { break-inside: avoid; } }
+
+/* Daily attendance */
+.segmented { display: inline-flex; border: 1px solid var(--border, #c9d1db); border-radius: 6px; overflow: hidden; }
+.segmented button { border: 0; border-radius: 0; }
+.segmented button[aria-pressed="true"] { background: var(--primary); color: var(--primary-text); }
+.att-counts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip.att-present, select.att-present { background: var(--ok-bg); color: var(--ok); }
+.chip.att-late, select.att-late, .chip.att-absent, select.att-absent { background: var(--warn-bg); color: var(--warn); }
+.chip.att-leave, select.att-leave, .chip.att-sick, select.att-sick, .chip.att-duty, select.att-duty, .chip.att-course, select.att-course { background: var(--info-bg); color: var(--info); }
+.chip.att-off, select.att-off { background: var(--muted-bg); color: var(--muted); }
+tr.att-unsaved td:first-child { border-left: 3px solid var(--warn); }
+.att-summary .num { text-align: right; white-space: nowrap; }
+.att-summary tr.level-department th, .att-summary tr.level-department td { font-weight: 700; }
+.att-summary tr.level-section th, .att-summary tr.level-section td { font-weight: 600; }
+.att-summary td.late { color: var(--warn); font-weight: 600; }
+.att-summary tfoot th, .att-summary tfoot td { border-top: 2px solid currentColor; font-weight: 700; }

@@ -13,6 +13,7 @@ import { SupplyScreen } from './SupplyScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { ImportScreen } from './ImportScreen';
+import { AttendanceScreen } from './AttendanceScreen';
 import { ofcLabelsEn } from './labels.en';
 
 registerLabels(ofcLabelsEn);
@@ -29,6 +30,7 @@ export const ofcNav: NavItem[] = [
   { module: 'ofc', path: '/ofc/work-orders', labelKey: 'ofc.nav.workorders', requiredPermission: 'ofc.work_order.view', order: 62 },
   { module: 'ofc', path: '/ofc/equipment', labelKey: 'ofc.nav.equipment', requiredPermission: 'ofc.equipment.view', order: 64 },
   { module: 'ofc', path: '/ofc/supply', labelKey: 'ofc.nav.supply', requiredPermission: 'ofc.supply.view', order: 66 },
+  { module: 'ofc', path: '/ofc/attendance', labelKey: 'ofc.nav.attendance', requiredPermission: 'ofc.attendance.view', order: 68 },
   { module: 'ofc', path: '/ofc/personnel', labelKey: 'ofc.nav.personnel', requiredPermission: 'ofc.person.view', order: 70 },
   { module: 'ofc', path: '/ofc/import', labelKey: 'ofc.nav.import', requiredPermission: 'ofc.import.run', order: 95 },
   { module: 'ofc', path: '/ofc/units', labelKey: 'ofc.nav.units', requiredPermission: 'ofc.org_unit.view', order: 90 },
@@ -39,6 +41,7 @@ export const ofcRoutes = [
   { path: '/ofc/reports', element: <ReportsScreen /> },
   { path: '/ofc/my-work', element: <MyWorkScreen /> },
   { path: '/ofc/tasks', element: <TasksScreen /> },
+  { path: '/ofc/attendance', element: <AttendanceScreen /> },
   { path: '/ofc/personnel', element: <PersonnelScreen /> },
   { path: '/ofc/work-orders', element: <WorkOrdersScreen /> },
   { path: '/ofc/equipment', element: <EquipmentScreen /> },

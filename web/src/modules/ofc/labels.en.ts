@@ -160,4 +160,18 @@ export const ofcLabelsEn: Record<string, string> = {
   'ofc.report.office': 'SLE (E&T) II – North', 'ofc.report.handover_title': 'Handover completion report', 'ofc.report.as_of': 'as of {date}',
   'ofc.report.complete': '{done} of {total} items completed ({pct}%)', 'ofc.report.total': 'Total', 'ofc.report.done': 'Completed', 'ofc.report.open': 'Open',
   'ofc.report.attention': 'Items needing attention (urgent, immediate or overdue)', 'ofc.report.none': 'None.', 'ofc.report.prepared': 'Prepared by: ____________________', 'ofc.report.checked': 'Checked by: ____________________',
+  // daily attendance
+  'ofc.nav.attendance': 'Attendance', 'ofc.title.attendance': 'Daily attendance', 'ofc.att.tab_sheet': 'Mark the day', 'ofc.att.tab_summary': 'Summary',
+  'ofc.att.s.present': 'Present', 'ofc.att.s.late': 'Late', 'ofc.att.s.leave': 'Leave', 'ofc.att.s.sick': 'Sick', 'ofc.att.s.duty': 'On duty away',
+  'ofc.att.s.course': 'Course', 'ofc.att.s.absent': 'Absent', 'ofc.att.s.off': 'Off duty',
+  'ofc.att.date': 'Date', 'ofc.att.today': 'Today', 'ofc.att.from': 'From', 'ofc.att.to': 'To', 'ofc.att.status': 'Attendance',
+  'ofc.att.status_for': 'Attendance of {name}', 'ofc.att.remarks_for': 'Remarks for {name}', 'ofc.att.marked_by': 'Marked by',
+  'ofc.att.strength': 'Strength {n}', 'ofc.att.not_saved': '{n} not saved yet', 'ofc.att.all_saved': 'All marked', 'ofc.att.not_marked': 'Not marked',
+  'ofc.att.view_only': 'You can see this sheet but not mark it.', 'ofc.att.hint_prefill': 'Leave, sick, course and duty from Personnel are filled in; change only the exceptions.',
+  'ofc.att.all_present': 'Set everyone present', 'ofc.att.save': 'Save the day ({n})', 'ofc.att.nothing_to_save': 'Saved', 'ofc.att.saved': '{n} marks saved',
+  'ofc.att.no_people': 'No active people in this unit. Add them in Personnel.',
+  'ofc.att.with_below': 'Include units below (workshops into section, sections into department)', 'ofc.att.summary_title': 'Attendance summary',
+  'ofc.att.hint_day': 'Figures are people for the day.', 'ofc.att.hint_mandays': 'Figures are man-days over {n} days.',
+  'ofc.att.hint_rollup': 'Each row includes the units under it.', 'ofc.att.hint_own': "Each row shows only the unit's own people.",
+  'ofc.att.col_unit': 'Unit', 'ofc.att.col_strength': 'Strength', 'ofc.att.col_at_work': 'At work', 'ofc.att.office_total': 'Whole office',
 };
