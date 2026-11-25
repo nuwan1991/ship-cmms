@@ -11,6 +11,10 @@ import {
   addWorkItem, cancelDocking, completeDocking, createDock, createDocking, dockIn, raiseWorkOrder, recordSurvey, tombstoneDock, tombstoneDocking, tombstoneWorkItem,
   undock, updateDock, updateDocking, updateWorkItem,
 } from './service.js';
+import {
+  addRequirement, addShipReqItem, addTemplateItem, checklistOf, createReqTemplate, refreshChecklist, tombstoneReqTemplate, tombstoneRequirement, tombstoneShipReqItem,
+  tombstoneTemplateItem, updateReqTemplate, updateRequirement, updateShipReqItem, updateTemplateItem,
+} from './requirements.js';
 
 export const DCK_API_PREFIX = '/api/v1/docking';
 
@@ -84,7 +88,7 @@ export function mountDckRoutes(ctx: AppContext, app: FastifyInstance): void {
     const items = (ctx.db.prepare('SELECT * FROM dck_work_item WHERE docking_id = ? AND deleted_at IS NULL ORDER BY item_no').all(id) as Row[]).map(toApi);
     const surveys = (ctx.db.prepare('SELECT * FROM dck_survey_record WHERE docking_id = ? ORDER BY occurred_at, id').all(id) as Row[]).map(toApi);
     const conflicts = (ctx.db.prepare('SELECT * FROM dck_v_dock_conflict WHERE docking_id = ?').all(id) as Row[]).map(toApi);
-    return { ...d, id, items, surveys, conflicts };
+    return { ...d, id, items, surveys, conflicts, requirements: checklistOf(ctx.db, id) };
   });
   app.post(D, async (req, reply) => created(reply, createDocking(actorFromRequest(ctx, req), req.body)));
   app.patch(`${D}/:id`, async (req) => updateDocking(actorFromRequest(ctx, req), idParam(req), req.body));
@@ -100,6 +104,42 @@ export function mountDckRoutes(ctx: AppContext, app: FastifyInstance): void {
   app.post(`${base}/work-items/:id/work-order`, async (req, reply) => created(reply, raiseWorkOrder(actorFromRequest(ctx, req), idParam(req), req.body)));
   app.post(`${base}/work-items/:id/tombstone`, async (req) => tombstoneWorkItem(actorFromRequest(ctx, req), idParam(req), req.body));
   app.post(`${D}/:id/surveys`, async (req, reply) => created(reply, recordSurvey(actorFromRequest(ctx, req), idParam(req), req.body)));
+
+  // ---- pre-docking requirements: class templates, ship items, the checklist of a docking (D76)
+  const RT = `${base}/req-templates`;
+  app.get(RT, async (req) => {
+    authorize(actorFromRequest(ctx, req), perm('req_template', 'view'), fleet);
+    return page(list(ctx, { table: 'dck_req_template', filters: { status: 'status', shipClass: 'ship_class' }, search: ['code', 'name', 'ship_class'], idCol: 'id', live: true, order: 'ship_class IS NULL, ship_class, code, id' }, req.query, fleet));
+  });
+  app.get(`${RT}/:id`, async (req) => {
+    authorize(actorFromRequest(ctx, req), perm('req_template', 'view'), fleet);
+    const r = getLive(ctx.db, 'req_template', idParam(req));
+    if (!r) throw new AppError('NOT_FOUND', 'Checklist template not found');
+    const items = (ctx.db.prepare('SELECT * FROM dck_req_template_item WHERE template_id = ? AND deleted_at IS NULL ORDER BY seq, id').all(r.id) as Row[]).map(toApi);
+    return { ...toApi(r), items };
+  });
+  app.post(RT, async (req, reply) => created(reply, createReqTemplate(actorFromRequest(ctx, req), req.body)));
+  app.patch(`${RT}/:id`, async (req) => updateReqTemplate(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.post(`${RT}/:id/tombstone`, async (req) => tombstoneReqTemplate(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.post(`${RT}/:id/items`, async (req, reply) => created(reply, addTemplateItem(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.patch(`${base}/req-template-items/:id`, async (req) => updateTemplateItem(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.post(`${base}/req-template-items/:id/tombstone`, async (req) => tombstoneTemplateItem(actorFromRequest(ctx, req), idParam(req), req.body));
+
+  const SR = `${base}/ship-req-items`;
+  app.get(SR, async (req) => {
+    const q = req.query as Record<string, unknown>;
+    const scope: ScopeRef = typeof q.shipId === 'string' ? { kind: 'ship', id: q.shipId } : fleet;
+    authorize(actorFromRequest(ctx, req), perm('ship_req', 'view'), scope);
+    return page(list(ctx, { table: 'dck_ship_req_item', filters: { shipId: 'ship_id', status: 'status' }, search: ['title', 'responsible'], idCol: 'id', live: true, order: 'ship_id, seq, id' }, req.query, scope));
+  });
+  app.post(SR, async (req, reply) => created(reply, addShipReqItem(actorFromRequest(ctx, req), req.body)));
+  app.patch(`${SR}/:id`, async (req) => updateShipReqItem(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.post(`${SR}/:id/tombstone`, async (req) => tombstoneShipReqItem(actorFromRequest(ctx, req), idParam(req), req.body));
+
+  app.post(`${D}/:id/requirements/refresh`, async (req) => refreshChecklist(actorFromRequest(ctx, req), idParam(req)));
+  app.post(`${D}/:id/requirements`, async (req, reply) => created(reply, addRequirement(actorFromRequest(ctx, req), idParam(req), req.body)));
+  app.patch(`${base}/requirements/:id`, async (req) => updateRequirement(actorFromRequest(ctx, req), idParam(req), req.body));
+  app.post(`${base}/requirements/:id/tombstone`, async (req) => tombstoneRequirement(actorFromRequest(ctx, req), idParam(req), req.body));
 
   // ---- docking due per ship, and planning clashes
   app.get(`${base}/due`, async (req) => {

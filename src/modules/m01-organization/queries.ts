@@ -177,6 +177,15 @@ export interface DepartmentInfo {
   ownerId: string | null;
 }
 
+export interface ShipInfo { id: string; code: string; name: string; pennantNo: string | null; shipClass: string | null; shipType: string | null; status: string }
+/** A live ship with its class and type (other modules use the class to pick class-specific data, e.g. M16 docking checklists). */
+export function getShip(db: Db, id: string): ShipInfo | null {
+  const r = db.prepare('SELECT id, code, name, pennant_no, ship_class, ship_type, status FROM org_ship WHERE id = ? AND deleted_at IS NULL').get(id) as
+    | { id: string; code: string; name: string; pennant_no: string | null; ship_class: string | null; ship_type: string | null; status: string }
+    | undefined;
+  return r ? { id: r.id, code: r.code, name: r.name, pennantNo: r.pennant_no, shipClass: r.ship_class, shipType: r.ship_type, status: r.status } : null;
+}
+
 /** A live ship section (held by its ship) or command department, with its owner. */
 export function getDepartment(db: Db, id: string): DepartmentInfo | null {
   const s = db.prepare('SELECT id, code, name, status, home_scope_id FROM org_ship_section WHERE id = ? AND deleted_at IS NULL').get(id) as

@@ -15,6 +15,7 @@ import { createWorkOrder } from '../m05-work/index.js';
 import { authorize, withReason, type Actor } from './actor.js';
 import { perm } from './permissions.js';
 import { dockingView, exists, getLive, toApi, type Row } from './queries.js';
+import { fillChecklist, pendingMandatory } from './requirements.js';
 import * as S from './schemas.js';
 
 const blocked = (message: string, details?: Record<string, unknown>) => new AppError('WORKFLOW_BLOCKED', message, details);
@@ -109,6 +110,8 @@ export function createDocking(a: Actor, input: unknown): Row {
       home_scope_id: b.shipId, ship_id: b.shipId, dock_id: b.dockId ?? null, reference: b.reference ?? null, docking_type: b.dockingType ?? 'routine',
       purpose: b.purpose ?? null, authority: b.authority ?? null, status: 'planned', planned_dock_in: b.plannedDockIn, planned_undock: b.plannedUndock, remarks: b.remarks ?? null,
     }));
+    // The pre-docking checklist starts from the ship's class templates and its own standing items (D76).
+    fillChecklist(a, row);
     return view(db, row.id as string);
   })();
 }
@@ -133,7 +136,10 @@ export function updateDocking(a: Actor, id: string, input: unknown): Row {
   })();
 }
 
-/** The ship has entered the dock. The dock must be active and have room; the ship cannot be in another dock. */
+/**
+ * The ship has entered the dock. The dock must be active and have room; the ship cannot be in another dock. Mandatory pre-docking
+ * items still pending block it unless a reason is recorded by someone allowed to waive them (D76).
+ */
 export function dockIn(a: Actor, id: string, input: unknown): Row {
   const b = S.parse(S.DockIn, input);
   const db = a.wctx.db;
@@ -144,12 +150,21 @@ export function dockIn(a: Actor, id: string, input: unknown): Row {
   const dockId = b.dockId ?? (cur.dock_id as string | null);
   if (!dockId) throw invalid('Choose the dock the ship entered', ['dockId']);
   const dock = activeDock(db, dockId);
+  const pending = pendingMandatory(db, id);
+  if (pending > 0) {
+    if (!b.requirementsWaiver) {
+      throw blocked(`${pending} mandatory pre-docking requirement(s) are still pending; complete them, mark them not applicable, or give a reason to dock in anyway`, { rule: 'REQUIREMENTS_PENDING', pending });
+    }
+    authorize(a, perm('requirement', 'waive'), shipScope(cur.ship_id));
+  }
   return db.transaction(() => {
     const other = db.prepare("SELECT id FROM dck_docking WHERE ship_id = ? AND id <> ? AND deleted_at IS NULL AND status IN ('in_dock','undocked')").get(cur.ship_id, id) as Row | undefined;
     if (other) throw blocked('This ship has another docking still open; undock and complete it first', { rule: 'SHIP_ALREADY_DOCKED', dockingId: other.id });
     const { n } = db.prepare("SELECT COUNT(*) AS n FROM dck_docking WHERE dock_id = ? AND deleted_at IS NULL AND status = 'in_dock'").get(dockId) as { n: number };
     if (n >= (dock.capacity_ships as number)) throw blocked(`Dock ${String(dock.code)} is full (${n} of ${String(dock.capacity_ships)} ship(s) in dock)`, { rule: 'DOCK_FULL', dockId });
-    updateRecord(a.wctx, 'dck.docking', id, b.expectedVersion, { status: 'in_dock', dock_id: dockId, docked_at: b.dockedAt ?? nowUtc() });
+    updateRecord(withReason(a, pending > 0 ? b.requirementsWaiver : null).wctx, 'dck.docking', id, b.expectedVersion, {
+      status: 'in_dock', dock_id: dockId, docked_at: b.dockedAt ?? nowUtc(), requirements_waiver: pending > 0 ? `${pending} pending: ${String(b.requirementsWaiver)}` : null,
+    });
     return view(db, id);
   })();
 }
@@ -203,7 +218,14 @@ export function tombstoneDocking(a: Actor, id: string, input: unknown): Row {
   requireStatus(cur, ['planned', 'cancelled'], 'removed');
   if (exists(db, 'SELECT 1 FROM dck_work_item WHERE docking_id = ? AND deleted_at IS NULL', id)) throw blocked('This docking has a work list; cancel the docking instead', { dockingId: id });
   if (exists(db, 'SELECT 1 FROM dck_survey_record WHERE docking_id = ?', id)) throw blocked('This docking has survey records; cancel the docking instead', { dockingId: id });
-  return toApi(tombstoneRecord(withReason(a, reason).wctx, 'dck.docking', id, expectedVersion, reason));
+  const wctx = withReason(a, reason).wctx;
+  return db.transaction(() => {
+    // Its pre-docking checklist goes with it.
+    for (const r of db.prepare('SELECT id, version FROM dck_requirement WHERE docking_id = ? AND deleted_at IS NULL').all(id) as Row[]) {
+      tombstoneRecord(wctx, 'dck.requirement', r.id as string, r.version as number, reason);
+    }
+    return toApi(tombstoneRecord(wctx, 'dck.docking', id, expectedVersion, reason));
+  })();
 }
 
 // ------------------------------------------------------------------ work list

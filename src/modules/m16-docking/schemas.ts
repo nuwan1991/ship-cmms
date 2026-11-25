@@ -50,7 +50,7 @@ export const DockingUpdate = z.strictObject({
   expectedVersion: Version, dockId: Uuid.nullable().optional(), reference: z.string().trim().min(1).max(60).nullable().optional(), dockingType: z.enum(DOCKING_TYPES).optional(),
   purpose: Text(2000), authority: Text(160), plannedDockIn: LocalDate.optional(), plannedUndock: LocalDate.optional(), remarks: Text(2000),
 }).refine(datesInOrder, DATE_ORDER);
-export const DockIn = z.strictObject({ expectedVersion: Version, dockedAt: UtcTimestamp.optional(), dockId: Uuid.optional() });
+export const DockIn = z.strictObject({ expectedVersion: Version, dockedAt: UtcTimestamp.optional(), dockId: Uuid.optional(), requirementsWaiver: z.string().trim().min(1).max(500).optional() });
 export const Undock = z.strictObject({ expectedVersion: Version, undockedAt: UtcTimestamp.optional() });
 export const Complete = z.strictObject({
   expectedVersion: Version, nextDueOn: LocalDate.optional(), intervalMonths: z.number().int().min(1).max(120).optional(), completedAt: UtcTimestamp.optional(), remarks: Text(2000),
@@ -65,6 +65,29 @@ export const ItemUpdate = z.strictObject({
   executedBy: Text(160), note: Text(1000), status: z.enum(ITEM_STATUSES).optional(), completedAt: UtcTimestamp.optional(),
 });
 export const ItemWorkOrder = z.strictObject({ priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(), requestedDue: LocalDate.optional() });
+
+export const REQ_CATEGORIES = ['documents', 'ship_preparation', 'safety', 'services', 'work_package', 'stores_fuel_ammunition', 'other'] as const;
+export const REQ_STATUSES = ['pending', 'done', 'not_applicable'] as const;
+const Active = z.enum(['active', 'inactive']);
+const ShipClass = z.string().trim().min(1).max(60).nullable().optional();
+export const TemplateCreate = z.strictObject({ code: Code, name: Name, shipClass: ShipClass, description: Text(1000), status: Active.optional() });
+export const TemplateUpdate = z.strictObject({ expectedVersion: Version, name: Name.optional(), shipClass: ShipClass, description: Text(1000), status: Active.optional() });
+const LeadDays = z.preprocess((v) => (typeof v === 'string' && /^\d+$/.test(v.trim()) ? Number(v) : v), z.number().int().min(0).max(365));
+const reqItemFields = {
+  category: z.enum(REQ_CATEGORIES), title: Name, description: Text(1000), responsible: Text(160), leadDays: LeadDays.optional(), mandatory: z.boolean().optional(),
+  seq: z.number().int().min(1).max(9999).optional(),
+};
+export const ReqItemCreate = z.strictObject(reqItemFields);
+export const ShipReqItemCreate = z.strictObject({ shipId: Uuid, ...reqItemFields });
+export const ReqItemUpdate = z.strictObject({
+  expectedVersion: Version, category: z.enum(REQ_CATEGORIES).optional(), title: Name.optional(), description: Text(1000), responsible: Text(160),
+  leadDays: LeadDays.optional(), mandatory: z.boolean().optional(), seq: z.number().int().min(1).max(9999).optional(), status: Active.optional(),
+});
+export const RequirementCreate = z.strictObject(reqItemFields);
+export const RequirementUpdate = z.strictObject({
+  expectedVersion: Version, status: z.enum(REQ_STATUSES).optional(), reference: Text(120), note: Text(1000), responsible: Text(160),
+  leadDays: LeadDays.optional(), title: Name.optional(), description: Text(1000), completedAt: UtcTimestamp.optional(),
+});
 
 export const Survey = z.strictObject({
   area: z.enum(SURVEY_AREAS), condition: z.enum(CONDITIONS), finding: z.string().trim().min(1).max(2000), measurement: Text(300), surveyedBy: Text(160),

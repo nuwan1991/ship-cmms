@@ -75,7 +75,7 @@ If two people edit the same record, the second one to save sees *"This record wa
 | **Labels and surveys** | QR labels, Compartment surveys, Survey forms | Sticking QR labels on equipment and checking compartments |
 | **Maintenance work** | Defects, Repair cases, Work orders, Advisories, Defect categories | Faults and the work to fix them |
 | **Planned maintenance** | Due list, Plans, Meters, Calibration, Task templates | Routine maintenance by date or running hours |
-| **Docking** | Docking due, Docking schedule, Docks | Dry-docking ships: planning, the docking work list and the underwater survey |
+| **Docking** | Docking due, Docking schedule, Docks, Checklist templates, Ship requirements | Dry-docking ships: planning, the docking work list and the underwater survey |
 | **Parts and stores** | Stock, Transfers, Parts, Stock locations | Spare parts and stock movements |
 | **Synchronization** | Sync status, Installations, Conflicts, Files (USB) | Exchanging data with the hub |
 | **Operations** | System health, Backups, Data checks | Looking after the installation |
@@ -474,6 +474,21 @@ Open a docking from the schedule to work on it:
 5. **Complete docking** once every work item is done, deferred or cancelled. Give when the next docking is due, as **months** from undocking (default 24) or as a date. The ship's line on **Docking due** then counts down to that date.
 
 A planned docking can be cancelled (with a reason) or, if entered by mistake, removed.
+
+#### Pre-docking requirements
+
+What must be ready before a ship enters the dock (drawings issued, tanks gas-freed, ammunition landed, shore services arranged and so on) is kept as a checklist.
+
+- **Checklist templates** (hub): one template per ship class. Give the **Ship class** exactly as on the ship record (capitals do not matter), or leave it empty for a template that applies to every ship. Choose **Items** and **Add item**: **Category**, **Requirement**, **Responsible**, **Due this many days before docking** (default 7) and **Mandatory**.
+- **Ship requirements**: choose a ship and add items that only that ship needs. They are added on top of its class template.
+
+When you **Plan a docking**, its checklist is built from the templates for the ship's class, the every-ship templates and the ship's own items. On the docking page, under **Pre-docking requirements**:
+
+- Each line shows where it came from (*Class template*, *Ship*, *This docking*), who is responsible and the date it is due by. Lines past their date show *Overdue*.
+- **Done** (with a reference such as a certificate number), **Not applicable** (with the reason) and **Reopen**.
+- **Add requirement** adds a line for this docking only. **Update from templates** adds lines added to the templates since the docking was planned.
+
+The ship cannot be docked in while a **mandatory** line is pending. A user allowed to waive requirements may still dock in by giving a reason; the reason is shown on the docking. The schedule shows how many lines are pending for each docking.
 
 ---
 

@@ -14,6 +14,9 @@ export const ITEM_STATUSES = ['open', 'in_progress', 'done', 'deferred', 'cancel
 export const SURVEY_AREAS = ['hull_plating', 'propeller', 'shaft', 'rudder', 'sea_chest', 'anodes', 'paint_coating', 'stabilisers', 'echo_sounder_log', 'other'];
 export const CONDITIONS = ['good', 'fair', 'poor', 'defective'];
 export const DUE_STATES = ['overdue', 'due_soon', 'never', 'in_dock', 'undocked', 'ok'];
+export const REQ_CATEGORIES = ['documents', 'ship_preparation', 'safety', 'services', 'work_package', 'stores_fuel_ammunition', 'other'];
+export const REQ_STATUSES = ['pending', 'done', 'not_applicable'];
+export const REQ_SOURCES = ['template', 'ship', 'adhoc'];
 
 /** Chip colour for docking, item, condition and due states. */
 const TONE: Record<string, 'ok' | 'warn' | 'muted'> = {
@@ -21,6 +24,7 @@ const TONE: Record<string, 'ok' | 'warn' | 'muted'> = {
   open: 'warn', in_progress: 'ok', done: 'muted', deferred: 'warn',
   good: 'ok', fair: 'muted', poor: 'warn', defective: 'warn',
   overdue: 'warn', due_soon: 'warn', never: 'warn', ok: 'ok',
+  pending: 'warn', not_applicable: 'muted', active: 'ok', inactive: 'muted',
 };
 export const tone = (v: unknown): string => TONE[String(v)] ?? 'muted';
 export const show = (v: unknown): string => (v === null || v === undefined || v === '' ? '—' : String(v));

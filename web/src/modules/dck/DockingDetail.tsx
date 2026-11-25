@@ -9,10 +9,10 @@ import { useSystem } from '../../platform/system';
 import { toLocalDisplay } from '../../platform/time';
 import { ErrorNotice } from '../../platform/ui';
 import { AST, DCK, show, tone, useDocks, useShips } from './binding';
-import { dockingFields, itemFields, surveyFields } from './fields';
+import { dockingFields, itemFields, reqItemFields, surveyFields } from './fields';
 
-type Detail = Rec & { items: Rec[]; surveys: Rec[]; conflicts: Rec[] };
-type Action = 'edit' | 'dock_in' | 'undock' | 'complete' | 'cancel' | 'remove' | 'new_item' | 'survey';
+type Detail = Rec & { items: Rec[]; surveys: Rec[]; conflicts: Rec[]; requirements: Rec[] };
+type Action = 'edit' | 'dock_in' | 'undock' | 'complete' | 'cancel' | 'remove' | 'new_item' | 'survey' | 'new_req';
 
 /** Resolve an equipment tag typed in a form to the asset id (empty tag = no equipment). */
 async function assetIdFor(tag: unknown): Promise<string | null> {
@@ -34,6 +34,8 @@ export function DockingDetailScreen() {
   const [editingItem, setEditingItem] = useState<Rec | null>(null);
   const [removingItem, setRemovingItem] = useState<Rec | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [removingReq, setRemovingReq] = useState<Rec | null>(null);
+  const [ticking, setTicking] = useState<{ req: Rec; status: 'done' | 'not_applicable' } | null>(null);
 
   const load = useCallback(() => {
     api<Detail>('GET', `${DCK}/dockings/${id}`).then((r) => { setD(r); setError(null); }, (e: ApiError) => setError(e));
@@ -44,6 +46,13 @@ export function DockingDetailScreen() {
   const act = async (path: string, body: Record<string, unknown>) => { await api('POST', `${DCK}/dockings/${id}/${path}`, { expectedVersion: d?.version, ...body }); load(); };
   async function raiseWorkOrder(item: Rec) {
     try { const r = await api<Rec>('POST', `${DCK}/work-items/${item.id}/work-order`, {}); setNotice(t('dck.wo_raised', { no: String(r.workOrderNo) })); setError(null); load(); } catch (e) { setError(e as Error); }
+  }
+
+  async function refreshChecklist() {
+    try { const r = await api<{ added: number }>('POST', `${DCK}/dockings/${id}/requirements/refresh`, {}); setNotice(t('dck.req_refreshed', { n: String(r.added) })); setError(null); load(); } catch (e) { setError(e as Error); }
+  }
+  async function reopen(req: Rec) {
+    try { await api('PATCH', `${DCK}/requirements/${String(req.requirementId)}`, { expectedVersion: req.version, status: 'pending' }); setError(null); load(); } catch (e) { setError(e as Error); }
   }
 
   const button = (a: Action, labelKey: string, permission: string, when: boolean, primary = false) =>
@@ -92,6 +101,43 @@ export function DockingDetailScreen() {
         <dt>{t('dck.field.remarks')}</dt><dd>{show(d.remarks)}</dd>
         {d.cancelReason ? <><dt>{t('dck.field.cancelReason')}</dt><dd>{String(d.cancelReason)}</dd></> : null}
       </dl>
+
+      <div className="page-head">
+        <h2>{t('dck.title.requirements')}</h2>
+        <div className="tools">
+          {status === 'planned' && can('dck.requirement.create') ? <button onClick={() => void refreshChecklist()}>{t('dck.act.refresh_checklist')}</button> : null}
+          {open && can('dck.requirement.create') ? <button className="primary" onClick={() => setAction('new_req')}>{t('dck.new.requirement')}</button> : null}
+        </div>
+      </div>
+      <p className="muted">{t('dck.req_summary', { pending: String(d.reqPending ?? 0), total: String(d.reqTotal ?? 0), mandatory: String(d.reqMandatoryPending ?? 0) })}</p>
+      {d.requirementsWaiver ? <div className="banner warn" role="status">{t('dck.waived', { reason: String(d.requirementsWaiver) })}</div> : null}
+      <div className="table-wrap"><table>
+        <thead><tr>
+          <th scope="col">{t('dck.field.no')}</th><th scope="col">{t('dck.field.category')}</th><th scope="col">{t('dck.field.requirement')}</th><th scope="col">{t('dck.field.source')}</th>
+          <th scope="col">{t('dck.field.responsible')}</th><th scope="col">{t('dck.field.dueBy')}</th><th scope="col">{t('dck.field.status')}</th><th scope="col" className="actions-col">{t('common.actions')}</th>
+        </tr></thead>
+        <tbody>
+          {d.requirements.map((q) => (
+            <tr key={String(q.requirementId)}>
+              <td>{String(q.seq)}</td><td>{t(`dck.rcat.${String(q.category)}`)}</td>
+              <td>{String(q.title)}{q.mandatory ? <> <span className="chip warn">{t('dck.mandatory')}</span></> : null}
+                {q.reference || q.note ? <div className="muted">{[q.reference, q.note].filter(Boolean).map(String).join(' · ')}</div> : null}</td>
+              <td>{t(`dck.rsource.${String(q.source)}`)}</td><td>{show(q.responsible)}</td>
+              <td>{String(q.dueOn)}{q.overdue ? <> <span className="chip warn">{t('dck.overdue')}</span></> : null}</td>
+              <td><span className={`chip ${tone(q.status)}`}>{t(`dck.rstatus.${String(q.status)}`)}</span></td>
+              <td className="actions">
+                {open && can('dck.requirement.update') && q.status === 'pending' ? <>
+                  <button onClick={() => setTicking({ req: q, status: 'done' })}>{t('dck.act.req_done')}</button>
+                  <button onClick={() => setTicking({ req: q, status: 'not_applicable' })}>{t('dck.act.req_na')}</button>
+                </> : null}
+                {open && can('dck.requirement.update') && q.status !== 'pending' ? <button onClick={() => void reopen(q)}>{t('dck.act.reopen')}</button> : null}
+                {open && q.source === 'adhoc' && can('dck.requirement.remove') ? <button className="link-danger" onClick={() => setRemovingReq(q)}>{t('common.remove')}</button> : null}
+              </td>
+            </tr>
+          ))}
+          {d.requirements.length === 0 ? <tr><td colSpan={8} className="empty">{t('dck.requirements.empty')}</td></tr> : null}
+        </tbody>
+      </table></div>
 
       <div className="page-head">
         <h2>{t('dck.title.work_list')}</h2>
@@ -148,7 +194,11 @@ export function DockingDetailScreen() {
       ) : null}
       {action === 'dock_in' ? (
         <FormModal title={t('dck.act.dock_in')} record={null} tz={tz} submitKey="dck.act.dock_in" onClose={() => setAction(null)} defaults={{ dockId: String(d.dockId ?? '') }}
-          fields={[{ key: 'dockId', labelKey: 'dck.field.dock', type: 'select', required: true, options: docks }, { key: 'dockedAt', labelKey: 'dck.field.dockedAt', type: 'datetime', hintKey: 'dck.hint.now' }]}
+          extra={Number(d.reqMandatoryPending) > 0 ? <div className="banner warn">{t('dck.dock_in_pending', { n: String(d.reqMandatoryPending) })}</div> : undefined}
+          fields={[
+            { key: 'dockId', labelKey: 'dck.field.dock', type: 'select', required: true, options: docks }, { key: 'dockedAt', labelKey: 'dck.field.dockedAt', type: 'datetime', hintKey: 'dck.hint.now' },
+            ...(Number(d.reqMandatoryPending) > 0 ? [{ key: 'requirementsWaiver', labelKey: 'dck.field.waiver', type: 'textarea' as const, required: true, maxLength: 500, hintKey: 'dck.hint.waiver' }] : []),
+          ]}
           onSubmit={(body) => act('dock-in', body)} />
       ) : null}
       {action === 'undock' ? (
@@ -186,6 +236,22 @@ export function DockingDetailScreen() {
       {removingItem ? (
         <ReasonModal title={t('dck.remove.item', { no: String(removingItem.itemNo) })} onClose={() => setRemovingItem(null)}
           onConfirm={async (reason) => { await api('POST', `${DCK}/work-items/${removingItem.id}/tombstone`, { expectedVersion: removingItem.version, reason }); load(); }} />
+      ) : null}
+      {action === 'new_req' ? (
+        <FormModal title={t('dck.new.requirement')} fields={reqItemFields(false)} record={null} tz={tz} defaults={{ mandatory: true, leadDays: '7' }} submitKey="common.create" onClose={() => setAction(null)}
+          onSubmit={async (body) => { await api('POST', `${DCK}/dockings/${id}/requirements`, body); load(); }} />
+      ) : null}
+      {ticking ? (
+        <FormModal title={t(ticking.status === 'done' ? 'dck.act.req_done' : 'dck.act.req_na')} record={null} tz={tz} submitKey={ticking.status === 'done' ? 'dck.act.req_done' : 'dck.act.req_na'}
+          onClose={() => setTicking(null)}
+          fields={ticking.status === 'done'
+            ? [{ key: 'reference', labelKey: 'dck.field.reqReference', type: 'text', maxLength: 120, hintKey: 'dck.hint.req_reference' }, { key: 'note', labelKey: 'dck.field.note', type: 'textarea', maxLength: 1000 }]
+            : [{ key: 'note', labelKey: 'dck.field.naReason', type: 'textarea', required: true, maxLength: 1000 }]}
+          onSubmit={async (body) => { await api('PATCH', `${DCK}/requirements/${String(ticking.req.requirementId)}`, { expectedVersion: ticking.req.version, status: ticking.status, ...body }); load(); }} />
+      ) : null}
+      {removingReq ? (
+        <ReasonModal title={t('dck.remove.requirement', { no: String(removingReq.seq) })} onClose={() => setRemovingReq(null)}
+          onConfirm={async (reason) => { await api('POST', `${DCK}/requirements/${String(removingReq.requirementId)}/tombstone`, { expectedVersion: removingReq.version, reason }); load(); }} />
       ) : null}
       {action === 'survey' ? (
         <FormModal title={t('dck.new.survey')} fields={surveyFields()} record={null} tz={tz} submitKey="common.create" onClose={() => setAction(null)}

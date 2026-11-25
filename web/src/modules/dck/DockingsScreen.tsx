@@ -51,7 +51,7 @@ export function DockingsScreen() {
       <div className="table-wrap"><table>
         <thead><tr>
           <th scope="col">{t('dck.field.ship')}</th><th scope="col">{t('dck.field.reference')}</th><th scope="col">{t('dck.field.dock')}</th><th scope="col">{t('dck.field.type')}</th>
-          <th scope="col">{t('dck.field.planned')}</th><th scope="col">{t('dck.field.actual')}</th><th scope="col">{t('dck.field.status')}</th><th scope="col">{t('dck.field.workList')}</th>
+          <th scope="col">{t('dck.field.planned')}</th><th scope="col">{t('dck.field.actual')}</th><th scope="col">{t('dck.field.status')}</th><th scope="col">{t('dck.field.checklist')}</th><th scope="col">{t('dck.field.workList')}</th>
         </tr></thead>
         <tbody>
           {list.items.map((r) => (
@@ -65,10 +65,11 @@ export function DockingsScreen() {
                 {r.lateDockIn ? <> <span className="chip warn">{t('dck.late.dock_in')}</span></> : null}
                 {r.lateUndock ? <> <span className="chip warn">{t('dck.late.undock')}</span></> : null}
               </td>
+              <td>{t('dck.req_short', { pending: String(r.reqPending), total: String(r.reqTotal) })}{Number(r.reqOverdue) > 0 ? <> <span className="chip warn">{t('dck.overdue_n', { n: String(r.reqOverdue) })}</span></> : null}</td>
               <td>{t('dck.items_summary', { open: String(r.itemsOpen), total: String(r.itemsTotal) })}</td>
             </tr>
           ))}
-          {!list.loading && list.items.length === 0 ? <tr><td colSpan={8} className="empty">{t('dck.dockings.empty')}</td></tr> : null}
+          {!list.loading && list.items.length === 0 ? <tr><td colSpan={9} className="empty">{t('dck.dockings.empty')}</td></tr> : null}
         </tbody>
       </table></div>
       {list.hasMore ? <button onClick={list.loadMore}>{t('common.more')}</button> : null}

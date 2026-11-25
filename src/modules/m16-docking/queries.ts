@@ -4,7 +4,7 @@ import type { Db } from '../../platform/db/open.js';
 
 export type Row = Record<string, unknown>;
 
-const BOOLS = new Set(['late_dock_in', 'late_undock', 'action_required']);
+const BOOLS = new Set(['late_dock_in', 'late_undock', 'action_required', 'mandatory', 'overdue']);
 
 /** snake_case row → API shape; 0/1 flags become booleans. */
 export function toApi(row: Row): Row {
@@ -13,7 +13,10 @@ export function toApi(row: Row): Row {
   return out;
 }
 
-const TABLE = { dock: 'dck_dock', docking: 'dck_docking', work_item: 'dck_work_item' } as const;
+const TABLE = {
+  dock: 'dck_dock', docking: 'dck_docking', work_item: 'dck_work_item', req_template: 'dck_req_template', req_template_item: 'dck_req_template_item',
+  ship_req_item: 'dck_ship_req_item', requirement: 'dck_requirement',
+} as const;
 export function getLive(db: Db, noun: keyof typeof TABLE, id: string): Row | undefined {
   return db.prepare(`SELECT * FROM ${TABLE[noun]} WHERE id = ? AND deleted_at IS NULL`).get(id) as Row | undefined;
 }
