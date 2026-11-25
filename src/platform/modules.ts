@@ -8,7 +8,7 @@
  */
 export const MODULE_IDS = [
   'M01', 'M02', 'M03', 'M04', 'M05', 'M06', 'M07',
-  'M08', 'M09', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15',
+  'M08', 'M09', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16',
 ] as const;
 export type ModuleId = (typeof MODULE_IDS)[number];
 export type OwnerModule = ModuleId | 'platform';
@@ -43,6 +43,7 @@ export const MODULES: readonly ModuleManifest[] = [
   { id: 'M13', dir: 'm13-reports', tablePrefix: 'rpt', apiPrefix: '/api/v1/reports', dependsOn: [] },
   { id: 'M14', dir: 'm14-operations', tablePrefix: 'ops', apiPrefix: '/api/v1/ops', dependsOn: [] },
   { id: 'M15', dir: 'm15-office', tablePrefix: 'ofc', apiPrefix: '/api/v1/office', dependsOn: ['M01', 'M03', 'M05', 'M11'] },
+  { id: 'M16', dir: 'm16-docking', tablePrefix: 'dck', apiPrefix: '/api/v1/docking', dependsOn: ['M01', 'M03', 'M05'] },
 ];
 
 export const moduleById = (id: ModuleId): ModuleManifest => {

@@ -75,6 +75,7 @@ If two people edit the same record, the second one to save sees *"This record wa
 | **Labels and surveys** | QR labels, Compartment surveys, Survey forms | Sticking QR labels on equipment and checking compartments |
 | **Maintenance work** | Defects, Repair cases, Work orders, Advisories, Defect categories | Faults and the work to fix them |
 | **Planned maintenance** | Due list, Plans, Meters, Calibration, Task templates | Routine maintenance by date or running hours |
+| **Docking** | Docking due, Docking schedule, Docks | Dry-docking ships: planning, the docking work list and the underwater survey |
 | **Parts and stores** | Stock, Transfers, Parts, Stock locations | Spare parts and stock movements |
 | **Synchronization** | Sync status, Installations, Conflicts, Files (USB) | Exchanging data with the hub |
 | **Operations** | System health, Backups, Data checks | Looking after the installation |
@@ -455,6 +456,24 @@ Everything that is **Overdue**, **Due soon** or **Not yet due**, from plans and 
 ### Calibration
 
 **Record calibration** for an instrument: **Result** (*Pass*, *Adjusted*, *Fail*), **Certificate number**, **Calibrated by** and **Next due on**. Calibrations that are coming due appear on the due list.
+
+### Docking
+
+Ships are taken out of the water at intervals for hull, shaft, propeller, rudder and sea-valve work. The **Docking** menu has three screens.
+
+- **Docks** (hub): the docking facilities. Give a **Code**, **Name**, **Kind** (*Graving (dry) dock*, *Floating dock*, *Slipway*, *Ship lift*), the size limits and **Ships at a time** (default 1).
+- **Docking schedule**: every docking. Choose **Plan a docking**, pick the **Ship**, the **Dock** (it may be left empty until allotted), a **Reference** such as the docking order number, the **Type** and the **Planned docking** and **Planned undocking** dates. A ship cannot have two dockings planned at the same time. If two ships are planned into the same single-ship dock at overlapping dates, the schedule shows a warning.
+- **Docking due**: every ship with its state: *Overdue*, *Due within 90 days*, *No docking recorded*, *In dock*, *Undocked, not closed* or *Not yet due*.
+
+Open a docking from the schedule to work on it:
+
+1. **Docked in** when the ship enters the dock (the dock must be active and not full, and the ship must not be in another dock).
+2. **Add work** to build the docking work list: **Category**, **Work**, optionally the **Equipment tag**. **Raise work order** creates a maintenance work order for an item (see [section 9](#9-maintenance-work)); edit an item to set it *In progress*, *Done*, *Deferred* or *Cancelled*.
+3. **Record a finding** for the underwater survey: **Area**, **Condition** (*Good*, *Fair*, *Poor*, *Defective*), **Finding**, **Measurement** and **Action required**.
+4. **Undocked** when the ship leaves the dock.
+5. **Complete docking** once every work item is done, deferred or cancelled. Give when the next docking is due, as **months** from undocking (default 24) or as a date. The ship's line on **Docking due** then counts down to that date.
+
+A planned docking can be cancelled (with a reason) or, if entered by mistake, removed.
 
 ---
 

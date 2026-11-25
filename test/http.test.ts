@@ -43,7 +43,7 @@ describe('HTTP shell', () => {
 
   it('lists modules and registered entities', async () => {
     const app = buildApp(ctxFor(true));
-    expect((await app.inject('/api/v1/system/modules')).json().modules).toHaveLength(15);
+    expect((await app.inject('/api/v1/system/modules')).json().modules).toHaveLength(16);
     expect((await app.inject('/api/v1/system/entities')).json().entities.map((e: { type: string }) => e.type)).toContain('sys.audit_event');
   });
 });

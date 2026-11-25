@@ -19,6 +19,7 @@ Source of truth for the mechanical parts is `src/platform/modules.ts`; `test/bou
 | M13 | Reports, readiness, notifications | m13-reports | `rpt_` | /api/v1/reports | — (views) | R1 limited |
 | M14 | Integration, deployment, backup, recovery | m14-operations | `ops_` | /api/v1/ops | — | R1 |
 | M15 | Office management: SLE (E&T) II – North (OFFICE_R1_SPEC.md) | m15-office | `ofc_` | /api/v1/office | M01, M03, M05, M11 | R1 (office) |
+| M16 | Docking: docks, ship docking periods, docking work list, underwater survey | m16-docking | `dck_` | /api/v1/docking | M01, M03, M05 | R1 (docking) |
 
 Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 
@@ -49,6 +50,7 @@ Platform (M00) owns `src/platform/**`, prefix `sys_`, API `/api/v1/system`.
 | M13 | `runReport`, `dashboard`, `fleetStatus`, `windowOf`, `refreshNotifications`, `localFreshness`, `REPORTS` | — | `<prefix>_v_*` views of M01, M02, M03, M05, M06, M07, M10 |
 | M14 | `createBackup`, `verifyBackupFile`, `restoreBackup`, `upgradeWithBackup`, `runIntegrity`, `opsStatus`, `startBackupScheduler` | — | database file, entity registry, `org_v_assignment_overlap`, `org_v_deployment_overlap`, `ast_v_position_conflicts`, `stk_v_balance`, `syn_v_health` |
 | M15 | `OFC_PERMISSIONS`, `OFFICE_ROLES`, `ofcPermission`, `OFC_ENTITIES`, `OFFICE_SEQUENCES`, `ensureOfficeSequences`, `grantOfficeRanges`, `getUnit`, `unitTree`, `unitAndDescendants`, `linksOf`, `attachmentsOf`, `timelineOf` | entity registrations (`ofc.*`) | M01 `resolveParty`, Authorizer |
+| M16 | `DCK_PERMISSIONS`, `dckPermission`, `DCK_ENTITIES`, `currentDocking(db, shipId)`, `dockingDueForShip(db, shipId)`, `DCK_API_PREFIX` | entity registrations (`dck.*`); views `dck_v_docking`, `dck_v_ship_due`, `dck_v_dock_conflict` for M13 | M01 `resolveParty` and `org_v_ship_status_current`, M03 `getAsset`, M05 `createWorkOrder`, Authorizer |
 
 ## API conventions per module
 
