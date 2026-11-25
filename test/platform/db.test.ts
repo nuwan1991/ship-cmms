@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyMigrations, discoverMigrations, expandMacros, schemaVersions, type MigrationFile } from '../../src/platform/db/migrate.js';
+import { createHash } from 'node:crypto';
+import { applyMigrations, discoverMigrations, expandMacros, migrationText, schemaVersions, type MigrationFile } from '../../src/platform/db/migrate.js';
 import { openDatabase } from '../../src/platform/db/open.js';
 import { uuidv7 } from '../../src/platform/ids.js';
 import { makeEnv } from '../helpers.js';
@@ -19,6 +20,22 @@ describe('migrations', () => {
     const m: MigrationFile = { module: 'platform', id: '0001_x', sql: 'CREATE TABLE sys_x (a TEXT);', checksum: 'aaa' };
     applyMigrations(db, [m]);
     expect(() => applyMigrations(db, [{ ...m, checksum: 'bbb' }])).toThrow(/modified after being applied/);
+  });
+
+  it('treats a migration checked out with other line endings as unchanged, but still catches a real change (D77)', () => {
+    const db = openDatabase(':memory:');
+    const lf = '-- note\nCREATE TABLE sys_eol (a TEXT);\n';
+    const crlf = lf.replace(/\n/g, '\r\n');
+    const fromCrlf = migrationText(crlf);
+    expect(fromCrlf.sql).toBe(lf);
+    // Applied from a CRLF copy by an older version, which recorded the checksum of the CRLF bytes.
+    const legacy = createHash('sha256').update(crlf).digest('hex');
+    db.exec('CREATE TABLE IF NOT EXISTS sys_schema_migration (module TEXT NOT NULL, id TEXT NOT NULL, checksum TEXT NOT NULL, applied_at TEXT NOT NULL, PRIMARY KEY (module, id))');
+    db.exec('CREATE TABLE sys_eol (a TEXT)');
+    db.prepare("INSERT INTO sys_schema_migration VALUES ('platform', '0001_eol', ?, 'x')").run(legacy);
+    expect(applyMigrations(db, [{ module: 'platform', id: '0001_eol', ...migrationText(lf) }])).toEqual([]);
+    expect(applyMigrations(db, [{ module: 'platform', id: '0001_eol', ...fromCrlf }])).toEqual([]);
+    expect(() => applyMigrations(db, [{ module: 'platform', id: '0001_eol', ...migrationText(lf.replace('a TEXT', 'b TEXT')) }])).toThrow(/modified after being applied/);
   });
 
   it('rolls back a failing migration completely', () => {

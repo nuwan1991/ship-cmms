@@ -23,6 +23,8 @@ The other parts:
 | What | Link |
 |---|---|
 | This program (ZIP, latest) | https://github.com/nuwan1991/ship-cmms/archive/refs/heads/master.zip |
+| This program, version 1.3.0 exactly (ZIP) | https://github.com/nuwan1991/ship-cmms/archive/refs/tags/v1.3.0.zip (extracts to `ship-cmms-1.3.0`; rename it to `ship-cmms` the same way) |
+| What is in each version | [RELEASE_NOTES.md](RELEASE_NOTES.md) |
 | Program page on GitHub | https://github.com/nuwan1991/ship-cmms |
 | Node.js 22 for Windows (choose the file ending in `-x64.msi`) | https://nodejs.org/dist/latest-v22.x/ |
 | Node.js download page (choose version 22, Windows Installer .msi, x64) | https://nodejs.org/en/download |

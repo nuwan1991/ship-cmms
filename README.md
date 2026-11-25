@@ -22,6 +22,7 @@ Offline-first computerized maintenance management for a navy fleet. Every ship (
 | [SHIP_INSTALL.md](SHIP_INSTALL.md) | Step-by-step fresh install on a Windows ship computer, for ship staff, with test checklist and AI help prompt |
 | [USER_GUIDE.md](USER_GUIDE.md) | Using the screens |
 | [OFFICE_GUIDE.md](OFFICE_GUIDE.md) | SLE (E&T) II – North office: setup, use by role, acceptance checklist |
+| [RELEASE_NOTES.md](RELEASE_NOTES.md) | What is in each version, and how to upgrade to it (current: 1.3.0) |
 | [OFFICE_RELEASE.md](OFFICE_RELEASE.md) | Office Version 1.0: contents, known limits, deferred features |
 | [OFFICE_R1_SPEC.md](OFFICE_R1_SPEC.md) | Office Release 1 requirements specification |
 | [SWBS_REFERENCE.md](SWBS_REFERENCE.md) | Full SWBS list and the standard classification codes, for other departments |

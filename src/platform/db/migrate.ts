@@ -11,12 +11,25 @@ import { nowUtc } from '../time.js';
  * and every upgrade is preceded by a backup (M14). Files: `NNNN_name.sql`.
  * Platform migrations run first, then modules in dependency order.
  * An applied migration whose file later changes is a hard error (checksum).
+ * Line endings do not count as a change: Git on Windows may check files out with CRLF while a ZIP from GitHub has LF,
+ * so the checksum is taken over LF text and a checksum recorded from a CRLF copy is accepted too (D77).
  */
 export interface MigrationFile {
   module: string; // 'platform' | ModuleId
   id: string; // NNNN_name
   sql: string;
   checksum: string;
+  /** Checksums of the same text with other line endings, accepted for migrations applied from such a copy. */
+  altChecksums?: readonly string[];
+}
+
+const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
+/** A migration file's text with LF line endings, its checksum, and the checksums of the same text as CRLF or as read (D77). */
+export function migrationText(raw: string): { sql: string; checksum: string; altChecksums: string[] } {
+  const sql = raw.replace(/\r\n/g, '\n');
+  const checksum = sha256(sql);
+  const alt = [...new Set([sha256(sql.replace(/\n/g, '\r\n')), sha256(raw)])].filter((c) => c !== checksum);
+  return { sql, checksum, altChecksums: alt };
 }
 
 const SYNC_COLUMNS = `id TEXT PRIMARY KEY NOT NULL,
@@ -67,8 +80,7 @@ function readDir(module: string, dir: string): MigrationFile[] {
     .filter((f) => /^\d{4}_[a-z0-9_]+\.sql$/.test(f))
     .sort()
     .map((f) => {
-      const sql = readFileSync(join(dir, f), 'utf8');
-      return { module, id: f.replace(/\.sql$/, ''), sql, checksum: createHash('sha256').update(sql).digest('hex') };
+      return { module, id: f.replace(/\.sql$/, ''), ...migrationText(readFileSync(join(dir, f), 'utf8')) };
     });
 }
 
@@ -88,7 +100,7 @@ export function applyMigrations(db: Db, migrations: readonly MigrationFile[]): s
   for (const m of migrations) {
     const row = get.get(m.module, m.id) as { checksum: string } | undefined;
     if (row) {
-      if (row.checksum !== m.checksum) throw new Error(`Migration ${m.module}/${m.id} was modified after being applied`);
+      if (row.checksum !== m.checksum && !(m.altChecksums ?? []).includes(row.checksum)) throw new Error(`Migration ${m.module}/${m.id} was modified after being applied`);
       continue;
     }
     db.transaction(() => {

@@ -45,7 +45,8 @@ async function office() {
   return { env, cmd, users, as, oic, radar, pumps, people };
 }
 
-describe('Release 1 acceptance (§11)', () => {
+// End-to-end flows with real sign-ins (scrypt): about 2.5 s each alone, much longer when the whole suite runs in parallel.
+describe('Release 1 acceptance (§11)', { timeout: 30_000 }, () => {
   it('criteria 1, 2, 7, 10: letter → linked task → assign, track, delay reason, complete, verify, close; changes traceable', async () => {
     const o = await office();
     const clerk = o.as('po');
